@@ -261,14 +261,17 @@ function toggleLanguage() {
     const langButton = document.getElementById('currentLang');
     langButton.textContent = currentLanguage === 'en' ? 'English' : 'اردو';
     
+    const newLanguageCode = currentLanguage === 'en' ? 'en-US' : 'ur-PK';
+    
     // Update voice assistant language if available
     if (typeof setVoiceLanguage === 'function') {
-        setVoiceLanguage(currentLanguage === 'en' ? 'en-US' : 'ur-PK');
+        setVoiceLanguage(newLanguageCode);
     }
     
     // Update global voice assistant language
     if (typeof voiceAssistant !== 'undefined' && voiceAssistant) {
-        voiceAssistant.setLanguage(currentLanguage === 'en' ? 'en-US' : 'ur-PK');
+        voiceAssistant.setLanguage(newLanguageCode);
+        voiceAssistant.currentLanguage = newLanguageCode; // Force update
     }
     
     // Update placeholder text
@@ -276,6 +279,11 @@ function toggleLanguage() {
     input.placeholder = currentLanguage === 'en' 
         ? 'Type your medical question here...'
         : 'یہاں اپنا طبی سوال ٹائپ کریں...';
+    
+    // Show language change confirmation
+    updateChatStatus(currentLanguage === 'en' ? 'Language changed to English' : 'زبان اردو میں تبدیل ہو گئی');
+    
+    console.log('Language changed to:', currentLanguage, 'Voice language:', newLanguageCode);
 }
 
 // Function to toggle voice input
@@ -369,27 +377,45 @@ async function sendMessage() {
             // Add bot response to chat
             addMessageToChat('bot', data.response);
             
-            // Speak response if voice is enabled
-            if (typeof speakText === 'function') {
+            // Speak response with correct language
+            const ttsLanguage = currentLanguage === 'en' ? 'en-US' : 'ur-PK';
+            const ttsOptions = {
+                language: ttsLanguage,
+                rate: currentLanguage === 'en' ? 0.9 : 0.8,
+                pitch: currentLanguage === 'en' ? 1.0 : 1.1,
+                volume: 0.8
+            };
+            
+            console.log('Attempting TTS with language:', ttsLanguage, 'for text:', data.response.substring(0, 50) + '...');
+            
+            // Try voice assistant first (primary method)
+            if (typeof voiceAssistant !== 'undefined' && voiceAssistant) {
                 try {
-                    await speakText(data.response, {
-                        language: currentLanguage === 'en' ? 'en-US' : 'ur-PK',
-                        rate: currentLanguage === 'en' ? 0.9 : 0.8,
-                        pitch: currentLanguage === 'en' ? 1.0 : 1.1
-                    });
+                    // Ensure voice assistant is set to correct language
+                    voiceAssistant.setLanguage(ttsLanguage);
+                    await voiceAssistant.speak(data.response, ttsOptions);
+                    console.log('TTS successful with voiceAssistant');
                 } catch (error) {
-                    console.log('Text-to-speech not available');
+                    console.log('Voice Assistant TTS failed:', error);
+                    // Fallback to speakText function
+                    if (typeof speakText === 'function') {
+                        try {
+                            await speakText(data.response, ttsOptions);
+                            console.log('TTS successful with speakText');
+                        } catch (fallbackError) {
+                            console.log('Fallback TTS also failed:', fallbackError);
+                        }
+                    }
                 }
-            } else if (typeof voiceAssistant !== 'undefined' && voiceAssistant) {
+            } else if (typeof speakText === 'function') {
                 try {
-                    await voiceAssistant.speak(data.response, {
-                        language: currentLanguage === 'en' ? 'en-US' : 'ur-PK',
-                        rate: currentLanguage === 'en' ? 0.9 : 0.8,
-                        pitch: currentLanguage === 'en' ? 1.0 : 1.1
-                    });
+                    await speakText(data.response, ttsOptions);
+                    console.log('TTS successful with speakText');
                 } catch (error) {
-                    console.log('Voice Assistant TTS not available');
+                    console.log('Text-to-speech not available:', error);
                 }
+            } else {
+                console.log('No TTS methods available');
             }
             
         } else {
