@@ -66,6 +66,10 @@ def create_app():
     def shop():
         return render_template("shop.html")
     
+    @app.route("/consultation")
+    def consultation():
+        return render_template("consultation.html")
+    
     @app.errorhandler(403)
     def forbidden(error):
         return render_template("403.html"), 403

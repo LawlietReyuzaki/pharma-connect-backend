@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+
+{% block title %}Consultation - Red Dot Pharmacy{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="py-5 bg-gradient-primary">
+    <div class="container">
+        <div class="row py-5">
+            <div class="col-lg-8 mx-auto text-center text-white">
+                <h1 class="display-4 fw-bold mb-4">Online Medical Consultation</h1>
+                <p class="lead mb-4">Book a video consultation with our qualified doctors from the comfort of your home</p>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="feature-highlight text-center">
+                            <i class="fas fa-video fa-3x text-white mb-3"></i>
+                            <h5>Video Consultation</h5>
+                            <p class="small">High-quality video calls with doctors</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="feature-highlight text-center">
+                            <i class="fas fa-user-md fa-3x text-white mb-3"></i>
+                            <h5>Expert Doctors</h5>
+                            <p class="small">Qualified and experienced medical professionals</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="feature-highlight text-center">
+                            <i class="fas fa-clock fa-3x text-white mb-3"></i>
+                            <h5>Flexible Timing</h5>
+                            <p class="small">Book appointments at your convenience</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Consultation Booking Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-4">
+                <img src="https://pixabay.com/get/g5701e7af97e3199562c85d0c7a9e8017e7e6f527491d302256d54d37e1eda35b7f9f51599b75d9301f16167be58f9c6054cf7785b471adb05e5fd2143a011da6_1280.jpg" 
+                     alt="Online Medical Consultation" 
+                     class="img-fluid rounded-3 shadow">
+            </div>
+            <div class="col-lg-6">
+                <div class="consultation-form">
+                    <div class="card border-0 shadow">
+                        <div class="card-body p-4">
+                            <h4 class="card-title text-danger mb-4">Book Your Consultation</h4>
+                            
+                            <form id="consultationForm">
+                                <div class="mb-3">
+                                    <label class="form-label">Select Doctor</label>
+                                    <select class="form-select" id="doctorSelect" required>
+                                        <option value="">Choose a doctor...</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Preferred Date</label>
+                                    <input type="date" class="form-control" id="consultationDate" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Available Time Slots</label>
+                                    <div id="timeSlots" class="time-slots">
+                                        <!-- Time slots will be loaded here -->
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Describe Your Symptoms</label>
+                                    <textarea class="form-control" id="symptoms" rows="3" 
+                                              placeholder="Please describe your symptoms or health concerns..." required></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Additional Notes (Optional)</label>
+                                    <textarea class="form-control" id="consultationNotes" rows="2" 
+                                              placeholder="Any additional information for the doctor..."></textarea>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-danger w-100">
+                                    <i class="fas fa-calendar-plus me-2"></i>Book Consultation
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Available Doctors Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="row mb-5">
+            <div class="col-lg-8 mx-auto text-center">
+                <h2 class="display-5 fw-bold text-dark mb-4">Our Available Doctors</h2>
+                <p class="lead text-muted">Meet our qualified medical professionals ready to help you</p>
+            </div>
+        </div>
+        
+        <div class="row" id="doctorGrid">
+            <!-- Doctors will be loaded here -->
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row mb-5">
+            <div class="col-lg-8 mx-auto text-center">
+                <h2 class="display-5 fw-bold text-dark mb-4">How It Works</h2>
+                <p class="lead text-muted">Simple steps to get medical consultation online</p>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="text-center">
+                    <div class="step-icon mb-3">
+                        <i class="fas fa-user-plus fa-3x text-danger"></i>
+                    </div>
+                    <h5>1. Create Account</h5>
+                    <p class="text-muted">Sign up or login to your Red Dot Pharmacy account</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="text-center">
+                    <div class="step-icon mb-3">
+                        <i class="fas fa-calendar-alt fa-3x text-danger"></i>
+                    </div>
+                    <h5>2. Book Appointment</h5>
+                    <p class="text-muted">Choose your preferred doctor and available time slot</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="text-center">
+                    <div class="step-icon mb-3">
+                        <i class="fas fa-video fa-3x text-danger"></i>
+                    </div>
+                    <h5>3. Video Consultation</h5>
+                    <p class="text-muted">Join the video call at your scheduled time</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="text-center">
+                    <div class="step-icon mb-3">
+                        <i class="fas fa-prescription-bottle fa-3x text-danger"></i>
+                    </div>
+                    <h5>4. Get Prescription</h5>
+                    <p class="text-muted">Receive digital prescription and order medicines</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Benefits Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="row mb-5">
+            <div class="col-lg-8 mx-auto text-center">
+                <h2 class="display-5 fw-bold text-dark mb-4">Why Choose Online Consultation?</h2>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="d-flex align-items-start">
+                    <div class="flex-shrink-0 me-3">
+                        <i class="fas fa-home fa-2x text-danger"></i>
+                    </div>
+                    <div>
+                        <h5>Convenience</h5>
+                        <p class="text-muted">Consult from the comfort of your home without traveling</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="d-flex align-items-start">
+                    <div class="flex-shrink-0 me-3">
+                        <i class="fas fa-clock fa-2x text-danger"></i>
+                    </div>
+                    <div>
+                        <h5>Save Time</h5>
+                        <p class="text-muted">No waiting rooms or long queues, just quick consultations</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="d-flex align-items-start">
+                    <div class="flex-shrink-0 me-3">
+                        <i class="fas fa-shield-alt fa-2x text-danger"></i>
+                    </div>
+                    <div>
+                        <h5>Safe & Secure</h5>
+                        <p class="text-muted">HIPAA compliant platform ensuring your privacy</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="d-flex align-items-start">
+                    <div class="flex-shrink-0 me-3">
+                        <i class="fas fa-money-bill-wave fa-2x text-danger"></i>
+                    </div>
+                    <div>
+                        <h5>Affordable</h5>
+                        <p class="text-muted">Cost-effective consultations without compromising quality</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Auth Modals -->
+<div class="modal fade" id="loginModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-sign-in-alt text-danger me-2"></i>Login to Red Dot Pharmacy
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="loginEmail" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-danger w-100">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login
+                    </button>
+                </form>
+                <hr>
+                <p class="text-center text-muted">
+                    Don't have an account? 
+                    <a href="#" onclick="showRegister()" class="text-danger">Register here</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="registerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus text-danger me-2"></i>Create Account
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="registerForm">
+                    <div class="mb-3">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="registerName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="registerEmail" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" id="registerPhone" placeholder="03XX-XXXXXXX" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" id="registerPassword" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="confirmPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-danger w-100">
+                        <i class="fas fa-user-plus me-2"></i>Create Account
+                    </button>
+                </form>
+                <hr>
+                <p class="text-center text-muted">
+                    Already have an account? 
+                    <a href="#" onclick="showLogin()" class="text-danger">Login here</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+}
+
+.time-slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.time-slot {
+    padding: 8px 12px;
+    border: 2px solid #dee2e6;
+    border-radius: 5px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.time-slot:hover {
+    border-color: #dc3545;
+    background-color: #fff5f5;
+}
+
+.time-slot.selected {
+    border-color: #dc3545;
+    background-color: #dc3545;
+    color: white;
+}
+
+.time-slot.unavailable {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.feature-highlight {
+    padding: 2rem 1rem;
+}
+
+.step-icon {
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+</style>
+{% endblock %}
