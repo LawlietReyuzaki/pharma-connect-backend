@@ -157,6 +157,132 @@ body {
     color: white;
 }
 
+/* Shopping Section Enhancements */
+.bg-gradient-light {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 50%, #f8f9fa 100%);
+}
+
+.shopping-header {
+    text-align: center;
+    position: relative;
+}
+
+.shopping-header .badge {
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    border-radius: 25px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.feature-highlight {
+    padding: 1rem;
+    border-radius: 10px;
+    transition: transform 0.3s ease;
+}
+
+.feature-highlight:hover {
+    transform: translateY(-5px);
+}
+
+/* Buy Now Button Styling */
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.btn-success.disabled {
+    transform: none;
+    box-shadow: none;
+}
+
+/* Quick Checkout Modal Enhancements */
+#quickCheckoutModal .modal-content {
+    border-radius: 15px;
+    box-shadow: var(--shadow-lg);
+}
+
+#quickCheckoutModal .modal-header {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+}
+
+#quickCheckoutModal .modal-header .btn-close {
+    filter: invert(1);
+}
+
+.order-summary-card {
+    background: linear-gradient(135deg, #f8f9fa, #ffffff);
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+}
+
+/* Medicine Card Enhancements */
+.medicine-card .btn-success {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.medicine-card .btn-success:hover {
+    background: linear-gradient(135deg, #218838, #1ac487);
+}
+
+.medicine-card .btn-success:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+/* Search and Filter Section */
+.search-form .btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+/* Additional Responsive Styling */
+@media (max-width: 768px) {
+    .shopping-header h2 {
+        font-size: 2.5rem;
+    }
+    
+    .feature-highlight {
+        margin-bottom: 1rem;
+    }
+    
+    .medicine-card .d-flex.gap-2 {
+        flex-direction: column;
+        gap: 0.5rem !important;
+    }
+    
+    .medicine-card .btn {
+        width: 100%;
+    }
+}
+
 /* Doctor Cards */
 .doctor-card {
     border: none;

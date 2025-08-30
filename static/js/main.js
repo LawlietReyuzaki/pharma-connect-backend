@@ -230,7 +230,7 @@ class RedDotPharmacy {
                                 <span class="medicine-price">PKR ${medicine.price}</span>
                                 <small class="text-muted">${medicine.category || 'General'}</small>
                             </div>
-                            <div class="d-flex gap-2">
+                            <div class="d-flex gap-2 mb-2">
                                 <button class="btn btn-outline-danger btn-sm flex-fill" 
                                         onclick="app.viewMedicine(${medicine.id})"
                                         title="View Details">
@@ -243,6 +243,12 @@ class RedDotPharmacy {
                                     <i class="fas fa-cart-plus me-1"></i>Add to Cart
                                 </button>
                             </div>
+                            <button class="btn btn-success btn-sm w-100 ${medicine.status !== 'in_stock' ? 'disabled' : ''}" 
+                                    onclick="app.buyNow(${medicine.id})"
+                                    ${medicine.status !== 'in_stock' ? 'disabled' : ''}
+                                    title="Buy Now">
+                                <i class="fas fa-bolt me-1"></i>Buy Now
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -369,6 +375,191 @@ class RedDotPharmacy {
         localStorage.setItem('cart', JSON.stringify(this.cart));
         this.updateCartDisplay();
         this.showSuccess(`${medicine.name} added to cart!`);
+    }
+
+    buyNow(medicineId) {
+        const medicine = this.medicines.find(m => m.id === medicineId);
+        if (!medicine) {
+            this.showError('Medicine not found');
+            return;
+        }
+
+        if (medicine.status !== 'in_stock') {
+            this.showError('This medicine is currently out of stock');
+            return;
+        }
+
+        // Check if user is logged in
+        if (!this.authToken) {
+            this.showError('Please login to place an order');
+            this.showLogin();
+            return;
+        }
+
+        // Show quick checkout modal for this specific medicine
+        this.showQuickCheckoutModal(medicine);
+    }
+
+    showQuickCheckoutModal(medicine) {
+        const modalHtml = `
+            <div class="modal fade" id="quickCheckoutModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class="fas fa-bolt text-success me-2"></i>Quick Checkout
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Order Summary -->
+                            <div class="mb-4">
+                                <h6>Order Summary</h6>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-3">
+                                                <img src="${medicine.image_url || 'https://pixabay.com/get/g7f4583c94af9a1854eb8b3aa95302ecc29bfb74ed9e4a49eda99a8d292810723fe0fa0624331e0b8a0976b75b535ad2cea69e85568e6e30d421d9e3ac8f3dfd1_1280.png'}" 
+                                                     alt="${medicine.name}" class="img-fluid rounded">
+                                            </div>
+                                            <div class="col-6">
+                                                <h6 class="mb-1">${medicine.name}</h6>
+                                                <small class="text-muted">${medicine.chemical || 'Generic Medicine'}</small>
+                                                <br><small class="text-muted">Quantity: 1</small>
+                                            </div>
+                                            <div class="col-3 text-end">
+                                                <strong class="text-danger">PKR ${medicine.price}</strong>
+                                            </div>
+                                        </div>
+                                        <hr>
+                                        <div class="d-flex justify-content-between">
+                                            <span>Subtotal:</span>
+                                            <span>PKR ${medicine.price}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span>Delivery:</span>
+                                            <span>PKR 100</span>
+                                        </div>
+                                        <hr>
+                                        <div class="d-flex justify-content-between">
+                                            <strong>Total:</strong>
+                                            <strong class="text-danger">PKR ${medicine.price + 100}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Delivery Details -->
+                            <form id="quickCheckoutForm">
+                                <div class="mb-3">
+                                    <label class="form-label">Delivery Address *</label>
+                                    <textarea class="form-control" id="quickDeliveryAddress" rows="3" 
+                                              placeholder="Enter your complete delivery address..." required></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Contact Number *</label>
+                                    <input type="tel" class="form-control" id="quickDeliveryPhone" 
+                                           placeholder="Enter your contact number" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Payment Method</label>
+                                    <select class="form-select" id="quickPaymentMethod">
+                                        <option value="cash_on_delivery">Cash on Delivery</option>
+                                    </select>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-success" onclick="app.processQuickOrder(${medicine.id})">
+                                <i class="fas fa-bolt me-1"></i>Place Order - PKR ${medicine.price + 100}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if any
+        const existingModal = document.getElementById('quickCheckoutModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Add modal to body
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('quickCheckoutModal'));
+        modal.show();
+    }
+
+    async processQuickOrder(medicineId) {
+        const medicine = this.medicines.find(m => m.id === medicineId);
+        if (!medicine) {
+            this.showError('Medicine not found');
+            return;
+        }
+
+        const address = document.getElementById('quickDeliveryAddress')?.value?.trim();
+        const phone = document.getElementById('quickDeliveryPhone')?.value?.trim();
+        const paymentMethod = document.getElementById('quickPaymentMethod')?.value || 'cash_on_delivery';
+
+        if (!address) {
+            this.showError('Please enter your delivery address');
+            return;
+        }
+
+        if (!phone) {
+            this.showError('Please enter your contact number');
+            return;
+        }
+
+        try {
+            this.showLoading();
+
+            const orderData = {
+                address: address,
+                phone: phone,
+                payment_method: paymentMethod,
+                items: [{
+                    medicine_id: medicineId,
+                    quantity: 1,
+                    price_each: medicine.price
+                }]
+            };
+
+            const response = await fetch('/api/orders', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.authToken}`
+                },
+                body: JSON.stringify(orderData)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Hide the modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('quickCheckoutModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                
+                this.showSuccess(`Order placed successfully! Order ID: #${data.order.id}. Expected delivery: ${data.order.estimated_delivery}`);
+                
+                // Reload medicines to update stock display
+                this.loadMedicines();
+            } else {
+                this.showError(data.error || 'Failed to place order');
+            }
+        } catch (error) {
+            console.error('Error placing quick order:', error);
+            this.showError('Failed to place order. Please try again.');
+        } finally {
+            this.hideLoading();
+        }
     }
 
     removeFromCart(medicineId) {
