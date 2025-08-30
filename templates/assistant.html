@@ -3,34 +3,29 @@
 {% block title %}AI Assistant - Red Dot Pharmacy{% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-<section class="py-5 bg-gradient-primary">
+<!-- Compact Header -->
+<section class="py-3 bg-gradient-primary">
     <div class="container">
-        <div class="row py-5">
-            <div class="col-lg-8 mx-auto text-center text-white">
-                <h1 class="display-4 fw-bold mb-4">AI Medical Assistant</h1>
-                <p class="lead mb-4">Ask health questions in English or Urdu with voice support and get instant medical guidance</p>
+        <div class="row">
+            <div class="col-lg-10 mx-auto text-center text-white">
+                <h3 class="fw-bold mb-2">AI Medical Assistant</h3>
+                <p class="mb-2">Ask health questions in English or Urdu with voice support</p>
                 <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <div class="feature-highlight text-center">
-                            <i class="fas fa-microphone fa-3x text-white mb-3"></i>
-                            <h5>Voice Support</h5>
-                            <p class="small">Speak your questions in Urdu or English</p>
-                        </div>
+                    <div class="col-3">
+                        <i class="fas fa-microphone fa-lg me-2"></i>
+                        <small>Voice Support</small>
                     </div>
-                    <div class="col-md-4 mb-3">
-                        <div class="feature-highlight text-center">
-                            <i class="fas fa-shield-alt fa-3x text-white mb-3"></i>
-                            <h5>Medical Safety</h5>
-                            <p class="small">Built-in safety features for medical advice</p>
-                        </div>
+                    <div class="col-3">
+                        <i class="fas fa-shield-alt fa-lg me-2"></i>
+                        <small>Medical Safety</small>
                     </div>
-                    <div class="col-md-4 mb-3">
-                        <div class="feature-highlight text-center">
-                            <i class="fas fa-language fa-3x text-white mb-3"></i>
-                            <h5>Bilingual Support</h5>
-                            <p class="small">Available in English and Urdu</p>
-                        </div>
+                    <div class="col-3">
+                        <i class="fas fa-language fa-lg me-2"></i>
+                        <small>Bilingual Support</small>
+                    </div>
+                    <div class="col-3">
+                        <i class="fas fa-robot fa-lg me-2"></i>
+                        <small>AI Powered</small>
                     </div>
                 </div>
             </div>
@@ -38,85 +33,11 @@
     </div>
 </section>
 
-<!-- Sample Questions Section -->
-<section class="py-5 bg-light">
+<!-- Main Chat Interface -->
+<section class="py-4">
     <div class="container">
         <div class="row">
-            <div class="col-lg-8 mx-auto">
-                <h3 class="text-center mb-4">Sample Questions You Can Ask</h3>
-                <div class="row">
-                    <!-- English Questions -->
-                    <div class="col-md-6 mb-4">
-                        <h5 class="text-danger mb-3"><i class="fas fa-flag"></i> English Questions</h5>
-                        <div class="sample-questions">
-                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
-                                <i class="fas fa-thermometer-half me-2"></i>
-                                "What should I do for fever?"
-                            </div>
-                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
-                                <i class="fas fa-head-side-cough me-2"></i>
-                                "How to treat a headache?"
-                            </div>
-                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
-                                <i class="fas fa-lungs me-2"></i>
-                                "What medicines help with cough?"
-                            </div>
-                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
-                                <i class="fas fa-stomach me-2"></i>
-                                "Remedies for stomach pain?"
-                            </div>
-                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
-                                <i class="fas fa-pills me-2"></i>
-                                "How often should I take paracetamol?"
-                            </div>
-                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
-                                <i class="fas fa-heartbeat me-2"></i>
-                                "What are symptoms of high blood pressure?"
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Urdu Questions -->
-                    <div class="col-md-6 mb-4">
-                        <h5 class="text-danger mb-3"><i class="fas fa-flag"></i> Urdu Questions - اردو سوالات</h5>
-                        <div class="sample-questions">
-                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
-                                <i class="fas fa-thermometer-half me-2"></i>
-                                "بخار کے لیے کیا کروں؟"
-                            </div>
-                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
-                                <i class="fas fa-head-side-cough me-2"></i>
-                                "سر درد کا علاج کیا ہے؟"
-                            </div>
-                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
-                                <i class="fas fa-lungs me-2"></i>
-                                "کھانسی کی دوا کون سی ہے؟"
-                            </div>
-                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
-                                <i class="fas fa-stomach me-2"></i>
-                                "پیٹ درد کے لیے کیا کروں؟"
-                            </div>
-                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
-                                <i class="fas fa-pills me-2"></i>
-                                "پیراسیٹامول کتنی بار لینا چاہیے؟"
-                            </div>
-                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
-                                <i class="fas fa-heartbeat me-2"></i>
-                                "ہائی بلڈ پریشر کی علامات کیا ہیں؟"
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Chat Interface Section -->
-<section class="py-5">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-8 mx-auto">
+            <div class="col-lg-10 mx-auto">
                 <div class="chat-container">
                     <div class="card shadow-lg border-0">
                         <!-- Chat Header -->
@@ -151,8 +72,37 @@
                                         </div>
                                         <div class="message-content">
                                             <div class="message-bubble bot">
-                                                <p class="mb-1">Hello! I'm your medical assistant. You can ask me health-related questions in English or Urdu. I can help with basic medical information, but for serious health concerns, please consult a doctor.</p>
-                                                <p class="mb-0 text-muted"><small>سلام! میں آپ کا طبی مددگار ہوں۔ آپ مجھ سے انگریزی یا اردو میں صحت سے متعلق سوالات پوچھ سکتے ہیں۔</small></p>
+                                                <p class="mb-2">Hello! I'm your medical assistant. Ask me health questions in English or Urdu.</p>
+                                                <p class="mb-3 text-muted"><small>سلام! میں آپ کا طبی مددگار ہوں۔ صحت کے بارے میں سوال پوچھیں۔</small></p>
+                                                
+                                                <!-- Sample Questions in Chat -->
+                                                <div class="sample-questions-in-chat">
+                                                    <p class="mb-2"><strong>Try these sample questions:</strong></p>
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <div class="sample-question-inline mb-2" onclick="askQuestion('What should I do for fever?')">
+                                                                <i class="fas fa-thermometer-half me-1"></i> What should I do for fever?
+                                                            </div>
+                                                            <div class="sample-question-inline mb-2" onclick="askQuestion('How to treat a headache?')">
+                                                                <i class="fas fa-head-side-cough me-1"></i> How to treat a headache?
+                                                            </div>
+                                                            <div class="sample-question-inline mb-2" onclick="askQuestion('What medicines help with cough?')">
+                                                                <i class="fas fa-lungs me-1"></i> What medicines help with cough?
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="sample-question-inline mb-2" onclick="askQuestion('بخار کے لیے کیا کروں؟')">
+                                                                <i class="fas fa-thermometer-half me-1"></i> بخار کے لیے کیا کروں؟
+                                                            </div>
+                                                            <div class="sample-question-inline mb-2" onclick="askQuestion('سر درد کا علاج کیا ہے؟')">
+                                                                <i class="fas fa-head-side-cough me-1"></i> سر درد کا علاج کیا ہے؟
+                                                            </div>
+                                                            <div class="sample-question-inline mb-2" onclick="askQuestion('کھانسی کی دوا کون سی ہے؟')">
+                                                                <i class="fas fa-lungs me-1"></i> کھانسی کی دوا کون سی ہے؟
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                             <small class="text-muted">Just now</small>
                                         </div>
@@ -507,6 +457,24 @@ function showError(message) {
 </script>
 
 <style>
+.sample-question-inline {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 13px;
+    color: #495057;
+}
+
+.sample-question-inline:hover {
+    background: #e9ecef;
+    border-color: #dc3545;
+    color: #dc3545;
+    transform: translateY(-1px);
+}
+
 .sample-questions .question-card {
     background: white;
     border: 1px solid #e0e0e0;
