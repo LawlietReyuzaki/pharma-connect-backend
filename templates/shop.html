@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+
+{% block title %}Shop - Red Dot Pharmacy{% endblock %}
+
+{% block content %}
+<!-- Shop Hero Section -->
+<section class="shop-hero-section py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8 mx-auto text-center">
+                <div class="shop-hero-content">
+                    <div class="mb-4">
+                        <span class="badge bg-success mb-3 px-4 py-2 fs-6">
+                            🛒 Official Red Dot Pharmacy Store
+                        </span>
+                    </div>
+                    <h1 class="display-3 fw-bold text-dark mb-4">
+                        Your Complete <span class="text-danger">Medicine Store</span>
+                    </h1>
+                    <p class="lead text-muted mb-5">
+                        Discover our extensive collection of quality medicines, healthcare products, and wellness solutions. 
+                        Fast delivery, authentic medicines, competitive prices, and expert advice - all in one place.
+                    </p>
+                    
+                    <!-- Key Features Grid -->
+                    <div class="row mb-5">
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="feature-box">
+                                <div class="feature-icon mb-3">
+                                    <i class="fas fa-shipping-fast text-danger fa-3x"></i>
+                                </div>
+                                <h6 class="fw-bold">Express Delivery</h6>
+                                <small class="text-muted">Same day delivery in Islamabad</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="feature-box">
+                                <div class="feature-icon mb-3">
+                                    <i class="fas fa-certificate text-danger fa-3x"></i>
+                                </div>
+                                <h6 class="fw-bold">100% Authentic</h6>
+                                <small class="text-muted">Genuine medicines from trusted suppliers</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="feature-box">
+                                <div class="feature-icon mb-3">
+                                    <i class="fas fa-bolt text-danger fa-3x"></i>
+                                </div>
+                                <h6 class="fw-bold">Buy Now</h6>
+                                <small class="text-muted">Skip cart for instant checkout</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="feature-box">
+                                <div class="feature-icon mb-3">
+                                    <i class="fas fa-user-md text-danger fa-3x"></i>
+                                </div>
+                                <h6 class="fw-bold">Expert Advice</h6>
+                                <small class="text-muted">Qualified pharmacists available</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="row text-center mb-4">
+                        <div class="col-3">
+                            <div class="stat-highlight">
+                                <h3 class="text-success fw-bold mb-1" id="shopMedicineCount">500+</h3>
+                                <small class="text-muted">Quality Medicines</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="stat-highlight">
+                                <h3 class="text-success fw-bold mb-1">15+</h3>
+                                <small class="text-muted">Categories</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="stat-highlight">
+                                <h3 class="text-success fw-bold mb-1">24/7</h3>
+                                <small class="text-muted">Service</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="stat-highlight">
+                                <h3 class="text-success fw-bold mb-1">₨100</h3>
+                                <small class="text-muted">Delivery Fee</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Enhanced Search Section -->
+<section class="search-section py-4 bg-light">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="search-container">
+                    <div class="input-group input-group-lg shadow">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0" id="shopMedicineSearch" 
+                               placeholder="Search medicines by name, condition, or active ingredient...">
+                        <button class="btn btn-danger px-4" type="button" onclick="searchShopMedicines()">
+                            <i class="fas fa-search me-2"></i>Search
+                        </button>
+                    </div>
+                    <div class="search-suggestions mt-3">
+                        <small class="text-muted">Popular searches: </small>
+                        <span class="badge bg-outline-secondary me-2" onclick="searchShopMedicines('panadol')">Panadol</span>
+                        <span class="badge bg-outline-secondary me-2" onclick="searchShopMedicines('antibiotics')">Antibiotics</span>
+                        <span class="badge bg-outline-secondary me-2" onclick="searchShopMedicines('vitamins')">Vitamins</span>
+                        <span class="badge bg-outline-secondary me-2" onclick="searchShopMedicines('pain relief')">Pain Relief</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Enhanced Category Filter -->
+<section class="category-section py-4">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <h5 class="text-center mb-4">Shop by Category</h5>
+                <div class="category-grid d-flex flex-wrap gap-3 justify-content-center">
+                    <button class="btn btn-outline-danger category-btn active" data-category="" onclick="filterShopByCategory('')">
+                        <i class="fas fa-th-large me-2"></i>All Products
+                    </button>
+                    <button class="btn btn-outline-danger category-btn" data-category="Pain Relief" onclick="filterShopByCategory('Pain Relief')">
+                        <i class="fas fa-tablets me-2"></i>Pain Relief
+                    </button>
+                    <button class="btn btn-outline-danger category-btn" data-category="Antibiotics" onclick="filterShopByCategory('Antibiotics')">
+                        <i class="fas fa-pills me-2"></i>Antibiotics
+                    </button>
+                    <button class="btn btn-outline-danger category-btn" data-category="Cold & Flu" onclick="filterShopByCategory('Cold & Flu')">
+                        <i class="fas fa-thermometer me-2"></i>Cold & Flu
+                    </button>
+                    <button class="btn btn-outline-danger category-btn" data-category="Gastric" onclick="filterShopByCategory('Gastric')">
+                        <i class="fas fa-prescription-bottle me-2"></i>Gastric
+                    </button>
+                    <button class="btn btn-outline-danger category-btn" data-category="Vitamins" onclick="filterShopByCategory('Vitamins')">
+                        <i class="fas fa-leaf me-2"></i>Vitamins
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Products Section -->
+<section class="products-section py-5">
+    <div class="container">
+        <!-- Loading State -->
+        <div id="shopLoading" class="text-center py-5" style="display: none;">
+            <div class="spinner-border text-danger" role="status">
+                <span class="visually-hidden">Loading medicines...</span>
+            </div>
+            <p class="text-muted mt-3">Loading medicines...</p>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="row" id="shopMedicineGrid">
+            <!-- Medicines will be loaded here -->
+        </div>
+
+        <!-- Load More Section -->
+        <div class="text-center mt-5">
+            <button class="btn btn-outline-danger btn-lg px-5" id="shopLoadMoreBtn" onclick="loadMoreShopMedicines()">
+                <i class="fas fa-plus me-2"></i>Load More Products
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- Why Choose Us Section -->
+<section class="why-choose-section py-5 bg-light">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto text-center mb-5">
+                <h2 class="display-6 fw-bold text-dark mb-4">Why Choose Red Dot Pharmacy?</h2>
+                <p class="lead text-muted">We're committed to providing the best healthcare experience in Pakistan</p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <div class="benefit-card h-100">
+                    <div class="benefit-icon">
+                        <i class="fas fa-award text-danger fa-3x mb-3"></i>
+                    </div>
+                    <h5 class="fw-bold mb-3">Quality Assurance</h5>
+                    <p class="text-muted">All medicines are sourced directly from authorized distributors and manufacturers, ensuring 100% authenticity and quality.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 mb-4">
+                <div class="benefit-card h-100">
+                    <div class="benefit-icon">
+                        <i class="fas fa-clock text-danger fa-3x mb-3"></i>
+                    </div>
+                    <h5 class="fw-bold mb-3">Fast Delivery</h5>
+                    <p class="text-muted">Same-day delivery within Islamabad and next-day delivery to other cities. Emergency medicines available 24/7.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 mb-4">
+                <div class="benefit-card h-100">
+                    <div class="benefit-icon">
+                        <i class="fas fa-user-shield text-danger fa-3x mb-3"></i>
+                    </div>
+                    <h5 class="fw-bold mb-3">Expert Support</h5>
+                    <p class="text-muted">Our qualified pharmacists are always available to provide guidance and answer your health-related questions.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action -->
+<section class="cta-section py-5 bg-danger text-white">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h3 class="fw-bold mb-2">Need Medicine Urgently?</h3>
+                <p class="mb-0">Contact us for emergency medicine delivery or speak with our pharmacist</p>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                <a href="tel:+921234567890" class="btn btn-light btn-lg me-3">
+                    <i class="fas fa-phone me-2"></i>Call Now
+                </a>
+                <button class="btn btn-outline-light btn-lg" onclick="scrollToSection('consultation')">
+                    <i class="fas fa-comments me-2"></i>Chat
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+// Shop-specific JavaScript functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Load medicines when page loads
+    if (typeof app !== 'undefined') {
+        loadShopMedicines();
+    }
+});
+
+// Shop medicine search function
+function searchShopMedicines(query = null) {
+    const searchInput = document.getElementById('shopMedicineSearch');
+    const searchQuery = query || (searchInput ? searchInput.value : '');
+    
+    if (typeof app !== 'undefined') {
+        app.searchMedicines(searchQuery);
+        updateShopGrid();
+    }
+}
+
+// Shop category filter function
+function filterShopByCategory(category) {
+    // Update active category button
+    document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    if (typeof app !== 'undefined') {
+        app.filterByCategory(category);
+        updateShopGrid();
+    }
+}
+
+// Load shop medicines
+function loadShopMedicines() {
+    if (typeof app !== 'undefined') {
+        app.loadMedicines().then(data => {
+            if (data) {
+                displayShopMedicines(data.medicines);
+                // Update medicine count
+                const countElement = document.getElementById('shopMedicineCount');
+                if (countElement) {
+                    countElement.textContent = `${data.total_count}+`;
+                }
+            }
+        });
+    }
+}
+
+// Load more medicines
+function loadMoreShopMedicines() {
+    if (typeof app !== 'undefined') {
+        const currentCount = document.querySelectorAll('#shopMedicineGrid .col-lg-3').length;
+        app.loadMedicines({ offset: currentCount }).then(data => {
+            if (data && data.medicines.length > 0) {
+                appendShopMedicines(data.medicines);
+            }
+        });
+    }
+}
+
+// Display medicines in shop grid
+function displayShopMedicines(medicines) {
+    const grid = document.getElementById('shopMedicineGrid');
+    if (!grid) return;
+
+    if (medicines.length === 0) {
+        grid.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-pills fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No medicines found</h5>
+                <p class="text-muted">Try adjusting your search criteria or browse all categories</p>
+            </div>
+        `;
+        return;
+    }
+
+    grid.innerHTML = medicines.map(medicine => createShopMedicineCard(medicine)).join('');
+}
+
+// Append medicines to shop grid (for load more)
+function appendShopMedicines(medicines) {
+    const grid = document.getElementById('shopMedicineGrid');
+    if (!grid) return;
+
+    const newCards = medicines.map(medicine => createShopMedicineCard(medicine)).join('');
+    grid.insertAdjacentHTML('beforeend', newCards);
+}
+
+// Create medicine card for shop
+function createShopMedicineCard(medicine) {
+    return `
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            <div class="card medicine-card h-100 shop-card">
+                <div class="position-relative">
+                    <img src="${medicine.image_url || 'https://pixabay.com/get/g7f4583c94af9a1854eb8b3aa95302ecc29bfb74ed9e4a49eda99a8d292810723fe0fa0624331e0b8a0976b75b535ad2cea69e85568e6e30d421d9e3ac8f3dfd1_1280.png'}" 
+                         class="card-img-top medicine-image" 
+                         alt="${medicine.name}"
+                         onerror="this.src='https://pixabay.com/get/g7f4583c94af9a1854eb8b3aa95302ecc29bfb74ed9e4a49eda99a8d292810723fe0fa0624331e0b8a0976b75b535ad2cea69e85568e6e30d421d9e3ac8f3dfd1_1280.png'">
+                    <span class="badge stock-badge ${medicine.status === 'in_stock' ? 'bg-success' : 'bg-danger'}">
+                        ${medicine.status === 'in_stock' ? '✓ In Stock' : '✗ Out of Stock'}
+                    </span>
+                    ${medicine.status === 'in_stock' ? '<span class="badge discount-badge bg-warning">Fast Delivery</span>' : ''}
+                </div>
+                <div class="card-body medicine-info d-flex flex-column">
+                    <h6 class="card-title fw-bold">${medicine.name}</h6>
+                    <p class="text-muted small mb-2">${medicine.chemical || 'Generic Medicine'}</p>
+                    ${medicine.description ? `<p class="text-muted small mb-3">${medicine.description.substring(0, 80)}${medicine.description.length > 80 ? '...' : ''}</p>` : ''}
+                    <div class="mt-auto">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <span class="medicine-price fw-bold">PKR ${medicine.price}</span>
+                                <br><small class="text-success">+ PKR 100 delivery</small>
+                            </div>
+                            <small class="text-muted category-tag">${medicine.category || 'General'}</small>
+                        </div>
+                        <div class="d-flex gap-2 mb-2">
+                            <button class="btn btn-outline-danger btn-sm flex-fill" 
+                                    onclick="app.viewMedicine(${medicine.id})"
+                                    title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm flex-fill ${medicine.status !== 'in_stock' ? 'disabled' : ''}" 
+                                    onclick="app.addToCart(${medicine.id})"
+                                    ${medicine.status !== 'in_stock' ? 'disabled' : ''}
+                                    title="Add to Cart">
+                                <i class="fas fa-cart-plus me-1"></i>Add to Cart
+                            </button>
+                        </div>
+                        <button class="btn btn-success btn-sm w-100 fw-bold ${medicine.status !== 'in_stock' ? 'disabled' : ''}" 
+                                onclick="app.buyNow(${medicine.id})"
+                                ${medicine.status !== 'in_stock' ? 'disabled' : ''}
+                                title="Buy Now">
+                            <i class="fas fa-bolt me-1"></i>Buy Now - PKR ${medicine.price + 100}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Update shop grid (helper function)
+function updateShopGrid() {
+    const grid = document.getElementById('shopMedicineGrid');
+    if (grid && typeof app !== 'undefined') {
+        displayShopMedicines(app.medicines || []);
+    }
+}
+</script>
+{% endblock %}

@@ -263,6 +263,210 @@ body {
     border-bottom-left-radius: 0;
 }
 
+/* Shop Page Specific Styles */
+.shop-hero-section {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 50%, #e9ecef 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.shop-hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="90" cy="10" r="2" fill="%23dc3545" opacity="0.3"/><circle cx="20" cy="90" r="3" fill="%2328a745" opacity="0.2"/><circle cx="80" cy="80" r="1.5" fill="%23007bff" opacity="0.3"/></svg>');
+    z-index: 0;
+}
+
+.shop-hero-content {
+    position: relative;
+    z-index: 1;
+}
+
+.feature-box {
+    padding: 1.5rem;
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(220, 53, 69, 0.1);
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.feature-box:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.stat-highlight {
+    padding: 1rem;
+    border-radius: 10px;
+    background: rgba(40, 167, 69, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.stat-highlight:hover {
+    transform: scale(1.05);
+}
+
+.search-container {
+    position: relative;
+}
+
+.search-container .input-group {
+    border-radius: 50px;
+    overflow: hidden;
+    border: 3px solid transparent;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(45deg, #dc3545, #28a745) border-box;
+}
+
+.search-container input {
+    border: none;
+    font-size: 1.1rem;
+}
+
+.search-container input:focus {
+    box-shadow: none;
+    border: none;
+}
+
+.search-suggestions .badge {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: rgba(108, 117, 125, 0.1) !important;
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+}
+
+.search-suggestions .badge:hover {
+    background-color: var(--primary-red) !important;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.category-grid {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.category-btn {
+    border-radius: 25px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: 2px solid #dc3545;
+}
+
+.category-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 15px rgba(220, 53, 69, 0.3);
+}
+
+.category-btn.active {
+    background-color: #dc3545;
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 15px rgba(220, 53, 69, 0.4);
+}
+
+.shop-card {
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+}
+
+.shop-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+}
+
+.stock-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 0.75rem;
+    z-index: 2;
+}
+
+.discount-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 0.75rem;
+    z-index: 2;
+}
+
+.why-choose-section {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.benefit-card {
+    padding: 2rem;
+    border-radius: 15px;
+    background: white;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.benefit-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+}
+
+.cta-section {
+    background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%);
+    position: relative;
+}
+
+.cta-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="1" fill="white" opacity="0.1"/><circle cx="80" cy="30" r="1.5" fill="white" opacity="0.1"/><circle cx="40" cy="70" r="1" fill="white" opacity="0.1"/></svg>');
+}
+
+/* Enhanced Medicine Cards for Shop */
+.shop-card .medicine-image {
+    height: 200px;
+    object-fit: cover;
+    border-radius: 8px 8px 0 0;
+}
+
+.shop-card .medicine-price {
+    font-size: 1.25rem;
+    color: #dc3545;
+}
+
+.shop-card .category-tag {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+}
+
+/* Load More Button */
+#shopLoadMoreBtn {
+    border-radius: 25px;
+    padding: 1rem 3rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+#shopLoadMoreBtn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 15px rgba(220, 53, 69, 0.3);
+}
+
 /* Additional Responsive Styling */
 @media (max-width: 768px) {
     .shopping-header h2 {
@@ -280,6 +484,30 @@ body {
     
     .medicine-card .btn {
         width: 100%;
+    }
+    
+    .shop-hero-section h1 {
+        font-size: 2.5rem;
+    }
+    
+    .feature-box {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .category-btn {
+        margin-bottom: 0.5rem;
+        padding: 0.5rem 1rem;
+    }
+    
+    .search-container .input-group {
+        flex-direction: column;
+        border-radius: 15px;
+    }
+    
+    .search-container .btn {
+        border-radius: 0 0 15px 15px;
+        margin-top: -1px;
     }
 }
 

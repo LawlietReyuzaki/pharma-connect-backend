@@ -62,6 +62,10 @@ def create_app():
     def video_room():
         return render_template("video.html")
     
+    @app.route("/shop")
+    def shop():
+        return render_template("shop.html")
+    
     @app.errorhandler(403)
     def forbidden(error):
         return render_template("403.html"), 403
