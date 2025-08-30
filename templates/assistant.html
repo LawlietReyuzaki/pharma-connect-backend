@@ -266,6 +266,11 @@ function toggleLanguage() {
         setVoiceLanguage(currentLanguage === 'en' ? 'en-US' : 'ur-PK');
     }
     
+    // Update global voice assistant language
+    if (typeof voiceAssistant !== 'undefined' && voiceAssistant) {
+        voiceAssistant.setLanguage(currentLanguage === 'en' ? 'en-US' : 'ur-PK');
+    }
+    
     // Update placeholder text
     const input = document.getElementById('messageInput');
     input.placeholder = currentLanguage === 'en' 
@@ -368,10 +373,22 @@ async function sendMessage() {
             if (typeof speakText === 'function') {
                 try {
                     await speakText(data.response, {
-                        language: currentLanguage === 'en' ? 'en-US' : 'ur-PK'
+                        language: currentLanguage === 'en' ? 'en-US' : 'ur-PK',
+                        rate: currentLanguage === 'en' ? 0.9 : 0.8,
+                        pitch: currentLanguage === 'en' ? 1.0 : 1.1
                     });
                 } catch (error) {
                     console.log('Text-to-speech not available');
+                }
+            } else if (typeof voiceAssistant !== 'undefined' && voiceAssistant) {
+                try {
+                    await voiceAssistant.speak(data.response, {
+                        language: currentLanguage === 'en' ? 'en-US' : 'ur-PK',
+                        rate: currentLanguage === 'en' ? 0.9 : 0.8,
+                        pitch: currentLanguage === 'en' ? 1.0 : 1.1
+                    });
+                } catch (error) {
+                    console.log('Voice Assistant TTS not available');
                 }
             }
             

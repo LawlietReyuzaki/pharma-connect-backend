@@ -28,42 +28,34 @@
                 Red Dot Pharmacy
             </a>
             
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
+            <div class="d-flex justify-content-between w-100" id="navbarNav">
+                <ul class="navbar-nav me-auto d-flex flex-row">
+                    <li class="nav-item me-3">
                         <a class="nav-link" href="/">
                             <i class="fas fa-home me-1"></i>Home
                         </a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item me-3">
                         <a class="nav-link" href="/shop">
                             <i class="fas fa-pills me-1"></i>Medicines
                         </a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item me-3">
                         <a class="nav-link" href="/consultation">
                             <i class="fas fa-video me-1"></i>Consultation
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/assistant">
-                            <i class="fas fa-robot me-1"></i>Ask Our Assistant
-                        </a>
-                    </li>
-                    <li class="nav-item">
+                    <li class="nav-item me-3">
                         <a class="nav-link" href="#about">
                             <i class="fas fa-info-circle me-1"></i>About
                         </a>
                     </li>
                 </ul>
                 
-                <ul class="navbar-nav">
-                    <li class="nav-item dropdown" id="userDropdown" style="display: none;">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                <div class="d-flex align-items-center">
+                    <!-- User Dropdown (when logged in) -->
+                    <div class="dropdown me-3" id="userDropdown" style="display: none;">
+                        <a class="nav-link dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user me-1"></i>
                             <span id="userName">User</span>
                         </a>
@@ -85,24 +77,24 @@
                                 <i class="fas fa-sign-out-alt me-2"></i>Logout
                             </a></li>
                         </ul>
-                    </li>
+                    </div>
                     
-                    <li class="nav-item" id="authButtons">
-                        <button class="btn btn-outline-light me-2" onclick="showLogin()">
+                    <!-- Auth Buttons (when not logged in) -->
+                    <div id="authButtons" class="me-3">
+                        <button class="btn btn-outline-light btn-sm me-2" onclick="showLogin()">
                             <i class="fas fa-sign-in-alt me-1"></i>Login
                         </button>
-                        <button class="btn btn-light" onclick="showRegister()">
+                        <button class="btn btn-light btn-sm" onclick="showRegister()">
                             <i class="fas fa-user-plus me-1"></i>Register
                         </button>
-                    </li>
+                    </div>
                     
-                    <li class="nav-item">
-                        <button class="btn btn-outline-light ms-2" id="cartButton" onclick="showCart()">
-                            <i class="fas fa-shopping-cart me-1"></i>
-                            Cart <span class="badge bg-danger" id="cartCount">0</span>
-                        </button>
-                    </li>
-                </ul>
+                    <!-- Cart Button -->
+                    <button class="btn btn-outline-light btn-sm" id="cartButton" onclick="showCart()">
+                        <i class="fas fa-shopping-cart me-1"></i>
+                        Cart <span class="badge bg-danger" id="cartCount">0</span>
+                    </button>
+                </div>
             </div>
         </div>
     </nav>
