@@ -1406,3 +1406,31 @@ function loadDoctors() {
 function loadTimeSlots() {
     app.loadTimeSlots();
 }
+
+// Initialize all components when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize forms
+    initializeForms();
+    
+    // Check authentication status
+    checkAuthStatus();
+    
+    // Load initial data if we're on specific pages
+    if (document.getElementById('medicineGrid')) {
+        loadMedicines();
+    }
+    
+    if (document.getElementById('doctorGrid')) {
+        loadDoctors();
+    }
+    
+    // Initialize chatbot
+    if (typeof initializeChatbot === 'function') {
+        initializeChatbot();
+    }
+    
+    // Initialize voice assistant
+    if (typeof initializeVoiceAssistant === 'function') {
+        initializeVoiceAssistant();
+    }
+});
