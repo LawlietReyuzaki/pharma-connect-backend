@@ -1,0 +1,552 @@
+{% extends "base.html" %}
+
+{% block title %}AI Assistant - Red Dot Pharmacy{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="py-5 bg-gradient-primary">
+    <div class="container">
+        <div class="row py-5">
+            <div class="col-lg-8 mx-auto text-center text-white">
+                <h1 class="display-4 fw-bold mb-4">AI Medical Assistant</h1>
+                <p class="lead mb-4">Ask health questions in English or Urdu with voice support and get instant medical guidance</p>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="feature-highlight text-center">
+                            <i class="fas fa-microphone fa-3x text-white mb-3"></i>
+                            <h5>Voice Support</h5>
+                            <p class="small">Speak your questions in Urdu or English</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="feature-highlight text-center">
+                            <i class="fas fa-shield-alt fa-3x text-white mb-3"></i>
+                            <h5>Medical Safety</h5>
+                            <p class="small">Built-in safety features for medical advice</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="feature-highlight text-center">
+                            <i class="fas fa-language fa-3x text-white mb-3"></i>
+                            <h5>Bilingual Support</h5>
+                            <p class="small">Available in English and Urdu</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Sample Questions Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <h3 class="text-center mb-4">Sample Questions You Can Ask</h3>
+                <div class="row">
+                    <!-- English Questions -->
+                    <div class="col-md-6 mb-4">
+                        <h5 class="text-danger mb-3"><i class="fas fa-flag"></i> English Questions</h5>
+                        <div class="sample-questions">
+                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
+                                <i class="fas fa-thermometer-half me-2"></i>
+                                "What should I do for fever?"
+                            </div>
+                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
+                                <i class="fas fa-head-side-cough me-2"></i>
+                                "How to treat a headache?"
+                            </div>
+                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
+                                <i class="fas fa-lungs me-2"></i>
+                                "What medicines help with cough?"
+                            </div>
+                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
+                                <i class="fas fa-stomach me-2"></i>
+                                "Remedies for stomach pain?"
+                            </div>
+                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
+                                <i class="fas fa-pills me-2"></i>
+                                "How often should I take paracetamol?"
+                            </div>
+                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
+                                <i class="fas fa-heartbeat me-2"></i>
+                                "What are symptoms of high blood pressure?"
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Urdu Questions -->
+                    <div class="col-md-6 mb-4">
+                        <h5 class="text-danger mb-3"><i class="fas fa-flag"></i> Urdu Questions - اردو سوالات</h5>
+                        <div class="sample-questions">
+                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
+                                <i class="fas fa-thermometer-half me-2"></i>
+                                "بخار کے لیے کیا کروں؟"
+                            </div>
+                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
+                                <i class="fas fa-head-side-cough me-2"></i>
+                                "سر درد کا علاج کیا ہے؟"
+                            </div>
+                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
+                                <i class="fas fa-lungs me-2"></i>
+                                "کھانسی کی دوا کون سی ہے؟"
+                            </div>
+                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
+                                <i class="fas fa-stomach me-2"></i>
+                                "پیٹ درد کے لیے کیا کروں؟"
+                            </div>
+                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
+                                <i class="fas fa-pills me-2"></i>
+                                "پیراسیٹامول کتنی بار لینا چاہیے؟"
+                            </div>
+                            <div class="question-card mb-3" onclick="askQuestion(this.textContent)">
+                                <i class="fas fa-heartbeat me-2"></i>
+                                "ہائی بلڈ پریشر کی علامات کیا ہیں؟"
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Chat Interface Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="chat-container">
+                    <div class="card shadow-lg border-0">
+                        <!-- Chat Header -->
+                        <div class="card-header bg-danger text-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-robot fa-2x me-3"></i>
+                                    <div>
+                                        <h5 class="mb-0">Medical Assistant</h5>
+                                        <small id="chatbotStatus">Ready to help you</small>
+                                    </div>
+                                </div>
+                                <div class="chat-controls">
+                                    <button class="btn btn-light btn-sm me-2" id="languageToggle" onclick="toggleLanguage()">
+                                        <i class="fas fa-language me-1"></i>
+                                        <span id="currentLang">English</span>
+                                    </button>
+                                    <button class="btn btn-light btn-sm" id="clearChat" onclick="clearChatHistory()">
+                                        <i class="fas fa-broom me-1"></i>Clear
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Chat Messages -->
+                        <div class="card-body p-0">
+                            <div id="chatMessages" class="chat-messages p-4">
+                                <div class="bot-message mb-3">
+                                    <div class="d-flex align-items-start">
+                                        <div class="bot-avatar me-3">
+                                            <i class="fas fa-robot"></i>
+                                        </div>
+                                        <div class="message-content">
+                                            <div class="message-bubble bot">
+                                                <p class="mb-1">Hello! I'm your medical assistant. You can ask me health-related questions in English or Urdu. I can help with basic medical information, but for serious health concerns, please consult a doctor.</p>
+                                                <p class="mb-0 text-muted"><small>سلام! میں آپ کا طبی مددگار ہوں۔ آپ مجھ سے انگریزی یا اردو میں صحت سے متعلق سوالات پوچھ سکتے ہیں۔</small></p>
+                                            </div>
+                                            <small class="text-muted">Just now</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Chat Input -->
+                        <div class="card-footer bg-light">
+                            <div class="chat-input-container">
+                                <div class="input-group">
+                                    <textarea class="form-control" 
+                                              id="messageInput" 
+                                              placeholder="Type your medical question here... / یہاں اپنا طبی سوال ٹائپ کریں..."
+                                              rows="2"></textarea>
+                                    <button class="btn btn-outline-danger" type="button" id="voiceButton" onclick="toggleVoiceInput()">
+                                        <i class="fas fa-microphone" id="voiceIcon"></i>
+                                    </button>
+                                    <button class="btn btn-danger" type="button" id="sendButton" onclick="sendMessage()">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Click the microphone to speak your question or type it. Press Enter to send.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Medical Disclaimer -->
+                    <div class="alert alert-warning mt-4" role="alert">
+                        <h6 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Important Medical Disclaimer</h6>
+                        <p class="mb-2">This AI assistant provides general health information only and should not replace professional medical advice. For urgent medical concerns, please:</p>
+                        <ul class="mb-2">
+                            <li>Call emergency services (1122) for life-threatening situations</li>
+                            <li>Consult a qualified doctor for proper diagnosis and treatment</li>
+                            <li>Visit our consultation page to book an appointment with our doctors</li>
+                        </ul>
+                        <p class="mb-0"><strong>یہ AI اسسٹنٹ صرف عمومی صحت کی معلومات فراہم کرتا ہے اور پیشہ ورانہ طبی مشورے کا متبادل نہیں ہے۔</strong></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Quick Actions -->
+<section class="py-4 bg-light">
+    <div class="container">
+        <div class="row text-center">
+            <div class="col-md-4 mb-3">
+                <a href="{{ url_for('shop') }}" class="btn btn-outline-danger btn-lg w-100">
+                    <i class="fas fa-pills me-2"></i>Browse Medicines
+                </a>
+            </div>
+            <div class="col-md-4 mb-3">
+                <a href="{{ url_for('consultation') }}" class="btn btn-outline-danger btn-lg w-100">
+                    <i class="fas fa-video me-2"></i>Book Consultation
+                </a>
+            </div>
+            <div class="col-md-4 mb-3">
+                <a href="tel:1122" class="btn btn-danger btn-lg w-100">
+                    <i class="fas fa-phone me-2"></i>Emergency: 1122
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Global variables for chat functionality
+let isListening = false;
+let currentLanguage = 'en';
+let chatHistory = [];
+
+// Initialize chat functionality when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Enable Enter key to send message
+    document.getElementById('messageInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+    
+    // Load chat history if exists
+    loadChatHistory();
+});
+
+// Function to ask a sample question
+function askQuestion(question) {
+    const cleanQuestion = question.replace(/^"|"$/g, ''); // Remove quotes
+    document.getElementById('messageInput').value = cleanQuestion;
+    sendMessage();
+}
+
+// Function to toggle language
+function toggleLanguage() {
+    currentLanguage = currentLanguage === 'en' ? 'ur' : 'en';
+    const langButton = document.getElementById('currentLang');
+    langButton.textContent = currentLanguage === 'en' ? 'English' : 'اردو';
+    
+    // Update voice assistant language if available
+    if (typeof setVoiceLanguage === 'function') {
+        setVoiceLanguage(currentLanguage === 'en' ? 'en-US' : 'ur-PK');
+    }
+    
+    // Update placeholder text
+    const input = document.getElementById('messageInput');
+    input.placeholder = currentLanguage === 'en' 
+        ? 'Type your medical question here...'
+        : 'یہاں اپنا طبی سوال ٹائپ کریں...';
+}
+
+// Function to toggle voice input
+function toggleVoiceInput() {
+    const voiceButton = document.getElementById('voiceButton');
+    const voiceIcon = document.getElementById('voiceIcon');
+    
+    if (!isListening) {
+        // Start listening
+        try {
+            if (typeof startVoiceRecognition === 'function') {
+                startVoiceRecognition({
+                    language: currentLanguage === 'en' ? 'en-US' : 'ur-PK',
+                    onResult: function(result) {
+                        if (result.isFinal) {
+                            document.getElementById('messageInput').value = result.transcript;
+                            stopVoiceInput();
+                        }
+                    },
+                    onError: function(error) {
+                        console.error('Voice recognition error:', error);
+                        showError('Voice recognition failed: ' + error.message);
+                        stopVoiceInput();
+                    }
+                });
+                
+                isListening = true;
+                voiceButton.classList.add('btn-danger');
+                voiceButton.classList.remove('btn-outline-danger');
+                voiceIcon.className = 'fas fa-stop';
+                updateChatStatus('Listening...');
+                
+            } else {
+                showError('Voice recognition not available');
+            }
+        } catch (error) {
+            console.error('Voice recognition error:', error);
+            showError('Voice recognition not supported in this browser');
+        }
+    } else {
+        stopVoiceInput();
+    }
+}
+
+// Function to stop voice input
+function stopVoiceInput() {
+    if (typeof stopVoiceRecognition === 'function') {
+        stopVoiceRecognition();
+    }
+    
+    isListening = false;
+    const voiceButton = document.getElementById('voiceButton');
+    const voiceIcon = document.getElementById('voiceIcon');
+    
+    voiceButton.classList.remove('btn-danger');
+    voiceButton.classList.add('btn-outline-danger');
+    voiceIcon.className = 'fas fa-microphone';
+    updateChatStatus('Ready to help you');
+}
+
+// Function to send message
+async function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const message = input.value.trim();
+    
+    if (!message) return;
+    
+    // Add user message to chat
+    addMessageToChat('user', message);
+    input.value = '';
+    
+    // Show typing indicator
+    updateChatStatus('Thinking...');
+    
+    try {
+        // Send to chatbot API
+        const response = await fetch('/api/chat/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message: message,
+                language: currentLanguage
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            // Add bot response to chat
+            addMessageToChat('bot', data.response);
+            
+            // Speak response if voice is enabled
+            if (typeof speakText === 'function') {
+                try {
+                    await speakText(data.response, {
+                        language: currentLanguage === 'en' ? 'en-US' : 'ur-PK'
+                    });
+                } catch (error) {
+                    console.log('Text-to-speech not available');
+                }
+            }
+            
+        } else {
+            throw new Error('Failed to get response from assistant');
+        }
+        
+    } catch (error) {
+        console.error('Chat error:', error);
+        addMessageToChat('bot', 'Sorry, I encountered an error. Please try again.');
+    }
+    
+    updateChatStatus('Ready to help you');
+}
+
+// Function to add message to chat
+function addMessageToChat(sender, message) {
+    const chatMessages = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    const timestamp = new Date().toLocaleTimeString();
+    
+    const isBot = sender === 'bot';
+    messageDiv.className = `${isBot ? 'bot' : 'user'}-message mb-3`;
+    
+    messageDiv.innerHTML = `
+        <div class="d-flex align-items-start ${isBot ? '' : 'flex-row-reverse'}">
+            <div class="${isBot ? 'bot' : 'user'}-avatar ${isBot ? 'me-3' : 'ms-3'}">
+                <i class="fas fa-${isBot ? 'robot' : 'user'}"></i>
+            </div>
+            <div class="message-content ${isBot ? '' : 'text-end'}">
+                <div class="message-bubble ${isBot ? 'bot' : 'user'}">
+                    <p class="mb-0">${message}</p>
+                </div>
+                <small class="text-muted">${timestamp}</small>
+            </div>
+        </div>
+    `;
+    
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    
+    // Save to history
+    chatHistory.push({ sender, message, timestamp });
+    saveChatHistory();
+}
+
+// Function to clear chat history
+function clearChatHistory() {
+    const chatMessages = document.getElementById('chatMessages');
+    
+    // Keep only the initial bot message
+    const initialMessage = chatMessages.querySelector('.bot-message');
+    chatMessages.innerHTML = '';
+    chatMessages.appendChild(initialMessage);
+    
+    chatHistory = [];
+    saveChatHistory();
+}
+
+// Function to update chat status
+function updateChatStatus(status) {
+    document.getElementById('chatbotStatus').textContent = status;
+}
+
+// Function to save chat history
+function saveChatHistory() {
+    localStorage.setItem('medical_chat_history', JSON.stringify(chatHistory));
+}
+
+// Function to load chat history
+function loadChatHistory() {
+    const savedHistory = localStorage.getItem('medical_chat_history');
+    if (savedHistory) {
+        chatHistory = JSON.parse(savedHistory);
+        
+        // Restore messages (skip first 5 to avoid overloading)
+        const recentHistory = chatHistory.slice(-10);
+        recentHistory.forEach(item => {
+            if (item.sender !== 'initial') {
+                addMessageToChat(item.sender, item.message);
+            }
+        });
+    }
+}
+
+// Function to show error message
+function showError(message) {
+    addMessageToChat('bot', `Error: ${message}. Please try again.`);
+}
+</script>
+
+<style>
+.sample-questions .question-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.sample-questions .question-card:hover {
+    background: #f8f9fa;
+    border-color: #dc3545;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.chat-messages {
+    height: 400px;
+    overflow-y: auto;
+    background: #f8f9fa;
+}
+
+.message-bubble {
+    padding: 12px 16px;
+    border-radius: 18px;
+    max-width: 80%;
+    word-wrap: break-word;
+}
+
+.message-bubble.user {
+    background: #dc3545;
+    color: white;
+    margin-left: auto;
+}
+
+.message-bubble.bot {
+    background: white;
+    border: 1px solid #e0e0e0;
+    color: #333;
+}
+
+.bot-avatar, .user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+
+.bot-avatar {
+    background: #dc3545;
+    color: white;
+}
+
+.user-avatar {
+    background: #6c757d;
+    color: white;
+}
+
+.chat-input-container textarea {
+    resize: none;
+    border-radius: 20px;
+}
+
+#voiceButton.btn-danger {
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.feature-highlight {
+    padding: 20px;
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+}
+</style>
+{% endblock %}

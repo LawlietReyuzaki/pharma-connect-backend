@@ -70,6 +70,10 @@ def create_app():
     def consultation():
         return render_template("consultation.html")
     
+    @app.route("/assistant")
+    def assistant():
+        return render_template("assistant.html")
+    
     @app.errorhandler(403)
     def forbidden(error):
         return render_template("403.html"), 403
