@@ -1,0 +1,3 @@
+# This directory is used for storing uploaded medicine images
+# The .gitkeep file ensures the directory is tracked in version control
+# while keeping it empty of actual uploaded files for security

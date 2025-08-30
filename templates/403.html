@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Denied - Red Dot Pharmacy</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23dc3545'/><text x='50' y='60' text-anchor='middle' fill='white' font-size='60' font-weight='bold'>R</text></svg>">
+</head>
+<body class="error-page">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-red-dot">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-circle text-danger me-2"></i>
+                Red Dot Pharmacy
+            </a>
+        </div>
+    </nav>
+
+    <!-- Error Content -->
+    <div class="container-fluid">
+        <div class="row min-vh-100 align-items-center justify-content-center">
+            <div class="col-lg-6 col-md-8 text-center">
+                <div class="error-content">
+                    <!-- Error Icon -->
+                    <div class="error-icon mb-4">
+                        <i class="fas fa-shield-alt text-danger" style="font-size: 6rem;"></i>
+                    </div>
+                    
+                    <!-- Error Code -->
+                    <h1 class="display-1 fw-bold text-danger mb-4">403</h1>
+                    
+                    <!-- Error Message -->
+                    <h2 class="h3 mb-4">Access Denied</h2>
+                    <p class="lead text-muted mb-4">
+                        Sorry, you don't have permission to access this resource. 
+                        This area is restricted to authorized personnel only.
+                    </p>
+                    
+                    <!-- Possible Reasons -->
+                    <div class="alert alert-light border text-start mb-4">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-info-circle text-primary me-2"></i>
+                            Possible reasons:
+                        </h6>
+                        <ul class="mb-0">
+                            <li>You are not logged in to your account</li>
+                            <li>Your account doesn't have the required permissions</li>
+                            <li>Your session may have expired</li>
+                            <li>You're trying to access an admin-only area</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="error-actions">
+                        <a href="/" class="btn btn-danger btn-lg me-3">
+                            <i class="fas fa-home me-2"></i>
+                            Go to Homepage
+                        </a>
+                        <button class="btn btn-outline-danger btn-lg" onclick="history.back()">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Go Back
+                        </button>
+                    </div>
+                    
+                    <!-- Additional Help -->
+                    <div class="mt-5">
+                        <p class="text-muted">
+                            Need help? 
+                            <a href="#" class="text-danger text-decoration-none" onclick="showLoginModal()">
+                                Try logging in
+                            </a> 
+                            or 
+                            <a href="tel:+92515111222" class="text-danger text-decoration-none">
+                                contact support
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal fade" id="loginModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-sign-in-alt text-danger me-2"></i>
+                        Login to Red Dot Pharmacy
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="errorPageLoginForm">
+                        <div class="mb-3">
+                            <label class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="errorLoginEmail" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" id="errorLoginPassword" required>
+                        </div>
+                        <button type="submit" class="btn btn-danger w-100">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                        </button>
+                    </form>
+                    
+                    <hr>
+                    
+                    <div class="text-center">
+                        <p class="text-muted mb-2">Don't have an account?</p>
+                        <a href="/" class="btn btn-outline-danger">
+                            <i class="fas fa-user-plus me-2"></i>
+                            Register Now
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4 mt-auto">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="mb-0">
+                        <i class="fas fa-circle text-danger me-2"></i>
+                        Red Dot Pharmacy - Your Healthcare Partner
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="contact-info">
+                        <a href="tel:+92515111222" class="text-white text-decoration-none me-3">
+                            <i class="fas fa-phone me-1"></i>051-5111222
+                        </a>
+                        <a href="mailto:info@reddotpharmacy.com" class="text-white text-decoration-none">
+                            <i class="fas fa-envelope me-1"></i>info@reddotpharmacy.com
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function showLoginModal() {
+            const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+            loginModal.show();
+        }
+
+        // Handle login form submission
+        document.getElementById('errorPageLoginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('errorLoginEmail').value;
+            const password = document.getElementById('errorLoginPassword').value;
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('auth_token', data.token);
+                    localStorage.setItem('user_data', JSON.stringify(data.user));
+                    
+                    // Redirect to homepage or retry the original request
+                    window.location.href = '/';
+                } else {
+                    const error = await response.json();
+                    alert('Login failed: ' + (error.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('Login failed. Please try again.');
+            }
+        });
+
+        // Auto-focus email field when modal opens
+        document.getElementById('loginModal').addEventListener('shown.bs.modal', function() {
+            document.getElementById('errorLoginEmail').focus();
+        });
+        
+        // Handle Enter key in password field
+        document.getElementById('errorLoginPassword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('errorPageLoginForm').dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>

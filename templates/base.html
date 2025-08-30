@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Red Dot Pharmacy - Your Healthcare Partner{% endblock %}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23dc3545'/><text x='50' y='60' text-anchor='middle' fill='white' font-size='60' font-weight='bold'>R</text></svg>">
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-red-dot fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-circle text-danger me-2"></i>
+                Red Dot Pharmacy
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#home">
+                            <i class="fas fa-home me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#medicines">
+                            <i class="fas fa-pills me-1"></i>Medicines
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#consultation">
+                            <i class="fas fa-video me-1"></i>Consultation
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#about">
+                            <i class="fas fa-info-circle me-1"></i>About
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown" id="userDropdown" style="display: none;">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i>
+                            <span id="userName">User</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="showProfile()">
+                                <i class="fas fa-user-edit me-2"></i>Profile
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="showOrders()">
+                                <i class="fas fa-shopping-bag me-2"></i>My Orders
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="showAppointments()">
+                                <i class="fas fa-calendar me-2"></i>Appointments
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/admin" id="adminLink" style="display: none;">
+                                <i class="fas fa-cog me-2"></i>Admin Panel
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="logout()">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a></li>
+                        </ul>
+                    </li>
+                    
+                    <li class="nav-item" id="authButtons">
+                        <button class="btn btn-outline-light me-2" onclick="showLogin()">
+                            <i class="fas fa-sign-in-alt me-1"></i>Login
+                        </button>
+                        <button class="btn btn-light" onclick="showRegister()">
+                            <i class="fas fa-user-plus me-1"></i>Register
+                        </button>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <button class="btn btn-outline-light ms-2" id="cartButton" onclick="showCart()">
+                            <i class="fas fa-shopping-cart me-1"></i>
+                            Cart <span class="badge bg-danger" id="cartCount">0</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-5 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-4 mb-4">
+                    <h5 class="text-danger">
+                        <i class="fas fa-circle me-2"></i>Red Dot Pharmacy
+                    </h5>
+                    <p class="text-light-emphasis">
+                        Your trusted healthcare partner providing quality medicines and professional medical consultations.
+                    </p>
+                    <div class="d-flex gap-3">
+                        <a href="#" class="text-light"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-light"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-light"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-light"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+                
+                <div class="col-lg-2 mb-4">
+                    <h6 class="text-uppercase">Services</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-light-emphasis text-decoration-none">Online Pharmacy</a></li>
+                        <li><a href="#" class="text-light-emphasis text-decoration-none">Video Consultation</a></li>
+                        <li><a href="#" class="text-light-emphasis text-decoration-none">Medicine Delivery</a></li>
+                        <li><a href="#" class="text-light-emphasis text-decoration-none">Health Checkups</a></li>
+                    </ul>
+                </div>
+                
+                <div class="col-lg-3 mb-4">
+                    <h6 class="text-uppercase">Contact Info</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-map-marker-alt text-danger me-2"></i>
+                            Shop # 69 Ground floor Silver city plaza<br>
+                            G11 Markaz Islamabad<br>
+                            Adjacent to Soneri Bank
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-phone text-danger me-2"></i>
+                            <a href="tel:+92515111222" class="text-light-emphasis text-decoration-none">051-5111222</a>
+                        </li>
+                        <li>
+                            <i class="fas fa-envelope text-danger me-2"></i>
+                            <a href="mailto:info@reddotpharmacy.com" class="text-light-emphasis text-decoration-none">info@reddotpharmacy.com</a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="col-lg-3 mb-4">
+                    <h6 class="text-uppercase">Emergency</h6>
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Emergency Hotline</strong><br>
+                        <a href="tel:1122" class="text-white">1122</a>
+                    </div>
+                    <p class="small text-light-emphasis">
+                        For medical emergencies, call 1122 immediately or visit the nearest hospital.
+                    </p>
+                </div>
+            </div>
+            
+            <hr class="border-secondary">
+            
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="mb-0 text-light-emphasis">
+                        &copy; 2025 Red Dot Pharmacy. All rights reserved.
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="#" class="text-light-emphasis text-decoration-none me-3">Privacy Policy</a>
+                    <a href="#" class="text-light-emphasis text-decoration-none me-3">Terms of Service</a>
+                    <a href="#" class="text-light-emphasis text-decoration-none">Contact</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+        <div class="spinner-border text-danger" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/voice.js') }}"></script>
+    
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

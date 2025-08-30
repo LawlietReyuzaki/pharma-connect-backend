@@ -1,0 +1,743 @@
+/* Red Dot Pharmacy Custom Styles */
+
+/* CSS Variables for Red Dot Pharmacy Theme */
+:root {
+    --primary-red: #dc3545;
+    --dark-red: #b02a37;
+    --light-red: #f8d7da;
+    --primary-black: #212529;
+    --light-gray: #f8f9fa;
+    --medium-gray: #6c757d;
+    --border-color: #dee2e6;
+    --shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+}
+
+/* Base Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: var(--primary-black);
+}
+
+.main-content {
+    padding-top: 76px; /* Account for fixed navbar */
+    min-height: calc(100vh - 76px);
+}
+
+/* Red Dot Pharmacy Branding */
+.bg-red-dot {
+    background-color: var(--primary-red) !important;
+}
+
+.text-red-dot {
+    color: var(--primary-red) !important;
+}
+
+.btn-red-dot {
+    background-color: var(--primary-red);
+    border-color: var(--primary-red);
+    color: white;
+}
+
+.btn-red-dot:hover {
+    background-color: var(--dark-red);
+    border-color: var(--dark-red);
+    color: white;
+}
+
+/* Navigation Styles */
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.navbar-nav .nav-link {
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Hero Section */
+.hero-section {
+    background: linear-gradient(135deg, var(--light-gray) 0%, white 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-content h1 {
+    font-size: 3.5rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.stat-item h3 {
+    font-size: 2rem;
+    margin-bottom: 0;
+}
+
+.hero-image img {
+    border-radius: 15px;
+    box-shadow: var(--shadow-lg);
+}
+
+/* Service Cards */
+.service-card {
+    padding: 2rem 1rem;
+    border-radius: 10px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    background: white;
+    border: 1px solid var(--border-color);
+}
+
+.service-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.service-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+/* Medicine Grid */
+.medicine-card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: var(--shadow);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+}
+
+.medicine-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.medicine-image {
+    height: 200px;
+    object-fit: cover;
+    background: var(--light-gray);
+}
+
+.medicine-info {
+    padding: 1.5rem;
+}
+
+.medicine-price {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-red);
+}
+
+.medicine-status {
+    font-size: 0.875rem;
+}
+
+.stock-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    border-radius: 20px;
+}
+
+/* Category Filter */
+.category-filter .btn {
+    border-radius: 20px;
+    margin: 0.25rem;
+    font-weight: 500;
+}
+
+.category-filter .btn.active {
+    background-color: var(--primary-red);
+    border-color: var(--primary-red);
+    color: white;
+}
+
+/* Doctor Cards */
+.doctor-card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: var(--shadow);
+    transition: transform 0.3s ease;
+    text-align: center;
+    padding: 2rem 1rem;
+}
+
+.doctor-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.doctor-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+    background: var(--light-gray);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: var(--medium-gray);
+}
+
+/* Time Slots */
+.time-slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.time-slot {
+    padding: 0.5rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.time-slot:hover {
+    border-color: var(--primary-red);
+    background: var(--light-red);
+}
+
+.time-slot.selected {
+    background: var(--primary-red);
+    color: white;
+    border-color: var(--primary-red);
+}
+
+.time-slot.unavailable {
+    background: var(--light-gray);
+    color: var(--medium-gray);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* About Section Features */
+.feature-item {
+    padding: 1rem 0;
+}
+
+.feature-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--light-red);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+/* Shopping Cart */
+.cart-item {
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem 0;
+}
+
+.cart-item:last-child {
+    border-bottom: none;
+}
+
+.cart-item img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.quantity-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.quantity-controls button {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.quantity-controls button:hover {
+    background: var(--light-gray);
+}
+
+.cart-summary {
+    background: var(--light-gray);
+    padding: 1.5rem;
+    border-radius: 10px;
+}
+
+/* Chatbot Widget */
+.chat-widget {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 350px;
+    max-height: 500px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: var(--shadow-lg);
+    z-index: 1050;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.chat-header {
+    background: var(--primary-red);
+    color: white;
+    padding: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+}
+
+.chat-header .urdu-text {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+.chat-toggle {
+    transition: transform 0.3s ease;
+}
+
+.chat-widget.expanded .chat-toggle {
+    transform: rotate(180deg);
+}
+
+.chat-body {
+    height: 400px;
+    display: none;
+    flex-direction: column;
+}
+
+.chat-widget.expanded .chat-body {
+    display: flex;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+    max-height: 300px;
+}
+
+.chat-message {
+    margin-bottom: 1rem;
+}
+
+.bot-message .message-content {
+    background: var(--light-gray);
+    padding: 0.75rem 1rem;
+    border-radius: 15px 15px 15px 5px;
+    max-width: 90%;
+}
+
+.user-message .message-content {
+    background: var(--primary-red);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 15px 15px 5px 15px;
+    max-width: 90%;
+    margin-left: auto;
+}
+
+.chat-input {
+    padding: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.voice-status {
+    text-align: center;
+    padding: 0.5rem;
+    background: var(--light-red);
+    border-radius: 5px;
+    margin-top: 0.5rem;
+}
+
+/* Admin Dashboard Styles */
+.admin-body {
+    background: var(--light-gray);
+}
+
+.admin-section {
+    padding: 2rem 0;
+}
+
+.admin-section h2 {
+    font-weight: 700;
+    margin-bottom: 2rem;
+}
+
+.admin-nav .nav-link {
+    color: rgba(255, 255, 255, 0.8);
+    transition: color 0.3s ease;
+}
+
+.admin-nav .nav-link.active,
+.admin-nav .nav-link:hover {
+    color: white;
+}
+
+/* Admin Cards */
+.admin-card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: var(--shadow);
+    transition: transform 0.3s ease;
+}
+
+.admin-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.stat-card {
+    color: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+}
+
+/* Data Tables */
+.table {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+.table th {
+    background: var(--light-gray);
+    font-weight: 600;
+    border: none;
+    padding: 1rem 0.75rem;
+}
+
+.table td {
+    padding: 0.75rem;
+    vertical-align: middle;
+    border-color: var(--border-color);
+}
+
+.table tbody tr:hover {
+    background: rgba(220, 53, 69, 0.05);
+}
+
+/* Video Consultation Styles */
+.video-consultation-body {
+    background: #1a1a1a;
+    color: white;
+    margin: 0;
+    padding: 0;
+}
+
+.video-container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.appointment-info-bar {
+    background: rgba(0, 0, 0, 0.8);
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.video-main-area {
+    flex: 1;
+    position: relative;
+    background: #2a2a2a;
+}
+
+.meet-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.meet-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: white;
+}
+
+.meet-interface {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.video-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 100%;
+    gap: 1rem;
+    padding: 2rem;
+}
+
+.video-participant {
+    background: #3a3a3a;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    color: #ccc;
+}
+
+.video-placeholder {
+    text-align: center;
+}
+
+.meet-overlay {
+    position: absolute;
+    top: 2rem;
+    left: 2rem;
+    right: 2rem;
+}
+
+.consultation-controls {
+    background: rgba(0, 0, 0, 0.9);
+    padding: 1rem 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.control-buttons .btn {
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    margin: 0 0.5rem;
+}
+
+.side-panel {
+    position: fixed;
+    right: -400px;
+    top: 0;
+    width: 400px;
+    height: 100vh;
+    background: white;
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
+    transition: right 0.3s ease;
+    z-index: 1000;
+    color: var(--primary-black);
+}
+
+.side-panel.active {
+    right: 0;
+}
+
+.panel-header {
+    background: var(--primary-red);
+    color: white;
+    padding: 1rem;
+    display: flex;
+    justify-content: between;
+    align-items: center;
+}
+
+.panel-body {
+    padding: 1.5rem;
+    height: calc(100vh - 120px);
+    overflow-y: auto;
+}
+
+.medication-item {
+    background: var(--light-gray);
+}
+
+/* Loading Spinner */
+.loading-spinner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+/* Error Page Styles */
+.error-page {
+    background: var(--light-gray);
+    min-height: 100vh;
+}
+
+.error-content {
+    padding: 2rem;
+}
+
+.error-icon {
+    opacity: 0.7;
+}
+
+.error-actions .btn {
+    border-radius: 25px;
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .hero-content h1 {
+        font-size: 2.5rem;
+    }
+    
+    .chat-widget {
+        width: 90%;
+        right: 5%;
+        left: 5%;
+    }
+    
+    .video-grid {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+    }
+    
+    .side-panel {
+        width: 100%;
+        right: -100%;
+    }
+    
+    .control-buttons .btn {
+        width: 50px;
+        height: 50px;
+        margin: 0 0.25rem;
+    }
+    
+    .consultation-controls .row > div {
+        margin-bottom: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .hero-content h1 {
+        font-size: 2rem;
+    }
+    
+    .service-card {
+        padding: 1.5rem 1rem;
+    }
+    
+    .medicine-info {
+        padding: 1rem;
+    }
+    
+    .time-slots {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+    
+    .chat-widget {
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        width: auto;
+    }
+}
+
+/* Animation Classes */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-up {
+    animation: slideUp 0.6s ease-out;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Custom Scrollbar */
+.chat-messages::-webkit-scrollbar,
+.panel-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track,
+.panel-body::-webkit-scrollbar-track {
+    background: var(--light-gray);
+}
+
+.chat-messages::-webkit-scrollbar-thumb,
+.panel-body::-webkit-scrollbar-thumb {
+    background: var(--medium-gray);
+    border-radius: 3px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover,
+.panel-body::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-red);
+}
+
+/* Print Styles for Prescriptions */
+@media print {
+    .navbar, .consultation-controls, .side-panel {
+        display: none !important;
+    }
+    
+    .video-main-area {
+        display: none !important;
+    }
+    
+    body {
+        color: black !important;
+        background: white !important;
+    }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+    :root {
+        --primary-red: #cc0000;
+        --primary-black: #000000;
+        --border-color: #333333;
+    }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .card, .modal-content, .table {
+        background: #2a2a2a !important;
+        color: white !important;
+    }
+    
+    .text-muted {
+        color: #ccc !important;
+    }
+}

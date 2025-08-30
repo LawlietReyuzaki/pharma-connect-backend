@@ -1,0 +1,500 @@
+{% extends "base.html" %}
+
+{% block title %}Red Dot Pharmacy - Online Medicine Store & Consultation{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section id="home" class="hero-section">
+    <div class="container">
+        <div class="row align-items-center min-vh-100 pt-5">
+            <div class="col-lg-6 mb-5 mb-lg-0">
+                <div class="hero-content">
+                    <h1 class="display-4 fw-bold text-dark mb-4">
+                        Your Trusted <span class="text-danger">Healthcare Partner</span>
+                    </h1>
+                    <p class="lead text-muted mb-4">
+                        Get quality medicines delivered to your doorstep and consult with qualified doctors online. 
+                        Red Dot Pharmacy - where your health comes first.
+                    </p>
+                    <div class="d-flex flex-wrap gap-3 mb-4">
+                        <button class="btn btn-danger btn-lg" onclick="scrollToSection('medicines')">
+                            <i class="fas fa-pills me-2"></i>Browse Medicines
+                        </button>
+                        <button class="btn btn-outline-danger btn-lg" onclick="scrollToSection('consultation')">
+                            <i class="fas fa-video me-2"></i>Book Consultation
+                        </button>
+                    </div>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="stat-item">
+                                <h3 class="text-danger fw-bold" id="medicineCount">500+</h3>
+                                <small class="text-muted">Medicines</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-item">
+                                <h3 class="text-danger fw-bold">24/7</h3>
+                                <small class="text-muted">Support</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-item">
+                                <h3 class="text-danger fw-bold">1000+</h3>
+                                <small class="text-muted">Happy Customers</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="hero-image">
+                    <img src="https://pixabay.com/get/ge56aa52d3c2a7ca670ff6f37d186c8ca60f096c222ff7a160f701392e5c667d395e266349a789caf5e8b554798a054a65266669270dff530d0b63566f8b95791_1280.jpg" 
+                         alt="Red Dot Pharmacy Interior" 
+                         class="img-fluid rounded-3 shadow-lg">
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Services Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="service-card text-center">
+                    <div class="service-icon">
+                        <i class="fas fa-truck text-danger"></i>
+                    </div>
+                    <h5>Free Delivery</h5>
+                    <p class="text-muted">Fast and reliable delivery across Islamabad</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="service-card text-center">
+                    <div class="service-icon">
+                        <i class="fas fa-user-md text-danger"></i>
+                    </div>
+                    <h5>Expert Doctors</h5>
+                    <p class="text-muted">Qualified and experienced medical professionals</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="service-card text-center">
+                    <div class="service-icon">
+                        <i class="fas fa-shield-alt text-danger"></i>
+                    </div>
+                    <h5>Genuine Medicines</h5>
+                    <p class="text-muted">100% authentic medicines from trusted suppliers</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="service-card text-center">
+                    <div class="service-icon">
+                        <i class="fas fa-clock text-danger"></i>
+                    </div>
+                    <h5>24/7 Support</h5>
+                    <p class="text-muted">Round-the-clock customer support and assistance</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Medicine Store Section -->
+<section id="medicines" class="py-5">
+    <div class="container">
+        <div class="row mb-5">
+            <div class="col-lg-8 mx-auto text-center">
+                <h2 class="display-5 fw-bold text-dark mb-4">Medicine Store</h2>
+                <p class="lead text-muted">Browse our extensive collection of quality medicines and healthcare products</p>
+            </div>
+        </div>
+        
+        <!-- Search and Filter -->
+        <div class="row mb-4">
+            <div class="col-lg-8 mx-auto">
+                <div class="search-form">
+                    <div class="input-group">
+                        <input type="text" class="form-control form-control-lg" id="medicineSearch" 
+                               placeholder="Search medicines by name or condition...">
+                        <button class="btn btn-danger" type="button" onclick="searchMedicines()">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Category Filter -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="category-filter d-flex flex-wrap gap-2 justify-content-center">
+                    <button class="btn btn-outline-danger active" data-category="" onclick="filterByCategory('')">All</button>
+                    <button class="btn btn-outline-danger" data-category="Pain Relief" onclick="filterByCategory('Pain Relief')">Pain Relief</button>
+                    <button class="btn btn-outline-danger" data-category="Antibiotics" onclick="filterByCategory('Antibiotics')">Antibiotics</button>
+                    <button class="btn btn-outline-danger" data-category="Cold & Flu" onclick="filterByCategory('Cold & Flu')">Cold & Flu</button>
+                    <button class="btn btn-outline-danger" data-category="Gastric" onclick="filterByCategory('Gastric')">Gastric</button>
+                    <button class="btn btn-outline-danger" data-category="Vitamins" onclick="filterByCategory('Vitamins')">Vitamins</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Medicine Grid -->
+        <div class="row" id="medicineGrid">
+            <!-- Medicines will be loaded here -->
+        </div>
+        
+        <!-- Load More -->
+        <div class="text-center mt-4">
+            <button class="btn btn-outline-danger" id="loadMoreBtn" onclick="loadMoreMedicines()">
+                <i class="fas fa-plus me-2"></i>Load More Medicines
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- Consultation Section -->
+<section id="consultation" class="py-5 bg-light">
+    <div class="container">
+        <div class="row mb-5">
+            <div class="col-lg-8 mx-auto text-center">
+                <h2 class="display-5 fw-bold text-dark mb-4">Online Consultation</h2>
+                <p class="lead text-muted">Book a video consultation with our qualified doctors from the comfort of your home</p>
+            </div>
+        </div>
+        
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-4">
+                <img src="https://pixabay.com/get/g5701e7af97e3199562c85d0c7a9e8017e7e6f527491d302256d54d37e1eda35b7f9f51599b75d9301f16167be58f9c6054cf7785b471adb05e5fd2143a011da6_1280.jpg" 
+                     alt="Online Medical Consultation" 
+                     class="img-fluid rounded-3 shadow">
+            </div>
+            <div class="col-lg-6">
+                <div class="consultation-form">
+                    <div class="card border-0 shadow">
+                        <div class="card-body p-4">
+                            <h4 class="card-title text-danger mb-4">Book Your Consultation</h4>
+                            
+                            <form id="consultationForm">
+                                <div class="mb-3">
+                                    <label class="form-label">Select Doctor</label>
+                                    <select class="form-select" id="doctorSelect" required>
+                                        <option value="">Choose a doctor...</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Preferred Date</label>
+                                    <input type="date" class="form-control" id="consultationDate" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Available Time Slots</label>
+                                    <div id="timeSlots" class="time-slots">
+                                        <!-- Time slots will be loaded here -->
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Describe Your Symptoms</label>
+                                    <textarea class="form-control" id="symptoms" rows="3" 
+                                              placeholder="Please describe your symptoms or health concerns..." required></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Additional Notes (Optional)</label>
+                                    <textarea class="form-control" id="consultationNotes" rows="2" 
+                                              placeholder="Any additional information for the doctor..."></textarea>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-danger w-100">
+                                    <i class="fas fa-calendar-plus me-2"></i>Book Consultation
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Available Doctors -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <h4 class="text-center mb-4">Our Available Doctors</h4>
+                <div class="row" id="doctorGrid">
+                    <!-- Doctors will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- About Section -->
+<section id="about" class="py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-4">
+                <h2 class="display-5 fw-bold text-dark mb-4">About Red Dot Pharmacy</h2>
+                <p class="lead text-muted mb-4">
+                    Located in the heart of Islamabad, Red Dot Pharmacy has been serving the community with 
+                    quality healthcare services and genuine medicines.
+                </p>
+                <div class="about-features">
+                    <div class="feature-item d-flex align-items-center mb-3">
+                        <div class="feature-icon me-3">
+                            <i class="fas fa-map-marker-alt text-danger"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-1">Prime Location</h6>
+                            <p class="text-muted mb-0">G11 Markaz, Islamabad - Easy to find and accessible</p>
+                        </div>
+                    </div>
+                    <div class="feature-item d-flex align-items-center mb-3">
+                        <div class="feature-icon me-3">
+                            <i class="fas fa-certificate text-danger"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-1">Licensed Pharmacy</h6>
+                            <p class="text-muted mb-0">Fully licensed and regulated by health authorities</p>
+                        </div>
+                    </div>
+                    <div class="feature-item d-flex align-items-center">
+                        <div class="feature-icon me-3">
+                            <i class="fas fa-users text-danger"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-1">Expert Team</h6>
+                            <p class="text-muted mb-0">Qualified pharmacists and healthcare professionals</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <img src="https://pixabay.com/get/gfbc678e1fa19e63229a2920e676426c13c671be99ffcf08f195602004a4e853c4fad6e35c2b7a2f0e2e700480366e045aff8b67b0b9876e5ddec4eeeac05ff57_1280.png" 
+                     alt="Red Dot Pharmacy Team" 
+                     class="img-fluid rounded-3 shadow">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Shopping Cart Modal -->
+<div class="modal fade" id="cartModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-shopping-cart text-danger me-2"></i>Shopping Cart
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="cartItems">
+                    <!-- Cart items will be loaded here -->
+                </div>
+                <div class="cart-summary mt-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Delivery Address:</h6>
+                            <textarea class="form-control" id="deliveryAddress" rows="3" 
+                                      placeholder="Enter your complete delivery address..."></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Contact Number:</h6>
+                            <input type="tel" class="form-control" id="deliveryPhone" 
+                                   placeholder="03XX-XXXXXXX">
+                            <div class="cart-total mt-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>Subtotal:</span>
+                                    <span id="cartSubtotal">PKR 0</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>Delivery Fee:</span>
+                                    <span>PKR 100</span>
+                                </div>
+                                <hr>
+                                <div class="d-flex justify-content-between fw-bold">
+                                    <span>Total:</span>
+                                    <span id="cartTotal">PKR 100</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Continue Shopping</button>
+                <button type="button" class="btn btn-danger" onclick="placeOrder()">
+                    <i class="fas fa-check me-2"></i>Place Order
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Auth Modals -->
+<div class="modal fade" id="loginModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-sign-in-alt text-danger me-2"></i>Login to Red Dot Pharmacy
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="loginEmail" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-danger w-100">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login
+                    </button>
+                </form>
+                <hr>
+                <p class="text-center text-muted">
+                    Don't have an account? 
+                    <a href="#" onclick="showRegister()" class="text-danger">Register here</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="registerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus text-danger me-2"></i>Create Account
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="registerForm">
+                    <div class="mb-3">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="registerName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="registerEmail" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" id="registerPhone" placeholder="03XX-XXXXXXX" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" id="registerPassword" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="confirmPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-danger w-100">
+                        <i class="fas fa-user-plus me-2"></i>Create Account
+                    </button>
+                </form>
+                <hr>
+                <p class="text-center text-muted">
+                    Already have an account? 
+                    <a href="#" onclick="showLogin()" class="text-danger">Login here</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chatbot Widget -->
+<div id="chatWidget" class="chat-widget">
+    <div class="chat-header" onclick="toggleChat()">
+        <i class="fas fa-comments"></i>
+        <span>Ask Our Assistant</span>
+        <span class="urdu-text">اردو میں پوچھیں</span>
+        <i class="fas fa-chevron-down chat-toggle"></i>
+    </div>
+    <div class="chat-body" id="chatBody">
+        <div class="chat-messages" id="chatMessages">
+            <div class="bot-message">
+                <div class="message-content">
+                    <p>سلام! میں Red Dot Pharmacy کا مددگار ہوں۔ آپ کی صحت کے بارے میں سوال پوچھ سکتے ہیں۔</p>
+                    <p class="small">Hello! I'm Red Dot Pharmacy's assistant. You can ask questions about your health.</p>
+                </div>
+            </div>
+        </div>
+        <div class="chat-input">
+            <div class="input-group">
+                <input type="text" class="form-control" id="chatInput" 
+                       placeholder="Type your message... / اپنا پیغام لکھیں...">
+                <button class="btn btn-danger" id="voiceButton" onclick="toggleVoiceInput()">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button class="btn btn-danger" onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            <div class="voice-status" id="voiceStatus" style="display: none;">
+                <span class="text-muted">
+                    <i class="fas fa-microphone-alt text-danger"></i>
+                    Listening... / سن رہا ہوں...
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Initialize the page
+document.addEventListener('DOMContentLoaded', function() {
+    // Check authentication status
+    checkAuthStatus();
+    
+    // Load medicines
+    loadMedicines();
+    
+    // Load doctors
+    loadDoctors();
+    
+    // Initialize date picker
+    const dateInput = document.getElementById('consultationDate');
+    if (dateInput) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.min = today;
+        dateInput.addEventListener('change', loadTimeSlots);
+    }
+    
+    // Initialize search
+    const searchInput = document.getElementById('medicineSearch');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchMedicines();
+            }
+        });
+    }
+    
+    // Initialize forms
+    initializeForms();
+    
+    // Initialize chatbot
+    initializeChatbot();
+});
+
+function scrollToSection(sectionId) {
+    const element = document.getElementById(sectionId);
+    if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+</script>
+{% endblock %}
