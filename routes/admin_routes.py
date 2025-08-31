@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, render_template
 from datetime import datetime, timedelta
 from services.auth import require_auth, get_current_user, require_role
-from models import User, Medicine, Appointment, Order, OrderItem, ChatLog
+from models import User, Medicine, Appointment, Order, OrderItem, ChatLog, TimeSlot
 from app import db
 import logging
 import hashlib
@@ -444,3 +444,345 @@ def export_data():
     except Exception as e:
         logging.error(f"Export data error: {e}")
         return jsonify({"error": f"Failed to export data: {str(e)}"}), 500
+
+# ============ TIME SLOT MANAGEMENT ============
+
+@bp.route("/api/timeslots", methods=["GET"])
+def list_time_slots():
+    """List all time slots"""
+    try:
+        current_user = get_current_user()
+        if not current_user or current_user.role != "admin":
+            return jsonify({"error": "Admin access required"}), 403
+        
+        time_slots = TimeSlot.query.join(User).order_by(TimeSlot.day_of_week, TimeSlot.start_time).all()
+        
+        slots_list = []
+        for slot in time_slots:
+            slots_list.append({
+                "id": slot.id,
+                "doctor_id": slot.doctor_id,
+                "doctor_name": slot.doctor.name,
+                "day_of_week": slot.day_of_week,
+                "day_name": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][slot.day_of_week],
+                "start_time": slot.start_time.strftime("%H:%M"),
+                "end_time": slot.end_time.strftime("%H:%M"),
+                "is_available": slot.is_available,
+                "max_appointments": slot.max_appointments,
+                "created_at": slot.created_at.isoformat()
+            })
+        
+        return jsonify({"success": True, "time_slots": slots_list})
+        
+    except Exception as e:
+        logging.error(f"List time slots error: {e}")
+        return jsonify({"error": f"Failed to retrieve time slots: {str(e)}"}), 500
+
+@bp.route("/api/timeslots", methods=["POST"])
+def create_time_slot():
+    """Create a new time slot"""
+    try:
+        current_user = get_current_user()
+        if not current_user or current_user.role != "admin":
+            return jsonify({"error": "Admin access required"}), 403
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        # Validate required fields
+        required_fields = ["doctor_id", "day_of_week", "start_time", "end_time"]
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"{field} is required"}), 400
+        
+        # Validate doctor exists and is a doctor
+        doctor = User.query.filter_by(id=data["doctor_id"], role="doctor").first()
+        if not doctor:
+            return jsonify({"error": "Invalid doctor selected"}), 400
+        
+        # Parse time strings
+        from datetime import time
+        try:
+            start_time = time.fromisoformat(data["start_time"])
+            end_time = time.fromisoformat(data["end_time"])
+        except ValueError:
+            return jsonify({"error": "Invalid time format. Use HH:MM"}), 400
+        
+        if start_time >= end_time:
+            return jsonify({"error": "Start time must be before end time"}), 400
+        
+        # Check for overlapping slots
+        existing_slot = TimeSlot.query.filter(
+            TimeSlot.doctor_id == data["doctor_id"],
+            TimeSlot.day_of_week == data["day_of_week"],
+            TimeSlot.start_time < end_time,
+            TimeSlot.end_time > start_time
+        ).first()
+        
+        if existing_slot:
+            return jsonify({"error": "Time slot overlaps with existing slot"}), 400
+        
+        # Create new time slot
+        new_slot = TimeSlot(
+            doctor_id=data["doctor_id"],
+            day_of_week=data["day_of_week"],
+            start_time=start_time,
+            end_time=end_time,
+            is_available=data.get("is_available", True),
+            max_appointments=data.get("max_appointments", 1)
+        )
+        
+        db.session.add(new_slot)
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Time slot created successfully",
+            "time_slot": {
+                "id": new_slot.id,
+                "doctor_name": doctor.name,
+                "day_name": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][new_slot.day_of_week],
+                "start_time": new_slot.start_time.strftime("%H:%M"),
+                "end_time": new_slot.end_time.strftime("%H:%M")
+            }
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Create time slot error: {e}")
+        return jsonify({"error": f"Failed to create time slot: {str(e)}"}), 500
+
+@bp.route("/api/timeslots/<int:slot_id>", methods=["PUT"])
+def update_time_slot(slot_id):
+    """Update a time slot"""
+    try:
+        current_user = get_current_user()
+        if not current_user or current_user.role != "admin":
+            return jsonify({"error": "Admin access required"}), 403
+        
+        slot = TimeSlot.query.get_or_404(slot_id)
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        # Update fields
+        if "is_available" in data:
+            slot.is_available = data["is_available"]
+        if "max_appointments" in data:
+            slot.max_appointments = data["max_appointments"]
+        
+        slot.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({"success": True, "message": "Time slot updated successfully"})
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Update time slot error: {e}")
+        return jsonify({"error": f"Failed to update time slot: {str(e)}"}), 500
+
+@bp.route("/api/timeslots/<int:slot_id>", methods=["DELETE"])
+def delete_time_slot(slot_id):
+    """Delete a time slot"""
+    try:
+        current_user = get_current_user()
+        if not current_user or current_user.role != "admin":
+            return jsonify({"error": "Admin access required"}), 403
+        
+        slot = TimeSlot.query.get_or_404(slot_id)
+        
+        # Check if there are pending appointments for this slot
+        pending_appointments = Appointment.query.filter_by(
+            time_slot_id=slot_id,
+            approval_status="pending"
+        ).count()
+        
+        if pending_appointments > 0:
+            return jsonify({"error": "Cannot delete time slot with pending appointments"}), 400
+        
+        db.session.delete(slot)
+        db.session.commit()
+        
+        return jsonify({"success": True, "message": "Time slot deleted successfully"})
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Delete time slot error: {e}")
+        return jsonify({"error": f"Failed to delete time slot: {str(e)}"}), 500
+
+# ============ APPOINTMENT APPROVAL MANAGEMENT ============
+
+@bp.route("/api/appointments", methods=["GET"])
+def list_appointments():
+    """List appointments with filtering"""
+    try:
+        current_user = get_current_user()
+        if not current_user or current_user.role != "admin":
+            return jsonify({"error": "Admin access required"}), 403
+        
+        # Get query parameters
+        approval_status = request.args.get('approval_status')  # pending, approved, declined
+        status = request.args.get('status')  # scheduled, completed, etc.
+        limit = int(request.args.get('limit', 50))
+        offset = int(request.args.get('offset', 0))
+        
+        # Build query
+        query = Appointment.query.join(User, Appointment.user_id == User.id).join(
+            User.doctor_appointments
+        )
+        
+        if approval_status:
+            query = query.filter(Appointment.approval_status == approval_status)
+        
+        if status:
+            query = query.filter(Appointment.status == status)
+        
+        total_count = query.count()
+        appointments = query.order_by(Appointment.created_at.desc()).offset(offset).limit(limit).all()
+        
+        appointments_list = []
+        for appointment in appointments:
+            appointments_list.append({
+                "id": appointment.id,
+                "patient_id": appointment.user_id,
+                "patient_name": appointment.patient.name,
+                "patient_email": appointment.patient.email,
+                "doctor_id": appointment.doctor_id,
+                "doctor_name": appointment.doctor.name,
+                "appointment_date": appointment.appointment_date.isoformat(),
+                "starts_at": appointment.starts_at.isoformat(),
+                "ends_at": appointment.ends_at.isoformat(),
+                "status": appointment.status,
+                "approval_status": appointment.approval_status,
+                "symptoms": appointment.symptoms,
+                "note": appointment.note,
+                "time_slot_id": appointment.time_slot_id,
+                "approved_by": appointment.approved_by,
+                "approved_at": appointment.approved_at.isoformat() if appointment.approved_at else None,
+                "created_at": appointment.created_at.isoformat()
+            })
+        
+        return jsonify({
+            "success": True,
+            "appointments": appointments_list,
+            "total_count": total_count,
+            "pending_count": Appointment.query.filter_by(approval_status="pending").count(),
+            "approved_count": Appointment.query.filter_by(approval_status="approved").count()
+        })
+        
+    except Exception as e:
+        logging.error(f"List appointments error: {e}")
+        return jsonify({"error": f"Failed to retrieve appointments: {str(e)}"}), 500
+
+@bp.route("/api/appointments/<int:appointment_id>/approve", methods=["POST"])
+def approve_appointment(appointment_id):
+    """Approve a pending appointment"""
+    try:
+        current_user = get_current_user()
+        if not current_user or current_user.role != "admin":
+            return jsonify({"error": "Admin access required"}), 403
+        
+        appointment = Appointment.query.get_or_404(appointment_id)
+        
+        if appointment.approval_status != "pending":
+            return jsonify({"error": "Appointment is not pending approval"}), 400
+        
+        # Update appointment
+        appointment.approval_status = "approved"
+        appointment.status = "scheduled"
+        appointment.approved_by = current_user.id
+        appointment.approved_at = datetime.utcnow()
+        appointment.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Appointment approved successfully",
+            "appointment": {
+                "id": appointment.id,
+                "patient_name": appointment.patient.name,
+                "doctor_name": appointment.doctor.name,
+                "appointment_date": appointment.appointment_date.isoformat(),
+                "approval_status": appointment.approval_status
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Approve appointment error: {e}")
+        return jsonify({"error": f"Failed to approve appointment: {str(e)}"}), 500
+
+@bp.route("/api/appointments/<int:appointment_id>/decline", methods=["POST"])
+def decline_appointment(appointment_id):
+    """Decline a pending appointment"""
+    try:
+        current_user = get_current_user()
+        if not current_user or current_user.role != "admin":
+            return jsonify({"error": "Admin access required"}), 403
+        
+        appointment = Appointment.query.get_or_404(appointment_id)
+        
+        if appointment.approval_status != "pending":
+            return jsonify({"error": "Appointment is not pending approval"}), 400
+        
+        data = request.get_json()
+        decline_reason = data.get("reason", "No reason provided") if data else "No reason provided"
+        
+        # Update appointment
+        appointment.approval_status = "declined"
+        appointment.status = "cancelled"
+        appointment.approved_by = current_user.id
+        appointment.approved_at = datetime.utcnow()
+        appointment.note = f"Declined by admin: {decline_reason}"
+        appointment.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Appointment declined successfully",
+            "appointment": {
+                "id": appointment.id,
+                "patient_name": appointment.patient.name,
+                "doctor_name": appointment.doctor.name,
+                "appointment_date": appointment.appointment_date.isoformat(),
+                "approval_status": appointment.approval_status
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Decline appointment error: {e}")
+        return jsonify({"error": f"Failed to decline appointment: {str(e)}"}), 500
+
+@bp.route("/api/appointments/<int:appointment_id>", methods=["DELETE"])
+def cancel_appointment(appointment_id):
+    """Cancel an approved appointment"""
+    try:
+        current_user = get_current_user()
+        if not current_user or current_user.role != "admin":
+            return jsonify({"error": "Admin access required"}), 403
+        
+        appointment = Appointment.query.get_or_404(appointment_id)
+        
+        if appointment.status in ["completed", "cancelled"]:
+            return jsonify({"error": "Cannot cancel a completed or already cancelled appointment"}), 400
+        
+        # Update appointment
+        appointment.status = "cancelled"
+        appointment.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Appointment cancelled successfully"
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Cancel appointment error: {e}")
+        return jsonify({"error": f"Failed to cancel appointment: {str(e)}"}), 500

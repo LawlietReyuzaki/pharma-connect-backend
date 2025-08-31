@@ -56,6 +56,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="#timeslots" onclick="showSection('timeslots')">
+                            <i class="fas fa-clock me-1"></i>Time Slots
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="#users" onclick="showSection('users')">
                             <i class="fas fa-users me-1"></i>Users
                         </a>
@@ -368,6 +373,126 @@
                                 <!-- Appointments will be loaded here -->
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Time Slots Section -->
+        <div id="timeslotsSection" class="admin-section" style="display: none;">
+            <h2 class="mb-4">
+                <i class="fas fa-clock text-danger me-2"></i>Time Slots Management
+            </h2>
+            
+            <!-- Add Time Slot Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-plus me-2"></i>Add New Time Slot
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="addTimeSlotForm">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label class="form-label">Doctor</label>
+                                <select class="form-select" id="slotDoctorId" required>
+                                    <option value="">Select Doctor</option>
+                                    <!-- Will be populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Day</label>
+                                <select class="form-select" id="slotDayOfWeek" required>
+                                    <option value="0">Monday</option>
+                                    <option value="1">Tuesday</option>
+                                    <option value="2">Wednesday</option>
+                                    <option value="3">Thursday</option>
+                                    <option value="4">Friday</option>
+                                    <option value="5">Saturday</option>
+                                    <option value="6">Sunday</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Start Time</label>
+                                <input type="time" class="form-control" id="slotStartTime" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">End Time</label>
+                                <input type="time" class="form-control" id="slotEndTime" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Max Appointments</label>
+                                <input type="number" class="form-control" id="slotMaxAppointments" value="1" min="1" max="5">
+                            </div>
+                            <div class="col-md-1 d-flex align-items-end">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Time Slots by Day -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Weekly Time Slots</h5>
+                            <button class="btn btn-primary btn-sm" onclick="loadTimeSlots()">
+                                <i class="fas fa-sync-alt me-1"></i>Refresh
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <!-- Day Tabs -->
+                            <ul class="nav nav-pills mb-3" id="dayTabs">
+                                <li class="nav-item">
+                                    <a class="nav-link active" href="#" onclick="filterSlotsByDay(0)">Monday</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" onclick="filterSlotsByDay(1)">Tuesday</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" onclick="filterSlotsByDay(2)">Wednesday</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" onclick="filterSlotsByDay(3)">Thursday</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" onclick="filterSlotsByDay(4)">Friday</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" onclick="filterSlotsByDay(5)">Saturday</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" onclick="filterSlotsByDay(6)">Sunday</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" onclick="filterSlotsByDay(-1)">All Days</a>
+                                </li>
+                            </ul>
+                            
+                            <!-- Time Slots Table -->
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Doctor</th>
+                                            <th>Day</th>
+                                            <th>Time</th>
+                                            <th>Available</th>
+                                            <th>Max Appointments</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="timeSlotsTableBody">
+                                        <!-- Time slots will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

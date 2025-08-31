@@ -1,0 +1,897 @@
+// Admin Dashboard JavaScript
+class AdminDashboard {
+    constructor() {
+        this.authToken = localStorage.getItem('auth_token');
+        this.userData = null;
+        this.currentSection = 'dashboard';
+    }
+
+    // ============ AUTHENTICATION ============
+    
+    async checkAdminAuth() {
+        if (!this.authToken) {
+            window.location.href = '/';
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/auth/verify', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.userData = data.user;
+                
+                if (data.user.role !== 'admin') {
+                    alert('Access denied. Admin privileges required.');
+                    window.location.href = '/';
+                    return;
+                }
+                
+                // Update admin name in UI
+                const adminNameElement = document.getElementById('adminName');
+                if (adminNameElement) {
+                    adminNameElement.textContent = data.user.name;
+                }
+            } else {
+                throw new Error('Authentication failed');
+            }
+        } catch (error) {
+            console.error('Auth check failed:', error);
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            window.location.href = '/';
+        }
+    }
+
+    // ============ SECTION MANAGEMENT ============
+    
+    showSection(sectionName) {
+        // Hide all sections
+        const sections = document.querySelectorAll('.admin-section');
+        sections.forEach(section => {
+            section.style.display = 'none';
+        });
+
+        // Show selected section
+        const targetSection = document.getElementById(sectionName + 'Section');
+        if (targetSection) {
+            targetSection.style.display = 'block';
+        }
+
+        // Update navigation
+        const navLinks = document.querySelectorAll('.nav-link');
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+        });
+
+        const activeLink = document.querySelector(`[onclick="showSection('${sectionName}')"]`);
+        if (activeLink) {
+            activeLink.classList.add('active');
+        }
+
+        this.currentSection = sectionName;
+
+        // Load section-specific data
+        switch (sectionName) {
+            case 'dashboard':
+                this.loadDashboardStats();
+                break;
+            case 'medicines':
+                this.loadMedicines();
+                break;
+            case 'orders':
+                this.loadOrders();
+                break;
+            case 'appointments':
+                this.loadAppointments();
+                break;
+            case 'users':
+                this.loadUsers();
+                break;
+            case 'chats':
+                this.loadChatLogs();
+                break;
+        }
+    }
+
+    // ============ DASHBOARD STATS ============
+    
+    async loadDashboardStats() {
+        try {
+            const response = await fetch('/admin/api/stats', {
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                }
+            });
+
+            if (response.ok) {
+                const stats = await response.json();
+                this.updateDashboardUI(stats);
+            } else {
+                console.error('Failed to load dashboard stats');
+            }
+        } catch (error) {
+            console.error('Error loading dashboard stats:', error);
+        }
+    }
+
+    updateDashboardUI(stats) {
+        // Update stat cards
+        document.getElementById('totalUsers').textContent = stats.total_users || 0;
+        document.getElementById('totalOrders').textContent = stats.total_orders || 0;
+        document.getElementById('totalAppointments').textContent = stats.total_appointments || 0;
+        document.getElementById('totalRevenue').textContent = `PKR ${stats.total_revenue || 0}`;
+    }
+
+    // ============ MEDICINES MANAGEMENT ============
+    
+    async loadMedicines() {
+        try {
+            const response = await fetch('/admin/api/medicines', {
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                }
+            });
+
+            if (response.ok) {
+                const medicines = await response.json();
+                this.renderMedicinesTable(medicines);
+            }
+        } catch (error) {
+            console.error('Error loading medicines:', error);
+        }
+    }
+
+    renderMedicinesTable(medicines) {
+        const tbody = document.getElementById('medicinesTableBody');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        medicines.forEach(medicine => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${medicine.id}</td>
+                <td>${medicine.name}</td>
+                <td>${medicine.chemical || '-'}</td>
+                <td>${medicine.category || '-'}</td>
+                <td>PKR ${medicine.price}</td>
+                <td>${medicine.stock_quantity}</td>
+                <td><span class="badge bg-${medicine.status === 'in_stock' ? 'success' : 'danger'}">${medicine.status}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editMedicine(${medicine.id})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteMedicine(${medicine.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // ============ ORDERS MANAGEMENT ============
+    
+    async loadOrders() {
+        try {
+            const response = await fetch('/admin/api/orders', {
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                }
+            });
+
+            if (response.ok) {
+                const orders = await response.json();
+                this.renderOrdersTable(orders);
+            }
+        } catch (error) {
+            console.error('Error loading orders:', error);
+        }
+    }
+
+    renderOrdersTable(orders) {
+        const tbody = document.getElementById('ordersTableBody');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        orders.forEach(order => {
+            const row = document.createElement('tr');
+            const orderDate = new Date(order.created_at).toLocaleDateString();
+            
+            row.innerHTML = `
+                <td>#${order.id}</td>
+                <td>${order.customer_name || 'Unknown'}</td>
+                <td>${order.total_items || 0} items</td>
+                <td>PKR ${order.total_amount}</td>
+                <td><span class="badge bg-${this.getStatusColor(order.status)}">${order.status}</span></td>
+                <td>${orderDate}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewOrder(${order.id})">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" onclick="updateOrderStatus(${order.id})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // ============ APPOINTMENTS MANAGEMENT ============
+    
+    async loadAppointments(filter = 'all') {
+        try {
+            let url = '/admin/api/appointments';
+            if (filter !== 'all') {
+                url += `?approval_status=${filter}`;
+            }
+            
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.renderAppointmentsTable(data.appointments);
+                
+                // Update counters
+                document.getElementById('pendingAppointmentsCount').textContent = data.pending_count || 0;
+                document.getElementById('approvedAppointmentsCount').textContent = data.approved_count || 0;
+            }
+        } catch (error) {
+            console.error('Error loading appointments:', error);
+        }
+    }
+
+    renderAppointmentsTable(appointments) {
+        const tbody = document.getElementById('appointmentsTableBody');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        appointments.forEach(appointment => {
+            const row = document.createElement('tr');
+            const appointmentDate = new Date(appointment.starts_at).toLocaleString();
+            const isApprovalPending = appointment.approval_status === 'pending';
+            
+            row.innerHTML = `
+                <td>${appointment.id}</td>
+                <td>${appointment.patient_name || 'Unknown'}<br><small class="text-muted">${appointment.patient_email}</small></td>
+                <td>${appointment.doctor_name || 'Unknown'}</td>
+                <td>${appointmentDate}<br><small class="text-muted">${appointment.appointment_date}</small></td>
+                <td><span class="badge bg-${this.getApprovalStatusColor(appointment.approval_status)}">${appointment.approval_status}</span></td>
+                <td><span class="badge bg-${this.getStatusColor(appointment.status)}">${appointment.status}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="viewAppointment(${appointment.id})" title="View Details">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    ${isApprovalPending ? `
+                        <button class="btn btn-sm btn-outline-success me-1" onclick="approveAppointment(${appointment.id})" title="Approve">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="declineAppointment(${appointment.id})" title="Decline">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    ` : `
+                        <button class="btn btn-sm btn-outline-warning" onclick="cancelAppointment(${appointment.id})" title="Cancel">
+                            <i class="fas fa-ban"></i>
+                        </button>
+                    `}
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // ============ TIME SLOTS MANAGEMENT ============
+    
+    async loadTimeSlots() {
+        try {
+            const response = await fetch('/admin/api/timeslots', {
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.renderTimeSlotsTable(data.time_slots);
+                this.loadDoctorsForSlots();
+            }
+        } catch (error) {
+            console.error('Error loading time slots:', error);
+        }
+    }
+
+    async loadDoctorsForSlots() {
+        try {
+            const response = await fetch('/admin/api/users?role=doctor', {
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const doctorSelect = document.getElementById('slotDoctorId');
+                if (doctorSelect) {
+                    doctorSelect.innerHTML = '<option value="">Select Doctor</option>';
+                    data.users.forEach(doctor => {
+                        doctorSelect.innerHTML += `<option value="${doctor.id}">${doctor.name}</option>`;
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error loading doctors:', error);
+        }
+    }
+
+    renderTimeSlotsTable(timeSlots) {
+        const tbody = document.getElementById('timeSlotsTableBody');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        timeSlots.forEach(slot => {
+            const row = document.createElement('tr');
+            
+            row.innerHTML = `
+                <td>${slot.doctor_name}</td>
+                <td>${slot.day_name}</td>
+                <td>${slot.start_time} - ${slot.end_time}</td>
+                <td>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" ${slot.is_available ? 'checked' : ''} 
+                               onchange="toggleSlotAvailability(${slot.id}, this.checked)">
+                    </div>
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm" style="width: 80px;" 
+                           value="${slot.max_appointments}" min="1" max="10" 
+                           onchange="updateSlotMaxAppointments(${slot.id}, this.value)">
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteTimeSlot(${slot.id})" title="Delete Slot">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // ============ USERS MANAGEMENT ============
+    
+    async loadUsers() {
+        try {
+            const response = await fetch('/admin/api/users', {
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                }
+            });
+
+            if (response.ok) {
+                const users = await response.json();
+                this.renderUsersTable(users);
+            }
+        } catch (error) {
+            console.error('Error loading users:', error);
+        }
+    }
+
+    renderUsersTable(users) {
+        const tbody = document.getElementById('usersTableBody');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        users.forEach(user => {
+            const row = document.createElement('tr');
+            const joinDate = new Date(user.created_at).toLocaleDateString();
+            
+            row.innerHTML = `
+                <td>${user.id}</td>
+                <td>${user.name}</td>
+                <td>${user.email}</td>
+                <td><span class="badge bg-${this.getRoleColor(user.role)}">${user.role}</span></td>
+                <td>${user.phone || '-'}</td>
+                <td>${joinDate}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editUser(${user.id})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // ============ CHAT LOGS ============
+    
+    async loadChatLogs() {
+        try {
+            const response = await fetch('/admin/api/chatlogs', {
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                }
+            });
+
+            if (response.ok) {
+                const chatLogs = await response.json();
+                this.renderChatLogs(chatLogs);
+            }
+        } catch (error) {
+            console.error('Error loading chat logs:', error);
+        }
+    }
+
+    renderChatLogs(chatLogs) {
+        const container = document.getElementById('chatLogsList');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        chatLogs.forEach(log => {
+            const logElement = document.createElement('div');
+            logElement.className = `chat-log-item mb-3 p-3 border rounded ${log.flagged ? 'border-danger' : 'border-light'}`;
+            
+            const logDate = new Date(log.created_at).toLocaleString();
+            
+            logElement.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <small class="text-muted">Session: ${log.session_id}</small>
+                    <div>
+                        <span class="badge bg-${log.language === 'ur' ? 'info' : 'secondary'}">${log.language.toUpperCase()}</span>
+                        ${log.flagged ? '<span class="badge bg-danger ms-1">Flagged</span>' : ''}
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <strong>User:</strong> ${log.message}
+                </div>
+                <div class="mb-2">
+                    <strong>Bot:</strong> ${log.response}
+                </div>
+                <small class="text-muted">${logDate}</small>
+            `;
+            
+            container.appendChild(logElement);
+        });
+    }
+
+    // ============ UTILITY FUNCTIONS ============
+    
+    getStatusColor(status) {
+        const colors = {
+            'pending': 'warning',
+            'processing': 'info',
+            'out_for_delivery': 'primary',
+            'delivered': 'success',
+            'cancelled': 'danger',
+            'scheduled': 'info',
+            'ongoing': 'warning',
+            'completed': 'success'
+        };
+        return colors[status] || 'secondary';
+    }
+
+    getApprovalStatusColor(status) {
+        const colors = {
+            'pending': 'warning',
+            'approved': 'success',
+            'declined': 'danger'
+        };
+        return colors[status] || 'secondary';
+    }
+
+    getRoleColor(role) {
+        const colors = {
+            'admin': 'danger',
+            'doctor': 'success',
+            'patient': 'primary'
+        };
+        return colors[role] || 'secondary';
+    }
+
+    // ============ LOGOUT ============
+    
+    adminLogout() {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_data');
+        window.location.href = '/';
+    }
+
+    // ============ CHARTS INITIALIZATION ============
+    
+    initializeCharts() {
+        // Revenue Chart
+        const revenueCtx = document.getElementById('revenueChart');
+        if (revenueCtx) {
+            new Chart(revenueCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Revenue (PKR)',
+                        data: [12000, 19000, 15000, 25000, 22000, 30000],
+                        borderColor: '#dc3545',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Order Status Chart
+        const orderStatusCtx = document.getElementById('orderStatusChart');
+        if (orderStatusCtx) {
+            new Chart(orderStatusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Pending', 'Processing', 'Delivered', 'Cancelled'],
+                    datasets: [{
+                        data: [20, 35, 40, 5],
+                        backgroundColor: ['#ffc107', '#17a2b8', '#28a745', '#dc3545']
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+        }
+    }
+}
+
+// Global functions for template onclick handlers
+let adminDashboard;
+
+function checkAdminAuth() {
+    if (adminDashboard) {
+        adminDashboard.checkAdminAuth();
+    }
+}
+
+function showSection(sectionName) {
+    if (adminDashboard) {
+        adminDashboard.showSection(sectionName);
+    }
+}
+
+function loadDashboardStats() {
+    if (adminDashboard) {
+        adminDashboard.loadDashboardStats();
+    }
+}
+
+function initializeCharts() {
+    if (adminDashboard) {
+        adminDashboard.initializeCharts();
+    }
+}
+
+function adminLogout() {
+    if (adminDashboard) {
+        adminDashboard.adminLogout();
+    }
+}
+
+// ============ TIME SLOT FUNCTIONS ============
+
+async function addTimeSlot(event) {
+    event.preventDefault();
+    
+    const doctorId = document.getElementById('slotDoctorId').value;
+    const dayOfWeek = document.getElementById('slotDayOfWeek').value;
+    const startTime = document.getElementById('slotStartTime').value;
+    const endTime = document.getElementById('slotEndTime').value;
+    const maxAppointments = document.getElementById('slotMaxAppointments').value;
+    
+    if (!doctorId || !startTime || !endTime) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/admin/api/timeslots', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${adminDashboard.authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                doctor_id: parseInt(doctorId),
+                day_of_week: parseInt(dayOfWeek),
+                start_time: startTime,
+                end_time: endTime,
+                max_appointments: parseInt(maxAppointments)
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Time slot created successfully!');
+            document.getElementById('addTimeSlotForm').reset();
+            adminDashboard.loadTimeSlots();
+        } else {
+            alert(result.error || 'Failed to create time slot');
+        }
+    } catch (error) {
+        console.error('Error creating time slot:', error);
+        alert('Failed to create time slot');
+    }
+}
+
+async function toggleSlotAvailability(slotId, isAvailable) {
+    try {
+        const response = await fetch(`/admin/api/timeslots/${slotId}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${adminDashboard.authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                is_available: isAvailable
+            })
+        });
+        
+        if (!response.ok) {
+            const result = await response.json();
+            alert(result.error || 'Failed to update time slot');
+            adminDashboard.loadTimeSlots(); // Refresh to revert changes
+        }
+    } catch (error) {
+        console.error('Error updating time slot:', error);
+        adminDashboard.loadTimeSlots(); // Refresh to revert changes
+    }
+}
+
+async function updateSlotMaxAppointments(slotId, maxAppointments) {
+    try {
+        const response = await fetch(`/admin/api/timeslots/${slotId}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${adminDashboard.authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                max_appointments: parseInt(maxAppointments)
+            })
+        });
+        
+        if (!response.ok) {
+            const result = await response.json();
+            alert(result.error || 'Failed to update time slot');
+            adminDashboard.loadTimeSlots(); // Refresh to revert changes
+        }
+    } catch (error) {
+        console.error('Error updating time slot:', error);
+        adminDashboard.loadTimeSlots(); // Refresh to revert changes
+    }
+}
+
+async function deleteTimeSlot(slotId) {
+    if (!confirm('Are you sure you want to delete this time slot?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/api/timeslots/${slotId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${adminDashboard.authToken}`
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Time slot deleted successfully!');
+            adminDashboard.loadTimeSlots();
+        } else {
+            alert(result.error || 'Failed to delete time slot');
+        }
+    } catch (error) {
+        console.error('Error deleting time slot:', error);
+        alert('Failed to delete time slot');
+    }
+}
+
+function filterSlotsByDay(dayOfWeek) {
+    // Update active tab
+    const tabs = document.querySelectorAll('#dayTabs .nav-link');
+    tabs.forEach(tab => tab.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Filter table rows
+    const rows = document.querySelectorAll('#timeSlotsTableBody tr');
+    rows.forEach(row => {
+        if (dayOfWeek === -1) {
+            row.style.display = ''; // Show all
+        } else {
+            const dayCell = row.children[1]; // Day column
+            const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            const shouldShow = dayCell.textContent.trim() === dayNames[dayOfWeek];
+            row.style.display = shouldShow ? '' : 'none';
+        }
+    });
+}
+
+// ============ APPOINTMENT FUNCTIONS ============
+
+async function approveAppointment(appointmentId) {
+    if (!confirm('Are you sure you want to approve this appointment?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/api/appointments/${appointmentId}/approve`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${adminDashboard.authToken}`
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Appointment approved successfully!');
+            adminDashboard.loadAppointments();
+        } else {
+            alert(result.error || 'Failed to approve appointment');
+        }
+    } catch (error) {
+        console.error('Error approving appointment:', error);
+        alert('Failed to approve appointment');
+    }
+}
+
+async function declineAppointment(appointmentId) {
+    const reason = prompt('Please provide a reason for declining this appointment:');
+    if (reason === null) return; // User cancelled
+    
+    try {
+        const response = await fetch(`/admin/api/appointments/${appointmentId}/decline`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${adminDashboard.authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                reason: reason || 'No reason provided'
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Appointment declined successfully!');
+            adminDashboard.loadAppointments();
+        } else {
+            alert(result.error || 'Failed to decline appointment');
+        }
+    } catch (error) {
+        console.error('Error declining appointment:', error);
+        alert('Failed to decline appointment');
+    }
+}
+
+async function cancelAppointment(appointmentId) {
+    if (!confirm('Are you sure you want to cancel this appointment?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/api/appointments/${appointmentId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${adminDashboard.authToken}`
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Appointment cancelled successfully!');
+            adminDashboard.loadAppointments();
+        } else {
+            alert(result.error || 'Failed to cancel appointment');
+        }
+    } catch (error) {
+        console.error('Error cancelling appointment:', error);
+        alert('Failed to cancel appointment');
+    }
+}
+
+function filterAppointments(filter) {
+    // Update active tab
+    const tabs = document.querySelectorAll('.nav-tabs .nav-link');
+    tabs.forEach(tab => tab.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Load appointments with filter
+    adminDashboard.loadAppointments(filter);
+}
+
+function viewAppointment(id) {
+    console.log('View appointment:', id);
+    // TODO: Implement appointment details modal
+}
+
+// ============ PLACEHOLDER FUNCTIONS FOR OTHER CRUD OPERATIONS ============
+
+function editMedicine(id) {
+    console.log('Edit medicine:', id);
+}
+
+function deleteMedicine(id) {
+    console.log('Delete medicine:', id);
+}
+
+function viewOrder(id) {
+    console.log('View order:', id);
+}
+
+function updateOrderStatus(id) {
+    console.log('Update order status:', id);
+}
+
+function editUser(id) {
+    console.log('Edit user:', id);
+}
+
+function deleteUser(id) {
+    console.log('Delete user:', id);
+}
+
+function showAddMedicineModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addMedicineModal'));
+    modal.show();
+}
+
+function showAddUserModal() {
+    console.log('Show add user modal');
+}
+
+function filterMedicines() {
+    console.log('Filter medicines');
+}
+
+function filterOrders() {
+    console.log('Filter orders');
+}
+
+function filterChatLogs() {
+    console.log('Filter chat logs');
+}
+
+// Initialize admin dashboard on page load
+document.addEventListener('DOMContentLoaded', function() {
+    adminDashboard = new AdminDashboard();
+    
+    // Add form submission handler for time slots
+    const timeSlotForm = document.getElementById('addTimeSlotForm');
+    if (timeSlotForm) {
+        timeSlotForm.addEventListener('submit', addTimeSlot);
+    }
+});
