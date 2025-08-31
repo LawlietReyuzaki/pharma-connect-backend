@@ -149,9 +149,12 @@ def list_appointments():
                 "id": appt.id,
                 "patient_name": patient.name if patient else "Unknown",
                 "doctor_name": doctor.name if doctor else "Unknown",
+                "doctor_specialization": getattr(doctor, 'specialization', 'General Practice') if doctor else "General Practice",
+                "starts_at": appt.starts_at.isoformat(),
                 "start_time": appt.starts_at.isoformat(),
                 "end_time": appt.ends_at.isoformat(),
                 "status": appt.status,
+                "approval_status": appt.approval_status,
                 "symptoms": appt.symptoms,
                 "note": appt.note,
                 "google_meet_link": appt.google_meet_link

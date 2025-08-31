@@ -9,6 +9,7 @@ class RedDotPharmacy {
         this.medicines = [];
         this.doctors = [];
         this.selectedTimeSlot = null;
+        this.pendingAppointments = 0;
         
         this.initializeEventListeners();
         this.updateCartDisplay();
@@ -32,6 +33,7 @@ class RedDotPharmacy {
                     this.userData = data.user;
                     localStorage.setItem('user_data', JSON.stringify(data.user));
                     this.updateAuthUI(true);
+                    this.loadPendingAppointments();
                 } else {
                     this.logout(false);
                 }
@@ -97,6 +99,7 @@ class RedDotPharmacy {
                     }, 1500);
                 } else {
                     this.showSuccess('Login successful! Welcome back, ' + data.user.name);
+                    this.loadPendingAppointments();
                 }
                 
                 return true;
@@ -600,6 +603,53 @@ class RedDotPharmacy {
         }
     }
 
+    updateNotificationCount(count = null) {
+        if (count !== null) {
+            this.pendingAppointments = count;
+        }
+        
+        const notificationCount = document.getElementById('notificationCount');
+        if (notificationCount) {
+            notificationCount.textContent = this.pendingAppointments;
+            notificationCount.style.display = this.pendingAppointments > 0 ? 'inline' : 'none';
+        }
+    }
+
+    async loadPendingAppointments() {
+        if (!this.authToken) return;
+        
+        try {
+            const response = await fetch('/api/appointments?status=pending', {
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const pendingCount = data.appointments?.filter(apt => apt.approval_status === 'pending').length || 0;
+                this.updateNotificationCount(pendingCount);
+            }
+        } catch (error) {
+            console.error('Error loading pending appointments:', error);
+        }
+    }
+
+    showNotifications() {
+        if (!this.authToken) {
+            this.showError('Please login to view notifications');
+            this.showLogin();
+            return;
+        }
+        
+        if (this.pendingAppointments > 0) {
+            const message = `You have ${this.pendingAppointments} appointment${this.pendingAppointments > 1 ? 's' : ''} waiting for doctor approval.`;
+            this.showSuccess(message + ' <a href="/appointments" class="text-white"><u>View Appointments</u></a>');
+        } else {
+            this.showSuccess('No pending notifications');
+        }
+    }
+
     displayCartItems() {
         const cartItems = document.getElementById('cartItems');
         const cartSubtotal = document.getElementById('cartSubtotal');
@@ -896,6 +946,9 @@ class RedDotPharmacy {
                 document.querySelectorAll('.time-slot').forEach(slot => {
                     slot.classList.remove('selected');
                 });
+                
+                // Update pending appointments count
+                this.loadPendingAppointments();
                 
                 return data;
             } else {

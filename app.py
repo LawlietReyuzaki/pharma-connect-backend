@@ -70,6 +70,10 @@ def create_app():
     def consultation():
         return render_template("consultation.html")
     
+    @app.route("/appointments")
+    def appointments():
+        return render_template("appointments.html")
+    
     @app.route("/assistant")
     def assistant():
         return render_template("assistant.html")

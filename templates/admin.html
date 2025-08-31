@@ -718,8 +718,11 @@
     <script>
         // Initialize admin dashboard
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize admin dashboard instance
+            window.adminDashboard = new AdminDashboard();
+            
             // Check admin authentication
-            checkAdminAuth();
+            window.adminDashboard.checkAdminAuth();
             
             // Load dashboard data
             loadDashboardStats();

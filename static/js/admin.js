@@ -10,6 +10,7 @@ class AdminDashboard {
     
     async checkAdminAuth() {
         if (!this.authToken) {
+            console.warn('No auth token found, redirecting to home');
             window.location.href = '/';
             return;
         }
@@ -38,11 +39,17 @@ class AdminDashboard {
                 if (adminNameElement) {
                     adminNameElement.textContent = data.user.name;
                 }
+                
+                console.log('Admin authentication successful');
             } else {
                 throw new Error('Authentication failed');
             }
         } catch (error) {
             console.error('Auth check failed:', error);
+            // Don't immediately redirect - give user chance to login again
+            if (error.message.includes('Authentication failed')) {
+                alert('Session expired. Please login again.');
+            }
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user_data');
             window.location.href = '/';

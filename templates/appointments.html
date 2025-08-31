@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Appointments - Red Dot Pharmacy</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Red Dot Pharmacy" height="40">
+                <span class="ms-2 fw-bold text-danger">Red Dot Pharmacy</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/#medicines">Medicines</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/consultation">Consultation</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/appointments">My Appointments</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/assistant">AI Assistant</a>
+                    </li>
+                </ul>
+                
+                <div class="d-flex align-items-center">
+                    <!-- Cart -->
+                    <div class="position-relative me-3">
+                        <button class="btn btn-outline-danger rounded-circle" onclick="app.showCart()">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span id="cartCount" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none;">0</span>
+                        </button>
+                    </div>
+
+                    <!-- Notifications -->
+                    <div class="position-relative me-3">
+                        <button class="btn btn-outline-warning rounded-circle" onclick="app.showNotifications()" id="notificationBtn">
+                            <i class="fas fa-bell"></i>
+                            <span id="notificationCount" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning" style="display: none;">0</span>
+                        </button>
+                    </div>
+
+                    <!-- Auth Buttons -->
+                    <div id="authButtons">
+                        <button class="btn btn-outline-danger me-2" onclick="app.showLogin()">Login</button>
+                        <button class="btn btn-danger" onclick="app.showRegister()">Register</button>
+                    </div>
+
+                    <!-- User Dropdown -->
+                    <div class="dropdown" id="userDropdown" style="display: none;">
+                        <button class="btn btn-outline-danger dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i><span id="userName">User</span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="app.showProfile()">
+                                <i class="fas fa-user me-2"></i>Profile
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="app.showOrders()">
+                                <i class="fas fa-box me-2"></i>My Orders
+                            </a></li>
+                            <li><a class="dropdown-item" href="/appointments">
+                                <i class="fas fa-calendar me-2"></i>My Appointments
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="app.logout()">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a></li>
+                        </ul>
+                    </div>
+
+                    <!-- Admin Link -->
+                    <a href="/admin" class="btn btn-warning ms-2" id="adminLink" style="display: none;">
+                        <i class="fas fa-cog me-1"></i>Admin
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-4">
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h2 text-dark mb-2">
+                            <i class="fas fa-calendar-alt text-danger me-2"></i>My Appointments
+                        </h1>
+                        <p class="text-muted">Manage your consultation appointments</p>
+                    </div>
+                    <div>
+                        <a href="/consultation" class="btn btn-danger">
+                            <i class="fas fa-plus me-2"></i>Book New Appointment
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <ul class="nav nav-pills nav-justified" id="appointmentTabs">
+                    <li class="nav-item">
+                        <button class="nav-link active" data-status="all" onclick="filterAppointments('all')">
+                            <i class="fas fa-list me-1"></i>All Appointments
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-status="pending" onclick="filterAppointments('pending')">
+                            <i class="fas fa-clock me-1"></i>Pending Approval
+                            <span id="pendingCount" class="badge bg-warning ms-1">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-status="approved" onclick="filterAppointments('approved')">
+                            <i class="fas fa-check me-1"></i>Approved
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-status="completed" onclick="filterAppointments('completed')">
+                            <i class="fas fa-check-circle me-1"></i>Completed
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Appointments List -->
+        <div class="row">
+            <div class="col-12">
+                <div id="appointmentsList">
+                    <!-- Appointments will be loaded here -->
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-danger" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3 text-muted">Loading your appointments...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal fade" id="loginModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-sign-in-alt text-danger me-2"></i>Login to Your Account
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="loginForm">
+                        <div class="mb-3">
+                            <label class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="loginEmail" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" id="loginPassword" required>
+                        </div>
+                        <button type="submit" class="btn btn-danger w-100">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                        </button>
+                    </form>
+                    <hr>
+                    <p class="text-center text-muted">
+                        Don't have an account? 
+                        <a href="#" onclick="showRegister()" class="text-danger">Register here</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Main JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <script>
+        // Initialize appointments page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize main app
+            window.app = new PharmacyApp();
+            
+            // Load appointments
+            loadAppointments();
+            
+            // Check for pending appointments for notifications
+            updateNotificationCount();
+        });
+
+        let currentFilter = 'all';
+        let appointments = [];
+
+        async function loadAppointments() {
+            try {
+                const authToken = localStorage.getItem('auth_token');
+                if (!authToken) {
+                    showLoginRequired();
+                    return;
+                }
+
+                const response = await fetch('/api/appointments', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    appointments = data.appointments || [];
+                    displayAppointments(appointments);
+                    updatePendingCount();
+                } else if (response.status === 401) {
+                    showLoginRequired();
+                } else {
+                    throw new Error('Failed to load appointments');
+                }
+            } catch (error) {
+                console.error('Error loading appointments:', error);
+                document.getElementById('appointmentsList').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Failed to load appointments. Please try again.
+                    </div>
+                `;
+            }
+        }
+
+        function showLoginRequired() {
+            document.getElementById('appointmentsList').innerHTML = `
+                <div class="alert alert-warning text-center">
+                    <i class="fas fa-sign-in-alt fa-3x mb-3"></i>
+                    <h5>Login Required</h5>
+                    <p>Please login to view your appointments.</p>
+                    <button class="btn btn-danger" onclick="app.showLogin()">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login Now
+                    </button>
+                </div>
+            `;
+        }
+
+        function filterAppointments(status) {
+            currentFilter = status;
+            
+            // Update active tab
+            document.querySelectorAll('#appointmentTabs .nav-link').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-status="${status}"]`).classList.add('active');
+
+            // Filter and display appointments
+            let filteredAppointments = appointments;
+            if (status !== 'all') {
+                filteredAppointments = appointments.filter(apt => {
+                    if (status === 'pending') return apt.approval_status === 'pending';
+                    if (status === 'approved') return apt.approval_status === 'approved';
+                    if (status === 'completed') return apt.status === 'completed';
+                    return true;
+                });
+            }
+
+            displayAppointments(filteredAppointments);
+        }
+
+        function displayAppointments(appointmentList) {
+            const container = document.getElementById('appointmentsList');
+            
+            if (appointmentList.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <h5>No Appointments Found</h5>
+                        <p class="text-muted">
+                            ${currentFilter === 'all' ? 'You haven\\'t booked any appointments yet.' : `No ${currentFilter} appointments found.`}
+                        </p>
+                        <a href="/consultation" class="btn btn-danger">
+                            <i class="fas fa-plus me-2"></i>Book Your First Appointment
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = appointmentList.map(appointment => {
+                const statusClass = getStatusClass(appointment.approval_status, appointment.status);
+                const statusText = getStatusText(appointment.approval_status, appointment.status);
+                const appointmentDate = new Date(appointment.starts_at).toLocaleDateString();
+                const appointmentTime = new Date(appointment.starts_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+                return `
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-2">
+                                    <div class="text-center">
+                                        <div class="badge ${statusClass} mb-2">${statusText}</div>
+                                        <small class="text-muted d-block">#${appointment.id}</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <h6 class="mb-1">
+                                        <i class="fas fa-user-md text-danger me-1"></i>
+                                        ${appointment.doctor_name || 'Doctor'}
+                                    </h6>
+                                    <small class="text-muted">${appointment.doctor_specialization || 'General Practice'}</small>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="text-center">
+                                        <div class="fw-bold">${appointmentDate}</div>
+                                        <small class="text-muted">${appointmentTime}</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Symptoms:</small>
+                                    <p class="mb-0 small">${appointment.symptoms || 'Not specified'}</p>
+                                </div>
+                                <div class="col-md-2 text-end">
+                                    ${getActionButton(appointment)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getStatusClass(approvalStatus, appointmentStatus) {
+            if (approvalStatus === 'pending') return 'bg-warning text-dark';
+            if (approvalStatus === 'approved' && appointmentStatus !== 'completed') return 'bg-success';
+            if (appointmentStatus === 'completed') return 'bg-info';
+            if (approvalStatus === 'declined') return 'bg-danger';
+            return 'bg-secondary';
+        }
+
+        function getStatusText(approvalStatus, appointmentStatus) {
+            if (approvalStatus === 'pending') return 'Waiting Approval';
+            if (approvalStatus === 'approved' && appointmentStatus !== 'completed') return 'Approved';
+            if (appointmentStatus === 'completed') return 'Completed';
+            if (approvalStatus === 'declined') return 'Declined';
+            return 'Unknown';
+        }
+
+        function getActionButton(appointment) {
+            if (appointment.approval_status === 'approved' && appointment.status !== 'completed') {
+                return `<button class="btn btn-success btn-sm" onclick="joinMeeting('${appointment.google_meet_link || '#'}')">
+                    <i class="fas fa-video me-1"></i>Join Meeting
+                </button>`;
+            }
+            if (appointment.approval_status === 'pending') {
+                return `<button class="btn btn-outline-secondary btn-sm" disabled>
+                    <i class="fas fa-clock me-1"></i>Awaiting
+                </button>`;
+            }
+            return '';
+        }
+
+        function joinMeeting(meetLink) {
+            if (meetLink && meetLink !== '#') {
+                window.open(meetLink, '_blank');
+            } else {
+                alert('Meeting link not available yet. Please check back later.');
+            }
+        }
+
+        function updatePendingCount() {
+            const pendingAppointments = appointments.filter(apt => apt.approval_status === 'pending');
+            const countElement = document.getElementById('pendingCount');
+            if (countElement) {
+                countElement.textContent = pendingAppointments.length;
+                if (pendingAppointments.length > 0) {
+                    countElement.style.display = 'inline';
+                } else {
+                    countElement.style.display = 'none';
+                }
+            }
+        }
+
+        function updateNotificationCount() {
+            const pendingAppointments = appointments.filter(apt => apt.approval_status === 'pending');
+            app.updateNotificationCount(pendingAppointments.length);
+        }
+    </script>
+</body>
+</html>
