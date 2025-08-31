@@ -710,7 +710,6 @@ class AdminDashboard {
 }
 
 // Global functions for template onclick handlers
-let adminDashboard;
 
 function checkAdminAuth() {
     if (adminDashboard) {
@@ -719,8 +718,10 @@ function checkAdminAuth() {
 }
 
 function showSection(sectionName) {
-    if (adminDashboard) {
+    if (adminDashboard && adminDashboard.showSection) {
         adminDashboard.showSection(sectionName);
+    } else {
+        console.error('Admin dashboard not initialized or showSection method not available');
     }
 }
 
