@@ -509,7 +509,8 @@ def list_medicines():
                 "status": med.status,
                 "stock_quantity": med.stock_quantity,
                 "category": med.category,
-                "created_at": med.created_at.isoformat()
+                "created_at": med.created_at.isoformat() if med.created_at else "",
+                "updated_at": med.updated_at.isoformat() if hasattr(med, 'updated_at') and med.updated_at else ""
             })
         
         return jsonify({
@@ -621,7 +622,9 @@ def update_medicine(medicine_id):
         if "category" in data:
             medicine.category = data["category"]
         
-        medicine.updated_at = datetime.utcnow()
+        # Only set updated_at if the column exists
+        if hasattr(medicine, 'updated_at'):
+            medicine.updated_at = datetime.utcnow()
         db.session.commit()
         
         return jsonify({
