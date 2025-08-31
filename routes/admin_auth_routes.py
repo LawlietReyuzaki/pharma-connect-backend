@@ -77,7 +77,15 @@ def admin_login():
         
         # Verify password
         hashed_password = hash_password(password)
-        if admin_row[3] != hashed_password:  # password is at index 3
+        stored_password = admin_row[3]  # password is at index 3
+        
+        # Debug logging
+        logging.info(f"Login attempt for admin: {email}")
+        logging.info(f"Password hash from input: {hashed_password}")
+        logging.info(f"Stored password hash: {stored_password}")
+        
+        if stored_password != hashed_password:
+            logging.warning(f"Password mismatch for admin {email}")
             return jsonify({"error": "Invalid admin credentials"}), 401
         
         # Convert row to dict for token creation

@@ -13,9 +13,14 @@ def phash(pw):
     """Hash password using SHA256"""
     return hashlib.sha256(pw.encode()).hexdigest()
 
-@bp.route("/dashboard")
+@bp.route("/")
+def admin_main():
+    """Main admin route - render admin dashboard"""
+    return render_template("admin.html")
+
+@bp.route("/dashboard")  
 def admin_dashboard():
-    """Render admin dashboard page"""
+    """Alternative route for admin dashboard"""
     return render_template("admin.html")
 
 @bp.route("/api/stats", methods=["GET"])
@@ -920,7 +925,7 @@ def approve_appointment(appointment_id):
         # Update appointment
         appointment.approval_status = "approved"
         appointment.status = "scheduled"
-        appointment.approved_by = current_user.id
+        appointment.approved_by = current_admin['admin_id']
         appointment.approved_at = datetime.utcnow()
         appointment.updated_at = datetime.utcnow()
         
@@ -962,7 +967,7 @@ def decline_appointment(appointment_id):
         # Update appointment
         appointment.approval_status = "declined"
         appointment.status = "cancelled"
-        appointment.approved_by = current_user.id
+        appointment.approved_by = current_admin['admin_id']
         appointment.approved_at = datetime.utcnow()
         appointment.note = f"Declined by admin: {decline_reason}"
         appointment.updated_at = datetime.utcnow()
