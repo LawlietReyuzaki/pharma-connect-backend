@@ -1,4 +1,6 @@
 // Admin Dashboard JavaScript
+let adminDashboard;
+
 class AdminDashboard {
     constructor() {
         this.authToken = localStorage.getItem('admin_token');
@@ -1151,17 +1153,22 @@ async function addMedicine() {
     const form = document.getElementById('addMedicineForm');
     const formData = new FormData(form);
     const addBtn = document.getElementById('addMedicineBtn');
+    let originalText = '';
     
     // Validate required fields
     if (!formData.get('name') || !formData.get('price') || !formData.get('stock_quantity') || !formData.get('category')) {
-        adminDashboard.showAlert('Please fill in all required fields', 'danger');
+        if (adminDashboard && adminDashboard.showAlert) {
+            adminDashboard.showAlert('Please fill in all required fields', 'danger');
+        } else {
+            alert('Please fill in all required fields');
+        }
         return;
     }
     
     // Disable button and show loading
     if (addBtn) {
         addBtn.disabled = true;
-        const originalText = addBtn.innerHTML;
+        originalText = addBtn.innerHTML;
         addBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Adding...';
     }
     
@@ -1177,24 +1184,40 @@ async function addMedicine() {
         const result = await response.json();
         
         if (response.ok) {
-            adminDashboard.showAlert(result.message || 'Medicine added successfully', 'success');
+            if (adminDashboard && adminDashboard.showAlert) {
+                adminDashboard.showAlert(result.message || 'Medicine added successfully', 'success');
+            } else {
+                alert(result.message || 'Medicine added successfully');
+            }
             
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('addMedicineModal'));
             modal.hide();
             
             // Reload medicines table
-            adminDashboard.loadMedicines();
+            if (adminDashboard && adminDashboard.loadMedicines) {
+                adminDashboard.loadMedicines();
+            }
             
             // Reload dashboard stats
-            adminDashboard.loadDashboardStats();
+            if (adminDashboard && adminDashboard.loadDashboardStats) {
+                adminDashboard.loadDashboardStats();
+            }
             
         } else {
-            adminDashboard.showAlert(result.error || 'Failed to add medicine', 'danger');
+            if (adminDashboard && adminDashboard.showAlert) {
+                adminDashboard.showAlert(result.error || 'Failed to add medicine', 'danger');
+            } else {
+                alert(result.error || 'Failed to add medicine');
+            }
         }
     } catch (error) {
         console.error('Error adding medicine:', error);
-        adminDashboard.showAlert('Error adding medicine', 'danger');
+        if (adminDashboard && adminDashboard.showAlert) {
+            adminDashboard.showAlert('Error adding medicine', 'danger');
+        } else {
+            alert('Error adding medicine');
+        }
     } finally {
         // Re-enable button
         if (addBtn) {
@@ -1213,7 +1236,11 @@ function previewImage(input) {
         // Validate file type - only accept jpg, jpeg, png
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
         if (!allowedTypes.includes(file.type.toLowerCase())) {
-            adminDashboard.showAlert('Please select a JPG, JPEG, or PNG image file', 'danger');
+            if (adminDashboard && adminDashboard.showAlert) {
+                adminDashboard.showAlert('Please select a JPG, JPEG, or PNG image file', 'danger');
+            } else {
+                alert('Please select a JPG, JPEG, or PNG image file');
+            }
             input.value = '';
             previewContainer.style.display = 'none';
             return;
@@ -1221,7 +1248,11 @@ function previewImage(input) {
         
         // Validate file size (2MB max as specified)
         if (file.size > 2 * 1024 * 1024) {
-            adminDashboard.showAlert('Image file size should be less than 2MB', 'danger');
+            if (adminDashboard && adminDashboard.showAlert) {
+                adminDashboard.showAlert('Image file size should be less than 2MB', 'danger');
+            } else {
+                alert('Image file size should be less than 2MB');
+            }
             input.value = '';
             previewContainer.style.display = 'none';
             return;
@@ -1255,21 +1286,41 @@ async function deleteMedicine(medicineId) {
         const result = await response.json();
         
         if (response.ok) {
-            adminDashboard.showAlert(result.message || 'Medicine deleted successfully', 'success');
-            adminDashboard.loadMedicines();
-            adminDashboard.loadDashboardStats();
+            if (adminDashboard && adminDashboard.showAlert) {
+                adminDashboard.showAlert(result.message || 'Medicine deleted successfully', 'success');
+            } else {
+                alert(result.message || 'Medicine deleted successfully');
+            }
+            if (adminDashboard && adminDashboard.loadMedicines) {
+                adminDashboard.loadMedicines();
+            }
+            if (adminDashboard && adminDashboard.loadDashboardStats) {
+                adminDashboard.loadDashboardStats();
+            }
         } else {
-            adminDashboard.showAlert(result.error || 'Failed to delete medicine', 'danger');
+            if (adminDashboard && adminDashboard.showAlert) {
+                adminDashboard.showAlert(result.error || 'Failed to delete medicine', 'danger');
+            } else {
+                alert(result.error || 'Failed to delete medicine');
+            }
         }
     } catch (error) {
         console.error('Error deleting medicine:', error);
-        adminDashboard.showAlert('Error deleting medicine', 'danger');
+        if (adminDashboard && adminDashboard.showAlert) {
+            adminDashboard.showAlert('Error deleting medicine', 'danger');
+        } else {
+            alert('Error deleting medicine');
+        }
     }
 }
 
 function editMedicine(medicineId) {
     // TODO: Implement edit medicine functionality
-    adminDashboard.showAlert('Edit medicine functionality coming soon', 'info');
+    if (adminDashboard && adminDashboard.showAlert) {
+        adminDashboard.showAlert('Edit medicine functionality coming soon', 'info');
+    } else {
+        alert('Edit medicine functionality coming soon');
+    }
 }
 
 function filterMedicines() {
