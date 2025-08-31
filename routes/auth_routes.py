@@ -98,23 +98,23 @@ def register():
         return jsonify({"error": f"Registration failed: {str(e)}"}), 500
 
 @bp.route("/verify", methods=["POST"])
-def verify_token():
+def verify_token_route():
     """Verify JWT token"""
     try:
-        from services.auth import verify_token
+        from services.auth import verify_token as auth_verify_token
         
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return jsonify({"error": "No valid token provided"}), 401
         
         token = auth_header.split(' ')[1]
-        user_data = verify_token(token)
+        user_data = auth_verify_token(token)
         
         if not user_data:
             return jsonify({"error": "Invalid or expired token"}), 401
         
-        # Get fresh user data from database
-        user = User.query.get(user_data['sub'])
+        # Get fresh user data from database  
+        user = User.query.get(int(user_data['sub']))  # Convert back to int for database query
         if not user:
             return jsonify({"error": "User not found"}), 404
         

@@ -12,20 +12,20 @@ def phash(pw):
 
 def create_token(user):
     """Create JWT token for user"""
-    secret = os.environ.get("JWT_SECRET", "red-dot-pharmacy-secret")
+    secret = os.environ.get("JWT_SECRET", "red-dot-pharmacy-jwt-secret-key-2025")
     payload = {
-        "sub": user.id,
+        "sub": str(user.id),  # Convert to string for JWT compatibility
         "role": user.role,
         "name": user.name,
         "email": user.email,
-        "exp": int(time.time()) + 60*60*12  # 12 hours
+        "exp": int(time.time()) + 60*60*24  # 24 hours
     }
     return jwt.encode(payload, secret, algorithm="HS256")
 
 def verify_token(token):
     """Verify JWT token and return user data"""
     try:
-        secret = os.environ.get("JWT_SECRET", "red-dot-pharmacy-secret")
+        secret = os.environ.get("JWT_SECRET", "red-dot-pharmacy-jwt-secret-key-2025")
         payload = jwt.decode(token, secret, algorithms=["HS256"])
         return payload
     except jwt.ExpiredSignatureError:

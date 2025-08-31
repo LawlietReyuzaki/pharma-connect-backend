@@ -20,9 +20,8 @@ class AdminDashboard {
             }, 100);
             return;
         }
-
+        
         try {
-            console.log('Checking admin authentication...');
             const response = await fetch('/api/auth/verify', {
                 method: 'POST',
                 headers: {
@@ -31,11 +30,8 @@ class AdminDashboard {
                 }
             });
 
-            console.log('Auth response status:', response.status);
-
             if (response.ok) {
                 const data = await response.json();
-                console.log('Auth response data:', data);
                 this.userData = data.user;
                 
                 if (data.user.role !== 'admin') {
@@ -50,12 +46,9 @@ class AdminDashboard {
                     adminNameElement.textContent = data.user.name;
                 }
                 
-                console.log('Admin authentication successful');
                 this.loadPendingNotifications();
             } else {
-                const errorData = await response.json().catch(() => ({}));
-                console.error('Auth failed with status:', response.status, 'Error:', errorData);
-                throw new Error(`Authentication failed: ${response.status}`);
+                throw new Error('Authentication failed');
             }
         } catch (error) {
             console.error('Auth check failed:', error);

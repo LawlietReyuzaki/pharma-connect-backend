@@ -737,6 +737,15 @@
     <script>
         // Initialize admin dashboard
         document.addEventListener('DOMContentLoaded', function() {
+            // Clear any old invalid tokens first
+            const oldToken = localStorage.getItem('auth_token');
+            if (oldToken && oldToken.length < 50) {
+                // Tokens should be longer, this might be invalid
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user_data');
+                console.log('Cleared potentially invalid old token');
+            }
+            
             // Initialize admin dashboard instance
             window.adminDashboard = new AdminDashboard();
             
