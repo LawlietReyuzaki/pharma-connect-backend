@@ -1,0 +1,58 @@
+You need to fix the appointment scheduling system so that users can book appointments without errors, and doctors/admins can manage them properly.
+
+Error to fix:
+(psycopg2.errors.NotNullViolation) null value in column "appointment_date" of relation "appointments" violates not-null constraint
+Failing row contains (... appointment_date=null, starts_at=2025-08-31 09:00:00, ends_at=2025-08-31 09:30:00 ...)
+
+Steps:
+
+1. Fix the Database Schema and Insert Logic:
+   - In the `appointments` table, ensure `appointment_date` is automatically populated from `starts_at::date` if not provided explicitly.
+   - Update the backend logic:
+     - When inserting an appointment, set `appointment_date = starts_at.date()`.
+   - This ensures appointment_date is never null.
+
+2. Appointment Booking (User Side):
+   - When a user signs up and books an appointment:
+     - They should select doctor + time slot.
+     - Appointment is saved with:
+       - user_id
+       - doctor_id
+       - appointment_date (auto from starts_at)
+       - starts_at
+       - ends_at
+       - status = "pending"
+       - approval_status = "pending"
+     - No null values should be inserted.
+
+3. Doctor Module:
+   - Doctors can log in via their email + password.
+   - Doctors can:
+     - View appointments assigned to them.
+     - Add available time slots.
+     - Accept or Reject appointments.
+   - When doctor accepts/rejects, update `approval_status` field:
+     - "approved" / "rejected"
+     - Also set `approved_by` = doctor_id and `approved_at = now()`.
+
+4. Admin Module:
+   - Admin can log in (admin@reddotpharmacy.com / admin).
+   - Admin can:
+     - Add doctors.
+     - View all appointments (with user, doctor, date, time, status).
+     - See which appointments are approved/rejected/pending.
+
+5. Email Handling:
+   - For now, skip real email delivery.
+   - Just log a "fake email sent" message to console when appointment booked or updated.
+   - Example:
+     - "Email sent to user@example.com: Appointment booked with Dr. X at 9:00 AM."
+     - "Email sent to doctor@example.com: New appointment request from User Y."
+   - This ensures flow can be tested without Gmail integration.
+
+6. Testing:
+   - Create a test user → book an appointment.
+   - Verify appointment shows in Admin Dashboard with doctor assigned.
+   - Log in as doctor → see appointment → accept/reject it.
+   - Verify Admin can see updated status.
+   - Ensure no null constraint violations occur in database.

@@ -931,6 +931,12 @@ def approve_appointment(appointment_id):
         
         db.session.commit()
         
+        # Send fake email notifications
+        patient = User.query.get(appointment.user_id)
+        doctor = User.query.get(appointment.doctor_id)
+        if patient and doctor:
+            logging.info(f"Email sent to {patient.email}: Your appointment with {doctor.name} on {appointment.appointment_date} has been approved by admin!")
+        
         return jsonify({
             "success": True,
             "message": "Appointment approved successfully",
@@ -973,6 +979,12 @@ def decline_appointment(appointment_id):
         appointment.updated_at = datetime.utcnow()
         
         db.session.commit()
+        
+        # Send fake email notifications
+        patient = User.query.get(appointment.user_id)
+        doctor = User.query.get(appointment.doctor_id)
+        if patient and doctor:
+            logging.info(f"Email sent to {patient.email}: Your appointment with {doctor.name} on {appointment.appointment_date} has been declined by admin. Reason: {decline_reason}")
         
         return jsonify({
             "success": True,

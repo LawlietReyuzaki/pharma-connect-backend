@@ -74,13 +74,15 @@ def create_appointment():
         appointment = Appointment()
         appointment.user_id = current_user.id
         appointment.doctor_id = data["doctor_id"]
+        appointment.appointment_date = start_time.date()  # Fix: Set appointment_date from starts_at
         appointment.starts_at = start_time
         appointment.ends_at = end_time
         appointment.symptoms = data["symptoms"]
         appointment.note = data.get("note", "")
         appointment.google_meet_link = meet_link
         appointment.google_calendar_event_id = calendar_result["event_id"] if calendar_result else None
-        appointment.status = "scheduled"
+        appointment.status = "pending"  # Initial status
+        appointment.approval_status = "pending"  # Needs doctor/admin approval
         
         db.session.add(appointment)
         db.session.commit()
@@ -92,6 +94,10 @@ def create_appointment():
             patient_name=current_user.name
         )
         db.session.commit()
+        
+        # Send fake emails (logging only as requested)
+        logging.info(f"Email sent to {current_user.email}: Appointment booked with {doctor.name} at {start_time.strftime('%Y-%m-%d %H:%M')}. Waiting for approval.")
+        logging.info(f"Email sent to {doctor.email}: New appointment request from {current_user.name} for {start_time.strftime('%Y-%m-%d %H:%M')}.")
         
         return jsonify({
             "success": True,
