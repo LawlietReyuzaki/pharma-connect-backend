@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, render_template
-from datetime import datetime
+from datetime import datetime, date, time
 from services.auth import create_token, phash, verify_token, get_current_user
-from models import User, Appointment
+from models import User, Appointment, TimeSlot
 from app import db
 import logging
 
@@ -467,6 +467,13 @@ def decline_doctor_appointment(appointment_id):
         appointment.note = f"Declined by doctor: {reason}"
         appointment.updated_at = datetime.utcnow()
         
+        # Free up the time slot if appointment was linked to one
+        if appointment.time_slot_id:
+            slot = TimeSlot.query.get(appointment.time_slot_id)
+            if slot:
+                slot.is_booked = False
+                slot.updated_at = datetime.utcnow()
+        
         db.session.commit()
         
         # Send fake email notifications
@@ -483,3 +490,174 @@ def decline_doctor_appointment(appointment_id):
         db.session.rollback()
         logging.error(f"Doctor decline appointment error: {e}")
         return jsonify({"error": f"Failed to decline appointment: {str(e)}"}), 500
+
+@bp.route("/api/time-slots", methods=["GET"])
+def get_doctor_time_slots():
+    """Get all time slots for current doctor"""
+    try:
+        current_user = get_current_user()
+        if not current_user or current_user.role != "doctor":
+            return jsonify({"error": "Doctor access required"}), 403
+        
+        # Get query parameters
+        date_filter = request.args.get('date')
+        
+        # Build query
+        query = TimeSlot.query.filter_by(doctor_id=current_user.id)
+        
+        if date_filter:
+            try:
+                filter_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
+                query = query.filter_by(appointment_date=filter_date)
+            except ValueError:
+                return jsonify({"error": "Invalid date format (use YYYY-MM-DD)"}), 400
+        
+        # Only show future slots
+        query = query.filter(TimeSlot.appointment_date >= date.today())
+        
+        slots = query.order_by(TimeSlot.appointment_date, TimeSlot.starts_at).all()
+        
+        # Format slots for response
+        slots_list = []
+        for slot in slots:
+            slots_list.append({
+                "id": slot.id,
+                "appointment_date": slot.appointment_date.isoformat(),
+                "starts_at": slot.starts_at.isoformat(),
+                "ends_at": slot.ends_at.isoformat(),
+                "start_time": slot.starts_at.strftime("%H:%M"),
+                "end_time": slot.ends_at.strftime("%H:%M"),
+                "is_booked": slot.is_booked,
+                "can_delete": not slot.is_booked,
+                "created_at": slot.created_at.isoformat()
+            })
+        
+        # Calculate stats
+        total_slots = len(slots)
+        available_slots = len([s for s in slots if not s.is_booked])
+        booked_slots = len([s for s in slots if s.is_booked])
+        
+        return jsonify({
+            "success": True,
+            "slots": slots_list,
+            "stats": {
+                "total": total_slots,
+                "available": available_slots,
+                "booked": booked_slots
+            }
+        })
+        
+    except Exception as e:
+        logging.error(f"Get doctor time slots error: {e}")
+        return jsonify({"error": f"Failed to get time slots: {str(e)}"}), 500
+
+@bp.route("/api/time-slots", methods=["POST"])
+def create_doctor_time_slot():
+    """Create a new time slot for current doctor"""
+    try:
+        current_user = get_current_user()
+        if not current_user or current_user.role != "doctor":
+            return jsonify({"error": "Doctor access required"}), 403
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        # Validate required fields
+        required_fields = ["appointment_date", "start_time", "end_time"]
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"{field} is required"}), 400
+        
+        # Parse date and times
+        try:
+            appointment_date = datetime.strptime(data["appointment_date"], '%Y-%m-%d').date()
+            start_time_obj = datetime.strptime(data["start_time"], '%H:%M').time()
+            end_time_obj = datetime.strptime(data["end_time"], '%H:%M').time()
+        except ValueError:
+            return jsonify({"error": "Invalid date/time format"}), 400
+        
+        # Validate date is not in the past
+        if appointment_date < date.today():
+            return jsonify({"error": "Cannot create slots for past dates"}), 400
+        
+        # Validate end time is after start time
+        if end_time_obj <= start_time_obj:
+            return jsonify({"error": "End time must be after start time"}), 400
+        
+        # Create full datetime objects
+        starts_at = datetime.combine(appointment_date, start_time_obj)
+        ends_at = datetime.combine(appointment_date, end_time_obj)
+        
+        # Check for overlapping slots
+        overlapping = TimeSlot.query.filter(
+            TimeSlot.doctor_id == current_user.id,
+            TimeSlot.appointment_date == appointment_date,
+            TimeSlot.starts_at < ends_at,
+            TimeSlot.ends_at > starts_at
+        ).first()
+        
+        if overlapping:
+            return jsonify({"error": "This time slot overlaps with an existing slot"}), 400
+        
+        # Create new time slot
+        new_slot = TimeSlot(
+            doctor_id=current_user.id,
+            appointment_date=appointment_date,
+            starts_at=starts_at,
+            ends_at=ends_at,
+            is_booked=False
+        )
+        
+        db.session.add(new_slot)
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Time slot created successfully",
+            "slot": {
+                "id": new_slot.id,
+                "appointment_date": new_slot.appointment_date.isoformat(),
+                "starts_at": new_slot.starts_at.isoformat(),
+                "ends_at": new_slot.ends_at.isoformat(),
+                "start_time": new_slot.starts_at.strftime("%H:%M"),
+                "end_time": new_slot.ends_at.strftime("%H:%M"),
+                "is_booked": new_slot.is_booked
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Create doctor time slot error: {e}")
+        return jsonify({"error": f"Failed to create time slot: {str(e)}"}), 500
+
+@bp.route("/api/time-slots/<int:slot_id>", methods=["DELETE"])
+def delete_doctor_time_slot(slot_id):
+    """Delete a time slot (only if not booked)"""
+    try:
+        current_user = get_current_user()
+        if not current_user or current_user.role != "doctor":
+            return jsonify({"error": "Doctor access required"}), 403
+        
+        slot = TimeSlot.query.get_or_404(slot_id)
+        
+        # Verify this slot belongs to the current doctor
+        if slot.doctor_id != current_user.id:
+            return jsonify({"error": "You can only delete your own time slots"}), 403
+        
+        # Check if slot is booked
+        if slot.is_booked:
+            return jsonify({"error": "Cannot delete a booked time slot"}), 400
+        
+        db.session.delete(slot)
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Time slot deleted successfully"
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Delete doctor time slot error: {e}")
+        return jsonify({"error": f"Failed to delete time slot: {str(e)}"}), 500

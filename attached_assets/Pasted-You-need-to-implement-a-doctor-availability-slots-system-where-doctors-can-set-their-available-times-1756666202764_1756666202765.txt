@@ -1,0 +1,48 @@
+You need to implement a doctor availability slots system where doctors can set their available times and users can only book from those slots.
+
+Steps:
+
+1. Create a `time_slots` table:
+   - id (primary key)
+   - doctor_id (foreign key to doctors table)
+   - appointment_date (DATE)
+   - starts_at (DATETIME or TIME)
+   - ends_at (DATETIME or TIME)
+   - is_booked (boolean, default false)
+   - created_at, updated_at
+
+2. Doctor Dashboard:
+   - Add a new section: "Manage Availability".
+   - Doctor can:
+     - Add available slots (choose date + start time + end time).
+     - View all their slots in a list/calendar view.
+     - Delete or edit their slots.
+     - Slots that are already booked cannot be deleted.
+
+3. User Appointment Booking:
+   - When a user selects a doctor, fetch only the available (is_booked = false) slots for that doctor from the `time_slots` table.
+   - Display them as selectable options (e.g., a dropdown or calendar).
+   - When user books a slot:
+     - Create an appointment linked to that time_slot_id.
+     - Mark the slot as is_booked = true.
+
+4. Appointment Linkage:
+   - Update `appointments` table schema to include `time_slot_id` (foreign key to time_slots).
+   - When inserting into appointments:
+     - Fill appointment_date, starts_at, ends_at automatically from the chosen slot.
+     - Ensure no double booking (slot already marked booked).
+   - Keep status = "pending" until doctor approves/rejects.
+
+5. Doctor Workflow:
+   - Doctor logs in → sees all their upcoming appointments in dashboard.
+   - Can accept/reject them.
+   - When rejected, free the slot again (set is_booked = false).
+
+6. Admin Dashboard:
+   - Admin can see all slots created by doctors and which ones are booked.
+   - In the appointments list, also show the selected time slot (date, start, end).
+
+7. Testing:
+   - Create a doctor → add 3 slots.
+   - As a user, book one slot → verify appointment created, slot marked booked.
+   - As doctor, reject the appointment → verify slot becomes available again.

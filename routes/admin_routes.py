@@ -978,6 +978,14 @@ def decline_appointment(appointment_id):
         appointment.note = f"Declined by admin: {decline_reason}"
         appointment.updated_at = datetime.utcnow()
         
+        # Free up the time slot if appointment was linked to one
+        if appointment.time_slot_id:
+            from models import TimeSlot
+            slot = TimeSlot.query.get(appointment.time_slot_id)
+            if slot:
+                slot.is_booked = False
+                slot.updated_at = datetime.utcnow()
+        
         db.session.commit()
         
         # Send fake email notifications

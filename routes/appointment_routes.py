@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from datetime import datetime, timedelta
 from services.auth import require_auth, get_current_user, require_role
 from services.google_services import calendar_service, meet_service
-from models import Appointment, User
+from models import Appointment, User, TimeSlot
 from app import db
 import logging
 
@@ -23,34 +23,34 @@ def create_appointment():
         if not data:
             return jsonify({"error": "No data provided"}), 400
         
-        # Validate required fields
-        required_fields = ["doctor_id", "start_time", "symptoms"]
+        # Validate required fields - now using slot_id instead of start_time
+        required_fields = ["doctor_id", "slot_id", "symptoms"]
         for field in required_fields:
             if not data.get(field):
                 return jsonify({"error": f"{field} is required"}), 400
         
-        # Parse datetime
-        try:
-            start_time = datetime.fromisoformat(data["start_time"].replace('Z', '+00:00'))
-            end_time = start_time + timedelta(minutes=30)  # Default 30-minute appointments
-        except ValueError:
-            return jsonify({"error": "Invalid datetime format"}), 400
+        # Get the selected time slot
+        slot = TimeSlot.query.get(data["slot_id"])
+        if not slot:
+            return jsonify({"error": "Invalid time slot selected"}), 404
+        
+        # Verify the slot belongs to the selected doctor
+        if slot.doctor_id != data["doctor_id"]:
+            return jsonify({"error": "Time slot does not belong to selected doctor"}), 400
+        
+        # Check if slot is already booked
+        if slot.is_booked:
+            return jsonify({"error": "This time slot is already booked"}), 400
         
         # Verify doctor exists
         doctor = User.query.filter_by(id=data["doctor_id"], role="doctor").first()
         if not doctor:
             return jsonify({"error": "Doctor not found"}), 404
         
-        # Check for scheduling conflicts
-        existing = Appointment.query.filter(
-            Appointment.doctor_id == data["doctor_id"],
-            Appointment.starts_at <= end_time,
-            Appointment.ends_at >= start_time,
-            Appointment.status.in_(["scheduled", "ongoing"])
-        ).first()
-        
-        if existing:
-            return jsonify({"error": "Time slot not available"}), 409
+        # Use slot's datetime values
+        start_time = slot.starts_at
+        end_time = slot.ends_at
+        appointment_date = slot.appointment_date
         
         # Create Google Meet link
         meet_link = meet_service.create_meet_room(
@@ -74,7 +74,8 @@ def create_appointment():
         appointment = Appointment()
         appointment.user_id = current_user.id
         appointment.doctor_id = data["doctor_id"]
-        appointment.appointment_date = start_time.date()  # Fix: Set appointment_date from starts_at
+        appointment.time_slot_id = slot.id  # Link to the time slot
+        appointment.appointment_date = appointment_date
         appointment.starts_at = start_time
         appointment.ends_at = end_time
         appointment.symptoms = data["symptoms"]
@@ -85,6 +86,11 @@ def create_appointment():
         appointment.approval_status = "pending"  # Needs doctor/admin approval
         
         db.session.add(appointment)
+        
+        # Mark the slot as booked
+        slot.is_booked = True
+        slot.updated_at = datetime.utcnow()
+        
         db.session.commit()
         
         # Update meet link with actual appointment ID
@@ -314,7 +320,7 @@ def list_doctors():
 
 @bp.route("/available-slots/<int:doctor_id>", methods=["GET"])
 def get_available_slots(doctor_id):
-    """Get available appointment slots for a doctor"""
+    """Get available appointment slots for a doctor from their created time slots"""
     try:
         # Get query parameters
         date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
@@ -329,40 +335,29 @@ def get_available_slots(doctor_id):
         if not doctor:
             return jsonify({"error": "Doctor not found"}), 404
         
-        # Generate time slots (9 AM to 5 PM, 30-minute intervals)
-        start_hour = 9
-        end_hour = 17
-        slot_duration = 30  # minutes
+        # Get doctor's available time slots for the target date
+        available_slots = TimeSlot.query.filter(
+            TimeSlot.doctor_id == doctor_id,
+            TimeSlot.appointment_date == target_date,
+            TimeSlot.is_booked == False
+        ).order_by(TimeSlot.starts_at).all()
         
         slots = []
-        current_time = datetime.combine(target_date, datetime.min.time().replace(hour=start_hour))
-        end_time = datetime.combine(target_date, datetime.min.time().replace(hour=end_hour))
-        
-        while current_time < end_time:
-            slot_end = current_time + timedelta(minutes=slot_duration)
-            
-            # Check if slot is available
-            existing = Appointment.query.filter(
-                Appointment.doctor_id == doctor_id,
-                Appointment.starts_at <= slot_end,
-                Appointment.ends_at >= current_time,
-                Appointment.status.in_(["scheduled", "ongoing"])
-            ).first()
-            
+        for slot in available_slots:
             slots.append({
-                "start_time": current_time.isoformat(),
-                "end_time": slot_end.isoformat(),
-                "available": existing is None,
-                "display_time": current_time.strftime("%I:%M %p")
+                "slot_id": slot.id,
+                "start_time": slot.starts_at.isoformat(),
+                "end_time": slot.ends_at.isoformat(),
+                "display_time": slot.starts_at.strftime("%I:%M %p") + " - " + slot.ends_at.strftime("%I:%M %p"),
+                "available": True
             })
-            
-            current_time = slot_end
         
         return jsonify({
             "success": True,
             "doctor_name": doctor.name,
             "date": date_str,
-            "slots": slots
+            "slots": slots,
+            "total_slots": len(slots)
         })
         
     except Exception as e:

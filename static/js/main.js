@@ -909,14 +909,14 @@ class RedDotPharmacy {
 
         container.innerHTML = slots.map(slot => `
             <div class="time-slot ${slot.available ? '' : 'unavailable'}" 
-                 onclick="${slot.available ? `app.selectTimeSlot('${slot.start_time}', '${slot.display_time}')` : ''}"
-                 data-time="${slot.start_time}">
+                 onclick="${slot.available ? `app.selectTimeSlot('${slot.slot_id}', '${slot.display_time}')` : ''}"
+                 data-slot-id="${slot.slot_id}">
                 ${slot.display_time}
             </div>
         `).join('');
     }
 
-    selectTimeSlot(startTime, displayTime) {
+    selectTimeSlot(slotId, displayTime) {
         // Remove previous selection
         document.querySelectorAll('.time-slot').forEach(slot => {
             slot.classList.remove('selected');
@@ -924,7 +924,7 @@ class RedDotPharmacy {
         
         // Add selection to clicked slot
         event.target.classList.add('selected');
-        this.selectedTimeSlot = startTime;
+        this.selectedSlotId = slotId;
     }
 
     async bookAppointment(formData) {
@@ -934,7 +934,7 @@ class RedDotPharmacy {
             return;
         }
 
-        if (!this.selectedTimeSlot) {
+        if (!this.selectedSlotId) {
             this.showError('Please select a time slot');
             return;
         }
@@ -944,7 +944,7 @@ class RedDotPharmacy {
 
             const appointmentData = {
                 doctor_id: parseInt(formData.get('doctor_id')),
-                start_time: this.selectedTimeSlot,
+                slot_id: this.selectedSlotId,
                 symptoms: formData.get('symptoms'),
                 note: formData.get('note') || ''
             };
@@ -966,7 +966,7 @@ class RedDotPharmacy {
                 
                 // Reset form
                 document.getElementById('consultationForm')?.reset();
-                this.selectedTimeSlot = null;
+                this.selectedSlotId = null;
                 document.querySelectorAll('.time-slot').forEach(slot => {
                     slot.classList.remove('selected');
                 });

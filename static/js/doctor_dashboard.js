@@ -167,6 +167,169 @@ class DoctorDashboard {
         localStorage.removeItem('doctor_data');
         window.location.href = '/';
     }
+
+    // Time Slot Management Methods
+    async loadTimeSlots(date = null) {
+        try {
+            const dateParam = date || document.getElementById('slotDateFilter').value;
+            const url = dateParam 
+                ? `/doctor/api/time-slots?date=${dateParam}` 
+                : '/doctor/api/time-slots';
+            
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${this.doctorToken}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.displayTimeSlots(data.slots);
+                this.updateSlotStats(data.stats);
+            } else {
+                console.error('Failed to load time slots');
+            }
+        } catch (error) {
+            console.error('Error loading time slots:', error);
+        }
+    }
+
+    displayTimeSlots(slots) {
+        const container = document.getElementById('timeSlotsList');
+        
+        if (slots.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-clock fa-3x text-muted mb-3"></i>
+                    <h6 class="text-muted">No time slots found</h6>
+                    <p class="text-muted">Create your first time slot to start accepting appointments.</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = slots.map(slot => `
+            <div class="card mb-2 ${slot.is_booked ? 'border-danger' : 'border-success'}">
+                <div class="card-body py-2">
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <strong>${this.formatDate(slot.appointment_date)}</strong>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="badge ${slot.is_booked ? 'bg-danger' : 'bg-success'}">
+                                ${slot.start_time} - ${slot.end_time}
+                            </span>
+                        </div>
+                        <div class="col-md-2">
+                            <span class="badge ${slot.is_booked ? 'bg-danger' : 'bg-success'}">
+                                ${slot.is_booked ? 'Booked' : 'Available'}
+                            </span>
+                        </div>
+                        <div class="col-md-2 text-end">
+                            ${slot.can_delete ? `
+                                <button class="btn btn-sm btn-outline-danger" onclick="doctorDashboard.deleteTimeSlot(${slot.id})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    updateSlotStats(stats) {
+        document.getElementById('totalSlots').textContent = stats.total;
+        document.getElementById('availableSlots').textContent = stats.available;
+        document.getElementById('bookedSlots').textContent = stats.booked;
+    }
+
+    async createTimeSlot() {
+        const form = document.getElementById('createSlotForm');
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData);
+
+        try {
+            const response = await fetch('/doctor/api/time-slots', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.doctorToken}`
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('createSlotModal'));
+                modal.hide();
+                
+                // Reset form
+                form.reset();
+                
+                // Reload slots
+                this.loadTimeSlots();
+                
+                // Show success message
+                this.showAlert('Time slot created successfully!', 'success');
+            } else {
+                this.showAlert(result.error || 'Failed to create time slot', 'danger');
+            }
+        } catch (error) {
+            console.error('Error creating time slot:', error);
+            this.showAlert('An error occurred while creating the time slot', 'danger');
+        }
+    }
+
+    async deleteTimeSlot(slotId) {
+        if (!confirm('Are you sure you want to delete this time slot?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/doctor/api/time-slots/${slotId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${this.doctorToken}`
+                }
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                this.loadTimeSlots();
+                this.showAlert('Time slot deleted successfully!', 'success');
+            } else {
+                this.showAlert(result.error || 'Failed to delete time slot', 'danger');
+            }
+        } catch (error) {
+            console.error('Error deleting time slot:', error);
+            this.showAlert('An error occurred while deleting the time slot', 'danger');
+        }
+    }
+
+    showAlert(message, type) {
+        // Create alert element
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        // Insert at top of main content
+        const container = document.querySelector('.container-fluid');
+        container.insertBefore(alertDiv, container.firstChild);
+        
+        // Auto-dismiss after 3 seconds
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 3000);
+    }
 }
 
 // Global functions
@@ -275,5 +438,26 @@ async function completeAppointment(appointmentId) {
 function doctorLogout() {
     if (confirm('Are you sure you want to logout?')) {
         window.doctorDashboard.logout();
+    }
+}
+
+// Global functions for slot management
+function showCreateSlotModal() {
+    // Set minimum date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('slotDate').min = today;
+    
+    new bootstrap.Modal(document.getElementById('createSlotModal')).show();
+}
+
+function createTimeSlot() {
+    if (window.doctorDashboard) {
+        window.doctorDashboard.createTimeSlot();
+    }
+}
+
+function loadTimeSlots() {
+    if (window.doctorDashboard) {
+        window.doctorDashboard.loadTimeSlots();
     }
 }

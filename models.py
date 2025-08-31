@@ -47,11 +47,10 @@ class TimeSlot(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     doctor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    day_of_week = db.Column(db.Integer, nullable=False)  # 0=Monday, 6=Sunday
-    start_time = db.Column(db.Time, nullable=False)  # Start time (e.g., 09:00)
-    end_time = db.Column(db.Time, nullable=False)    # End time (e.g., 10:00)
-    is_available = db.Column(db.Boolean, default=True)
-    max_appointments = db.Column(db.Integer, default=1)  # Number of appointments allowed in this slot
+    appointment_date = db.Column(db.Date, nullable=False)  # Specific date for this slot
+    starts_at = db.Column(db.DateTime, nullable=False)     # Full datetime when slot starts
+    ends_at = db.Column(db.DateTime, nullable=False)       # Full datetime when slot ends
+    is_booked = db.Column(db.Boolean, default=False)       # Whether this slot is booked
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
