@@ -35,11 +35,12 @@ class Medicine(db.Model):
     chemical = db.Column(db.String(160))
     description = db.Column(db.Text)
     price = db.Column(db.Integer, nullable=False)  # PKR (integer)
-    image_url = db.Column(db.String(255))
+    image_path = db.Column(db.String(255))
     status = db.Column(db.String(30), default="in_stock")  # in_stock | out_of_stock
     stock_quantity = db.Column(db.Integer, default=0)
     category = db.Column(db.String(100))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class TimeSlot(db.Model):

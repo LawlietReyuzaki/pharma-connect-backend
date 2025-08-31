@@ -890,6 +890,103 @@
         </div>
     </div>
 
+    <!-- Add Medicine Modal -->
+    <div class="modal fade" id="addMedicineModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-pills me-2"></i>Add New Medicine
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addMedicineForm" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="medicineName" class="form-label">Medicine Name *</label>
+                                <input type="text" class="form-control" id="medicineName" name="name" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="medicineChemical" class="form-label">Chemical/Generic Name</label>
+                                <input type="text" class="form-control" id="medicineChemical" name="chemical" placeholder="e.g., Paracetamol">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="medicinePrice" class="form-label">Price (PKR) *</label>
+                                <input type="number" class="form-control" id="medicinePrice" name="price" min="1" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="medicineStock" class="form-label">Stock Quantity *</label>
+                                <input type="number" class="form-control" id="medicineStock" name="stock_quantity" min="0" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="medicineCategory" class="form-label">Category *</label>
+                                <select class="form-select" id="medicineCategory" name="category" required>
+                                    <option value="">Select Category</option>
+                                    <option value="General">General Medicine</option>
+                                    <option value="Pain Relief">Pain Relief</option>
+                                    <option value="Antibiotics">Antibiotics</option>
+                                    <option value="Cardiovascular">Cardiovascular</option>
+                                    <option value="Respiratory">Respiratory</option>
+                                    <option value="Digestive">Digestive Health</option>
+                                    <option value="Diabetes">Diabetes Care</option>
+                                    <option value="Vitamins">Vitamins & Supplements</option>
+                                    <option value="Skin Care">Skin Care</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="medicineStatus" class="form-label">Status</label>
+                                <select class="form-select" id="medicineStatus" name="status">
+                                    <option value="in_stock">In Stock</option>
+                                    <option value="out_of_stock">Out of Stock</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="medicineImage" class="form-label">Medicine Image</label>
+                                <input type="file" class="form-control" id="medicineImage" name="image_file" 
+                                       accept="image/*" onchange="previewImage(this)">
+                                <small class="text-muted">Upload JPG, PNG or WebP image (Max 5MB)</small>
+                            </div>
+                        </div>
+
+                        <!-- Image Preview -->
+                        <div class="mb-3" id="imagePreviewContainer" style="display: none;">
+                            <label class="form-label">Image Preview:</label>
+                            <div class="border rounded p-2">
+                                <img id="imagePreview" src="" alt="Preview" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="medicineDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="medicineDescription" name="description" rows="3" 
+                                      placeholder="Enter medicine description, usage instructions, side effects, etc."></textarea>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <small><i class="fas fa-info-circle me-1"></i>
+                                All fields marked with * are required. The medicine will be available for purchase once added.
+                            </small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" onclick="addMedicine()" id="addMedicineBtn">
+                        <i class="fas fa-plus me-1"></i>Add Medicine
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     

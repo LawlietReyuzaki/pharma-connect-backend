@@ -216,41 +216,59 @@ class AdminDashboard {
             });
 
             if (response.ok) {
-                const medicines = await response.json();
-                this.renderMedicinesTable(medicines);
+                const data = await response.json();
+                this.renderMedicinesTable(data);
+            } else {
+                console.error('Failed to load medicines:', response.status);
+                this.showAlert('Failed to load medicines', 'danger');
             }
         } catch (error) {
             console.error('Error loading medicines:', error);
+            this.showAlert('Error loading medicines', 'danger');
         }
     }
 
-    renderMedicinesTable(medicines) {
+    renderMedicinesTable(data) {
         const tbody = document.getElementById('medicinesTableBody');
         if (!tbody) return;
 
         tbody.innerHTML = '';
 
-        medicines.forEach(medicine => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${medicine.id}</td>
-                <td>${medicine.name}</td>
-                <td>${medicine.chemical || '-'}</td>
-                <td>${medicine.category || '-'}</td>
-                <td>PKR ${medicine.price}</td>
-                <td>${medicine.stock_quantity}</td>
-                <td><span class="badge bg-${medicine.status === 'in_stock' ? 'success' : 'danger'}">${medicine.status}</span></td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary" onclick="editMedicine(${medicine.id})">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteMedicine(${medicine.id})">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
+        // Handle both old format (array) and new format (object with medicines array)
+        const medicines = data.medicines || data;
+        
+        if (medicines && medicines.length > 0) {
+            medicines.forEach(medicine => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${medicine.id}</td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <img src="${medicine.image_path || '/static/images/default-medicine.png'}" 
+                                 alt="${medicine.name}" class="rounded me-2" 
+                                 style="width: 40px; height: 40px; object-fit: cover;">
+                            <span>${medicine.name}</span>
+                        </div>
+                    </td>
+                    <td>${medicine.chemical || '-'}</td>
+                    <td>${medicine.category || '-'}</td>
+                    <td>PKR ${medicine.price}</td>
+                    <td>${medicine.stock_quantity}</td>
+                    <td><span class="badge bg-${medicine.status === 'in_stock' ? 'success' : 'danger'}">${medicine.status.replace('_', ' ')}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editMedicine(${medicine.id})" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteMedicine(${medicine.id})" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        } else {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center">No medicines found</td></tr>';
+        }
     }
 
     // ============ ORDERS MANAGEMENT ============
@@ -1112,15 +1130,149 @@ async function deleteDoctor(id, name) {
     }
 }
 
-// ============ PLACEHOLDER FUNCTIONS FOR OTHER CRUD OPERATIONS ============
+// ============ MEDICINE MANAGEMENT FUNCTIONS ============
 
-function editMedicine(id) {
-    console.log('Edit medicine:', id);
+function showAddMedicineModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addMedicineModal'));
+    
+    // Reset form
+    document.getElementById('addMedicineForm').reset();
+    
+    // Hide image preview
+    const previewContainer = document.getElementById('imagePreviewContainer');
+    if (previewContainer) {
+        previewContainer.style.display = 'none';
+    }
+    
+    modal.show();
 }
 
-function deleteMedicine(id) {
-    console.log('Delete medicine:', id);
+async function addMedicine() {
+    const form = document.getElementById('addMedicineForm');
+    const formData = new FormData(form);
+    const addBtn = document.getElementById('addMedicineBtn');
+    
+    // Validate required fields
+    if (!formData.get('name') || !formData.get('price') || !formData.get('stock_quantity') || !formData.get('category')) {
+        adminDashboard.showAlert('Please fill in all required fields', 'danger');
+        return;
+    }
+    
+    // Disable button and show loading
+    addBtn.disabled = true;
+    const originalText = addBtn.innerHTML;
+    addBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Adding...';
+    
+    try {
+        const response = await fetch('/admin/api/medicines', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${adminDashboard.authToken}`
+            },
+            body: formData
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+            adminDashboard.showAlert(result.message || 'Medicine added successfully', 'success');
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addMedicineModal'));
+            modal.hide();
+            
+            // Reload medicines table
+            adminDashboard.loadMedicines();
+            
+            // Reload dashboard stats
+            adminDashboard.loadDashboardStats();
+            
+        } else {
+            adminDashboard.showAlert(result.error || 'Failed to add medicine', 'danger');
+        }
+    } catch (error) {
+        console.error('Error adding medicine:', error);
+        adminDashboard.showAlert('Error adding medicine', 'danger');
+    } finally {
+        // Re-enable button
+        addBtn.disabled = false;
+        addBtn.innerHTML = originalText;
+    }
 }
+
+function previewImage(input) {
+    const file = input.files[0];
+    const previewContainer = document.getElementById('imagePreviewContainer');
+    const previewImage = document.getElementById('imagePreview');
+    
+    if (file) {
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            adminDashboard.showAlert('Please select a valid image file', 'danger');
+            input.value = '';
+            previewContainer.style.display = 'none';
+            return;
+        }
+        
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+            adminDashboard.showAlert('Image file size should be less than 5MB', 'danger');
+            input.value = '';
+            previewContainer.style.display = 'none';
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImage.src = e.target.result;
+            previewContainer.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        previewContainer.style.display = 'none';
+    }
+}
+
+async function deleteMedicine(medicineId) {
+    if (!confirm('Are you sure you want to delete this medicine? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/api/medicines/${medicineId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${adminDashboard.authToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+            adminDashboard.showAlert(result.message || 'Medicine deleted successfully', 'success');
+            adminDashboard.loadMedicines();
+            adminDashboard.loadDashboardStats();
+        } else {
+            adminDashboard.showAlert(result.error || 'Failed to delete medicine', 'danger');
+        }
+    } catch (error) {
+        console.error('Error deleting medicine:', error);
+        adminDashboard.showAlert('Error deleting medicine', 'danger');
+    }
+}
+
+function editMedicine(medicineId) {
+    // TODO: Implement edit medicine functionality
+    adminDashboard.showAlert('Edit medicine functionality coming soon', 'info');
+}
+
+function filterMedicines() {
+    // TODO: Implement medicine filtering
+    console.log('Filter medicines functionality coming soon');
+}
+
+// ============ OTHER CRUD OPERATIONS ============
 
 function viewOrder(id) {
     console.log('View order:', id);
@@ -1138,17 +1290,8 @@ function deleteUser(id) {
     console.log('Delete user:', id);
 }
 
-function showAddMedicineModal() {
-    const modal = new bootstrap.Modal(document.getElementById('addMedicineModal'));
-    modal.show();
-}
-
 function showAddUserModal() {
     console.log('Show add user modal');
-}
-
-function filterMedicines() {
-    console.log('Filter medicines');
 }
 
 function filterOrders() {

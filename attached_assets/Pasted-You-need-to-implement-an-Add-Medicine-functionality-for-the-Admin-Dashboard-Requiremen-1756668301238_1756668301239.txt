@@ -1,0 +1,52 @@
+You need to implement an **Add Medicine functionality** for the Admin Dashboard.  
+
+### Requirements:
+
+1. **Medicine Table (DB Schema)**  
+   - `medicine_id` (Primary Key)  
+   - `name`  
+   - `chemical_name`  
+   - `price`  
+   - `stock_quantity`  
+   - `category`  
+   - `status` (in_stock / out_of_stock)  
+   - `description`  
+   - `image_path` (store file path instead of URL)  
+   - `created_at` (timestamp)  
+
+2. **Admin Dashboard – Add Medicine Modal**  
+   - Replace the **Image URL input** with a **file upload field**.  
+   - When Admin clicks on the image section, they should get an option to either:  
+     - Pick from **Gallery** (file upload), or  
+     - Use the **Camera** (for mobile devices).  
+   - The selected image should be uploaded to the backend and stored in a folder (e.g., `/uploads/medicines/`).  
+   - Save the file path in the `image_path` field in DB.  
+
+3. **Backend API**  
+   - Create an endpoint: `POST /admin/add-medicine`  
+   - Accept form-data (not JSON) so file upload works properly.  
+   - Store medicine details in the `medicines` table.  
+   - Save uploaded image in `/uploads/medicines/` and return its path.  
+
+4. **Frontend (User Side)**  
+   - After Admin adds a new medicine, it should automatically appear on the **Homepage Medicines Section**.  
+   - Display:  
+     - Medicine image  
+     - Medicine name  
+     - Price  
+     - Category  
+     - Status (In Stock / Out of Stock)  
+
+5. **Optional Features (Future Enhancements)**  
+   - Add "Edit Medicine" and "Delete Medicine" options in Admin Dashboard.  
+   - Allow multiple images per medicine.  
+   - Add search & filter for users on homepage (by category, price range, etc.).  
+
+---
+### Example Changes in Modal (Frontend)
+```html
+<div class="mb-3">
+    <label class="form-label">Upload Medicine Image</label>
+    <input type="file" class="form-control" name="image_file" accept="image/*" capture="environment">
+    <small class="text-muted">Choose from gallery or use camera</small>
+</div>

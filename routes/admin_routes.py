@@ -6,6 +6,8 @@ from models import User, Medicine, Appointment, Order, OrderItem, ChatLog, TimeS
 from app import db
 import logging
 import hashlib
+import os
+from werkzeug.utils import secure_filename
 
 bp = Blueprint("admin", __name__)
 
@@ -450,6 +452,237 @@ def export_data():
     except Exception as e:
         logging.error(f"Export data error: {e}")
         return jsonify({"error": f"Failed to export data: {str(e)}"}), 500
+
+# ============ MEDICINE MANAGEMENT ============
+
+@bp.route("/api/medicines", methods=["GET"])
+def list_medicines():
+    """List all medicines with pagination"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        # Get query parameters
+        category = request.args.get('category')
+        search = request.args.get('search')
+        status = request.args.get('status')
+        limit = int(request.args.get('limit', 50))
+        offset = int(request.args.get('offset', 0))
+        
+        # Build query
+        query = Medicine.query
+        
+        # Apply filters
+        if status:
+            query = query.filter_by(status=status)
+        
+        if category:
+            query = query.filter_by(category=category)
+        
+        if search:
+            search_term = f"%{search}%"
+            query = query.filter(
+                db.or_(
+                    Medicine.name.ilike(search_term),
+                    Medicine.chemical.ilike(search_term),
+                    Medicine.description.ilike(search_term)
+                )
+            )
+        
+        # Get total count for pagination
+        total_count = query.count()
+        
+        # Apply pagination
+        medicines = query.order_by(Medicine.created_at.desc()).offset(offset).limit(limit).all()
+        
+        # Format response
+        medicine_list = []
+        for med in medicines:
+            medicine_list.append({
+                "id": med.id,
+                "name": med.name,
+                "chemical": med.chemical,
+                "description": med.description,
+                "price": med.price,
+                "image_path": med.image_path or "/static/images/default-medicine.png",
+                "status": med.status,
+                "stock_quantity": med.stock_quantity,
+                "category": med.category,
+                "created_at": med.created_at.isoformat()
+            })
+        
+        return jsonify({
+            "success": True,
+            "medicines": medicine_list,
+            "total_count": total_count,
+            "offset": offset,
+            "limit": limit
+        })
+        
+    except Exception as e:
+        logging.error(f"List medicines error: {e}")
+        return jsonify({"error": f"Failed to retrieve medicines: {str(e)}"}), 500
+
+@bp.route("/api/medicines", methods=["POST"])
+def add_medicine():
+    """Add new medicine with file upload"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        # Handle file upload
+        image_path = None
+        if 'image_file' in request.files:
+            file = request.files['image_file']
+            if file and file.filename:
+                # Secure the filename
+                filename = secure_filename(file.filename)
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"{timestamp}_{filename}"
+                
+                # Ensure uploads directory exists
+                upload_dir = os.path.join("static", "uploads", "medicines")
+                os.makedirs(upload_dir, exist_ok=True)
+                
+                # Save the file
+                file_path = os.path.join(upload_dir, filename)
+                file.save(file_path)
+                image_path = f"/static/uploads/medicines/{filename}"
+        
+        # Get form data
+        data = request.form
+        
+        # Validate required fields
+        if not data.get('name') or not data.get('price'):
+            return jsonify({"error": "Name and price are required"}), 400
+        
+        # Create new medicine
+        medicine = Medicine()
+        medicine.name = data['name']
+        medicine.chemical = data.get('chemical', '')
+        medicine.description = data.get('description', '')
+        medicine.price = int(data['price'])
+        medicine.image_path = image_path
+        medicine.status = data.get('status', 'in_stock')
+        medicine.stock_quantity = int(data.get('stock_quantity', 0))
+        medicine.category = data.get('category', 'General')
+        
+        db.session.add(medicine)
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Medicine added successfully",
+            "medicine": {
+                "id": medicine.id,
+                "name": medicine.name,
+                "price": medicine.price,
+                "category": medicine.category,
+                "status": medicine.status,
+                "stock_quantity": medicine.stock_quantity,
+                "image_path": medicine.image_path
+            }
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Add medicine error: {e}")
+        return jsonify({"error": f"Failed to add medicine: {str(e)}"}), 500
+
+@bp.route("/api/medicines/<int:medicine_id>", methods=["PUT"])
+def update_medicine(medicine_id):
+    """Update medicine"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        medicine = Medicine.query.get_or_404(medicine_id)
+        
+        # Update fields
+        if "name" in data:
+            medicine.name = data["name"]
+        if "chemical" in data:
+            medicine.chemical = data["chemical"]
+        if "description" in data:
+            medicine.description = data["description"]
+        if "price" in data:
+            medicine.price = int(data["price"])
+        if "status" in data:
+            medicine.status = data["status"]
+        if "stock_quantity" in data:
+            medicine.stock_quantity = int(data["stock_quantity"])
+        if "category" in data:
+            medicine.category = data["category"]
+        
+        medicine.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Medicine updated successfully",
+            "medicine": {
+                "id": medicine.id,
+                "name": medicine.name,
+                "price": medicine.price,
+                "status": medicine.status,
+                "stock_quantity": medicine.stock_quantity
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Update medicine error: {e}")
+        return jsonify({"error": f"Failed to update medicine: {str(e)}"}), 500
+
+@bp.route("/api/medicines/<int:medicine_id>", methods=["DELETE"])
+def delete_medicine(medicine_id):
+    """Delete medicine"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        medicine = Medicine.query.get_or_404(medicine_id)
+        
+        # Check if medicine is in any orders
+        order_items = OrderItem.query.filter_by(medicine_id=medicine_id).first()
+        
+        if order_items:
+            # Instead of deleting, mark as discontinued
+            medicine.status = "discontinued"
+            db.session.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": "Medicine marked as discontinued (has order history)"
+            })
+        else:
+            # Safe to delete
+            # Remove image file if exists
+            if medicine.image_path and medicine.image_path.startswith("/static/uploads/"):
+                image_file_path = medicine.image_path[1:]  # Remove leading slash
+                if os.path.exists(image_file_path):
+                    os.remove(image_file_path)
+            
+            db.session.delete(medicine)
+            db.session.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": "Medicine deleted successfully"
+            })
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Delete medicine error: {e}")
+        return jsonify({"error": f"Failed to delete medicine: {str(e)}"}), 500
 
 # ============ TIME SLOT MANAGEMENT ============
 
