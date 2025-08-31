@@ -41,7 +41,6 @@ class Medicine(db.Model):
     category = db.Column(db.String(100))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class TimeSlot(db.Model):
     __tablename__ = 'time_slots'

@@ -1206,17 +1206,18 @@ function previewImage(input) {
     const previewImage = document.getElementById('imagePreview');
     
     if (file) {
-        // Validate file type
-        if (!file.type.startsWith('image/')) {
-            adminDashboard.showAlert('Please select a valid image file', 'danger');
+        // Validate file type - only accept jpg, jpeg, png
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        if (!allowedTypes.includes(file.type.toLowerCase())) {
+            adminDashboard.showAlert('Please select a JPG, JPEG, or PNG image file', 'danger');
             input.value = '';
             previewContainer.style.display = 'none';
             return;
         }
         
-        // Validate file size (5MB max)
-        if (file.size > 5 * 1024 * 1024) {
-            adminDashboard.showAlert('Image file size should be less than 5MB', 'danger');
+        // Validate file size (2MB max as specified)
+        if (file.size > 2 * 1024 * 1024) {
+            adminDashboard.showAlert('Image file size should be less than 2MB', 'danger');
             input.value = '';
             previewContainer.style.display = 'none';
             return;

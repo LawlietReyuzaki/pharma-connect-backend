@@ -1,0 +1,51 @@
+In the Admin Dashboard → Add Medicine section, the image field still requires an **Image URL** instead of supporting uploads.  
+This is incorrect — the requirement is to allow **file upload from gallery or live camera capture**.
+
+Steps to fix:
+
+1. Frontend (Form Input):
+   - Remove the `image_url` text field completely.
+   - Add `<input type="file">` with proper attributes:
+     ```html
+     <label for="medicineImage">Upload Medicine Image</label>
+     <input type="file" id="medicineImage" name="medicineImage"
+            accept="image/*" capture="environment" required>
+     ```
+   - Ensure that on mobile devices, the camera opens directly if chosen.
+
+2. Backend (API Endpoint):
+   - Update `POST /admin/add-medicine` to accept `multipart/form-data` instead of JSON.
+   - Accept fields:
+     - `name`
+     - `chemical_name`
+     - `price`
+     - `stock_quantity`
+     - `category`
+     - `status`
+     - `description`
+     - `image_file` (uploaded image)
+   - Save uploaded image in `/uploads/medicines/`.
+   - Store the **file path** (e.g. `/uploads/medicines/xyz.png`) in DB under `image_path`.
+
+3. Validation:
+   - Accept only `.jpg`, `.jpeg`, `.png` formats.
+   - Enforce file size limits (e.g. 2MB max).
+   - Add clear error messages if upload fails.
+
+4. Dashboard Integration:
+   - When adding medicine, the uploaded image must appear in the **Medicine List**.
+   - Ensure it displays the **actual uploaded image**, not a broken link.
+
+5. Error Handling:
+   - If upload fails, return `{ "error": "Image upload failed" }`.
+   - Handle missing image field gracefully with validation.
+
+6. Testing:
+   - Admin uploads from gallery → Medicine saves successfully with correct image preview.
+   - Admin takes live photo → Medicine saves successfully with correct image preview.
+   - Invalid format (`.gif`, `.pdf`) → API rejects with error.
+   - Ensure that medicines display correctly on both **Admin Dashboard** and **Homepage**.
+
+7. Future-proofing (Optional):
+   - Support multiple images per medicine (gallery mode).
+   - Show preview before saving medicine.

@@ -949,10 +949,10 @@
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="medicineImage" class="form-label">Medicine Image</label>
+                                <label for="medicineImage" class="form-label">Upload Medicine Image</label>
                                 <input type="file" class="form-control" id="medicineImage" name="image_file" 
-                                       accept="image/*" onchange="previewImage(this)">
-                                <small class="text-muted">Upload JPG, PNG or WebP image (Max 5MB)</small>
+                                       accept="image/*" capture="environment" onchange="previewImage(this)">
+                                <small class="text-muted">Take photo or upload JPG, PNG image (Max 2MB)</small>
                             </div>
                         </div>
 
