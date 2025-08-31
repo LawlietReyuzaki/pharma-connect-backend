@@ -42,6 +42,7 @@ def create_app():
     from routes.store_routes import bp as store_bp
     from routes.order_routes import bp as order_bp
     from routes.admin_routes import bp as admin_bp
+    from routes.admin_auth_routes import bp as admin_auth_bp
     from routes.doctor_routes import bp as doctor_bp
     
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
@@ -50,6 +51,7 @@ def create_app():
     app.register_blueprint(store_bp, url_prefix="/api/store")
     app.register_blueprint(order_bp, url_prefix="/api/orders")
     app.register_blueprint(admin_bp, url_prefix="/admin")
+    app.register_blueprint(admin_auth_bp, url_prefix="/admin/auth")
     app.register_blueprint(doctor_bp, url_prefix="/doctor")
     
     @app.route("/")

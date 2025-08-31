@@ -395,9 +395,18 @@
                 </form>
                 <hr>
                 <div class="text-center mb-3">
-                    <button type="button" class="btn btn-outline-primary" onclick="showDoctorLogin()">
-                        <i class="fas fa-user-md me-2"></i>Are you a doctor?
-                    </button>
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <button type="button" class="btn btn-outline-primary w-100" onclick="showDoctorLogin()">
+                                <i class="fas fa-user-md me-2"></i>Are you a doctor?
+                            </button>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <button type="button" class="btn btn-outline-success w-100" onclick="showAdminLogin()">
+                                <i class="fas fa-user-shield me-2"></i>Are you an admin?
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <p class="text-center text-muted">
                     Don't have an account? 
@@ -526,6 +535,42 @@
                 <hr>
                 <p class="text-center text-muted">
                     Already set up? 
+                    <a href="#" onclick="showDoctorLogin()" class="text-primary">Login here</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Login Modal -->
+<div class="modal fade" id="adminLoginModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-shield text-success me-2"></i>Admin Login
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="adminLoginForm">
+                    <div class="mb-3">
+                        <label class="form-label">Admin Email</label>
+                        <input type="email" class="form-control" id="adminLoginEmail" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Admin Password</label>
+                        <input type="password" class="form-control" id="adminLoginPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login as Admin
+                    </button>
+                </form>
+                <hr>
+                <p class="text-center text-muted">
+                    Regular user? 
+                    <a href="#" onclick="showLogin()" class="text-danger">Login here</a> | 
+                    Doctor? 
                     <a href="#" onclick="showDoctorLogin()" class="text-primary">Login here</a>
                 </p>
             </div>

@@ -1,8 +1,8 @@
 // Admin Dashboard JavaScript
 class AdminDashboard {
     constructor() {
-        this.authToken = localStorage.getItem('auth_token');
-        this.userData = null;
+        this.authToken = localStorage.getItem('admin_token');
+        this.adminData = null;
         this.currentSection = 'dashboard';
         this.pendingAppointmentsCount = 0;
     }
@@ -11,7 +11,7 @@ class AdminDashboard {
     
     async checkAdminAuth() {
         // Refresh token from localStorage in case it was just set
-        this.authToken = localStorage.getItem('auth_token');
+        this.authToken = localStorage.getItem('admin_token');
         
         if (!this.authToken) {
             console.warn('No auth token found, redirecting to home');
@@ -22,7 +22,7 @@ class AdminDashboard {
         }
         
         try {
-            const response = await fetch('/api/auth/verify', {
+            const response = await fetch('/admin/auth/verify', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${this.authToken}`,
@@ -32,9 +32,9 @@ class AdminDashboard {
 
             if (response.ok) {
                 const data = await response.json();
-                this.userData = data.user;
+                this.adminData = data.admin;
                 
-                if (data.user.role !== 'admin') {
+                if (!data.valid || data.admin.role !== 'admin') {
                     alert('Access denied. Admin privileges required.');
                     window.location.href = '/';
                     return;
@@ -43,7 +43,7 @@ class AdminDashboard {
                 // Update admin name in UI
                 const adminNameElement = document.getElementById('adminName');
                 if (adminNameElement) {
-                    adminNameElement.textContent = data.user.name;
+                    adminNameElement.textContent = data.admin.name;
                 }
                 
                 this.loadPendingNotifications();
@@ -58,7 +58,7 @@ class AdminDashboard {
                 console.error('Network error during auth check');
                 // Don't redirect immediately on network errors - might be temporary
                 setTimeout(() => {
-                    if (!this.userData) {
+                    if (!this.adminData) {
                         alert('Network error. Please check your connection and try again.');
                         window.location.href = '/';
                     }
@@ -67,9 +67,9 @@ class AdminDashboard {
             }
             
             // Clear auth data and redirect for authentication failures
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user_data');
-            alert('Session expired. Please login again.');
+            localStorage.removeItem('admin_token');
+            localStorage.removeItem('admin_data');
+            alert('Admin session expired. Please login again.');
             window.location.href = '/';
         }
     }
@@ -636,8 +636,8 @@ class AdminDashboard {
     // ============ LOGOUT ============
     
     adminLogout() {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_data');
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_data');
         window.location.href = '/';
     }
 

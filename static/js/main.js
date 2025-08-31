@@ -1417,6 +1417,15 @@ function showRegister() {
     app.showRegister();
 }
 
+function hideAllModals() {
+    document.querySelectorAll('.modal.show').forEach(modal => {
+        const modalInstance = bootstrap.Modal.getInstance(modal);
+        if (modalInstance) {
+            modalInstance.hide();
+        }
+    });
+}
+
 function showDoctorLogin() {
     hideAllModals();
     new bootstrap.Modal(document.getElementById('doctorLoginModal')).show();
@@ -1425,6 +1434,11 @@ function showDoctorLogin() {
 function showPasswordSetup() {
     hideAllModals();
     new bootstrap.Modal(document.getElementById('passwordSetupModal')).show();
+}
+
+function showAdminLogin() {
+    hideAllModals();
+    new bootstrap.Modal(document.getElementById('adminLoginModal')).show();
 }
 
 function showCart() {
@@ -1630,4 +1644,48 @@ document.addEventListener('DOMContentLoaded', function() {
     if (passwordSetupForm) {
         passwordSetupForm.addEventListener('submit', handlePasswordSetup);
     }
+    
+    // Initialize admin forms
+    const adminLoginForm = document.getElementById('adminLoginForm');
+    if (adminLoginForm) {
+        adminLoginForm.addEventListener('submit', handleAdminLogin);
+    }
 });
+
+// Admin authentication functions
+async function handleAdminLogin(event) {
+    event.preventDefault();
+    
+    const email = document.getElementById('adminLoginEmail').value;
+    const password = document.getElementById('adminLoginPassword').value;
+    
+    if (!email || !password) {
+        alert('Please enter both email and password');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/admin/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            localStorage.setItem('admin_token', data.token);
+            localStorage.setItem('admin_data', JSON.stringify(data.admin));
+            hideAllModals();
+            alert('Admin login successful! Redirecting to admin dashboard...');
+            window.location.href = '/admin';
+        } else {
+            alert(data.error || 'Admin login failed');
+        }
+    } catch (error) {
+        console.error('Admin login error:', error);
+        alert('Admin login failed. Please try again.');
+    }
+}

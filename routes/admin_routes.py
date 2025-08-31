@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, render_template
 from datetime import datetime, timedelta
 from services.auth import require_auth, get_current_user, require_role
+from routes.admin_auth_routes import get_current_admin, require_admin
 from models import User, Medicine, Appointment, Order, OrderItem, ChatLog, TimeSlot
 from app import db
 import logging
@@ -21,8 +22,8 @@ def admin_dashboard():
 def get_dashboard_stats():
     """Get comprehensive dashboard statistics"""
     try:
-        current_user = get_current_user()
-        if not current_user or current_user.role != "admin":
+        current_admin = get_current_admin()
+        if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
         # User statistics
@@ -120,8 +121,8 @@ def get_dashboard_stats():
 def list_users():
     """List all users with pagination"""
     try:
-        current_user = get_current_user()
-        if not current_user or current_user.role != "admin":
+        current_admin = get_current_admin()
+        if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
         # Get query parameters
@@ -189,8 +190,8 @@ def list_users():
 def create_user():
     """Create new user (doctor/admin)"""
     try:
-        current_user = get_current_user()
-        if not current_user or current_user.role != "admin":
+        current_admin = get_current_admin()
+        if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
         data = request.get_json()
@@ -243,8 +244,8 @@ def create_user():
 def update_user(user_id):
     """Update user details"""
     try:
-        current_user = get_current_user()
-        if not current_user or current_user.role != "admin":
+        current_admin = get_current_admin()
+        if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
         data = request.get_json()
@@ -288,8 +289,8 @@ def update_user(user_id):
 def get_chat_logs():
     """Get chat logs with filtering"""
     try:
-        current_user = get_current_user()
-        if not current_user or current_user.role != "admin":
+        current_admin = get_current_admin()
+        if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
         # Get query parameters
@@ -337,8 +338,8 @@ def get_chat_logs():
 def get_recent_activity():
     """Get recent system activity"""
     try:
-        current_user = get_current_user()
-        if not current_user or current_user.role != "admin":
+        current_admin = get_current_admin()
+        if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
         activities = []
@@ -401,8 +402,8 @@ def get_recent_activity():
 def export_data():
     """Export system data for backup/analysis"""
     try:
-        current_user = get_current_user()
-        if not current_user or current_user.role != "admin":
+        current_admin = get_current_admin()
+        if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
         export_type = request.args.get('type', 'summary')
@@ -451,8 +452,8 @@ def export_data():
 def list_time_slots():
     """List all time slots"""
     try:
-        current_user = get_current_user()
-        if not current_user or current_user.role != "admin":
+        current_admin = get_current_admin()
+        if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
         time_slots = TimeSlot.query.join(User).order_by(TimeSlot.day_of_week, TimeSlot.start_time).all()
@@ -482,8 +483,8 @@ def list_time_slots():
 def create_time_slot():
     """Create a new time slot"""
     try:
-        current_user = get_current_user()
-        if not current_user or current_user.role != "admin":
+        current_admin = get_current_admin()
+        if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
         data = request.get_json()
@@ -556,8 +557,8 @@ def create_time_slot():
 def update_time_slot(slot_id):
     """Update a time slot"""
     try:
-        current_user = get_current_user()
-        if not current_user or current_user.role != "admin":
+        current_admin = get_current_admin()
+        if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
         slot = TimeSlot.query.get_or_404(slot_id)
@@ -586,8 +587,8 @@ def update_time_slot(slot_id):
 def delete_time_slot(slot_id):
     """Delete a time slot"""
     try:
-        current_user = get_current_user()
-        if not current_user or current_user.role != "admin":
+        current_admin = get_current_admin()
+        if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
         slot = TimeSlot.query.get_or_404(slot_id)
@@ -617,8 +618,8 @@ def delete_time_slot(slot_id):
 def list_doctors():
     """List all doctors"""
     try:
-        current_user = get_current_user()
-        if not current_user or current_user.role != "admin":
+        current_admin = get_current_admin()
+        if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
         doctors = User.query.filter_by(role="doctor").all()
@@ -652,8 +653,8 @@ def list_doctors():
 def create_doctor():
     """Create a new doctor"""
     try:
-        current_user = get_current_user()
-        if not current_user or current_user.role != "admin":
+        current_admin = get_current_admin()
+        if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
         data = request.get_json()
@@ -709,8 +710,8 @@ def create_doctor():
 def update_doctor(doctor_id):
     """Update a doctor"""
     try:
-        current_user = get_current_user()
-        if not current_user or current_user.role != "admin":
+        current_admin = get_current_admin()
+        if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
         doctor = User.query.filter_by(id=doctor_id, role="doctor").first()
@@ -768,8 +769,8 @@ def update_doctor(doctor_id):
 def delete_doctor(doctor_id):
     """Delete a doctor"""
     try:
-        current_user = get_current_user()
-        if not current_user or current_user.role != "admin":
+        current_admin = get_current_admin()
+        if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
         doctor = User.query.filter_by(id=doctor_id, role="doctor").first()
@@ -802,8 +803,8 @@ def delete_doctor(doctor_id):
 def get_doctor(doctor_id):
     """Get a specific doctor's details"""
     try:
-        current_user = get_current_user()
-        if not current_user or current_user.role != "admin":
+        current_admin = get_current_admin()
+        if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
         doctor = User.query.filter_by(id=doctor_id, role="doctor").first()
@@ -835,8 +836,8 @@ def get_doctor(doctor_id):
 def list_appointments():
     """List appointments with filtering"""
     try:
-        current_user = get_current_user()
-        if not current_user or current_user.role != "admin":
+        current_admin = get_current_admin()
+        if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
         # Get query parameters
@@ -907,8 +908,8 @@ def list_appointments():
 def approve_appointment(appointment_id):
     """Approve a pending appointment"""
     try:
-        current_user = get_current_user()
-        if not current_user or current_user.role != "admin":
+        current_admin = get_current_admin()
+        if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
         appointment = Appointment.query.get_or_404(appointment_id)
@@ -946,8 +947,8 @@ def approve_appointment(appointment_id):
 def decline_appointment(appointment_id):
     """Decline a pending appointment"""
     try:
-        current_user = get_current_user()
-        if not current_user or current_user.role != "admin":
+        current_admin = get_current_admin()
+        if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
         appointment = Appointment.query.get_or_404(appointment_id)
@@ -989,8 +990,8 @@ def decline_appointment(appointment_id):
 def cancel_appointment(appointment_id):
     """Cancel an approved appointment"""
     try:
-        current_user = get_current_user()
-        if not current_user or current_user.role != "admin":
+        current_admin = get_current_admin()
+        if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
         appointment = Appointment.query.get_or_404(appointment_id)
