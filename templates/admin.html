@@ -740,8 +740,11 @@
             // Initialize admin dashboard instance
             window.adminDashboard = new AdminDashboard();
             
-            // Check admin authentication
-            window.adminDashboard.checkAdminAuth();
+            // Add a small delay to ensure login redirect is complete
+            setTimeout(() => {
+                // Check admin authentication
+                window.adminDashboard.checkAdminAuth();
+            }, 500);
             
             // Load dashboard data
             loadDashboardStats();

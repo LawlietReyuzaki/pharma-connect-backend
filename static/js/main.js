@@ -94,9 +94,13 @@ class RedDotPharmacy {
                 // Redirect admin users to admin dashboard
                 if (data.user.role === 'admin') {
                     this.showSuccess('Login successful! Welcome back, ' + data.user.name + '. Redirecting to admin dashboard...');
+                    // Ensure token is saved before redirect
                     setTimeout(() => {
+                        // Double-check token is saved
+                        localStorage.setItem('auth_token', data.token);
+                        localStorage.setItem('user_data', JSON.stringify(data.user));
                         window.location.href = '/admin';
-                    }, 1500);
+                    }, 1000);
                 } else {
                     this.showSuccess('Login successful! Welcome back, ' + data.user.name);
                     this.loadPendingAppointments();

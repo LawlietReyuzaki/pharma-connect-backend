@@ -10,13 +10,19 @@ class AdminDashboard {
     // ============ AUTHENTICATION ============
     
     async checkAdminAuth() {
+        // Refresh token from localStorage in case it was just set
+        this.authToken = localStorage.getItem('auth_token');
+        
         if (!this.authToken) {
             console.warn('No auth token found, redirecting to home');
-            window.location.href = '/';
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 100);
             return;
         }
 
         try {
+            console.log('Checking admin authentication...');
             const response = await fetch('/api/auth/verify', {
                 method: 'POST',
                 headers: {
@@ -25,8 +31,11 @@ class AdminDashboard {
                 }
             });
 
+            console.log('Auth response status:', response.status);
+
             if (response.ok) {
                 const data = await response.json();
+                console.log('Auth response data:', data);
                 this.userData = data.user;
                 
                 if (data.user.role !== 'admin') {
@@ -44,16 +53,30 @@ class AdminDashboard {
                 console.log('Admin authentication successful');
                 this.loadPendingNotifications();
             } else {
-                throw new Error('Authentication failed');
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Auth failed with status:', response.status, 'Error:', errorData);
+                throw new Error(`Authentication failed: ${response.status}`);
             }
         } catch (error) {
             console.error('Auth check failed:', error);
-            // Don't immediately redirect - give user chance to login again
-            if (error.message.includes('Authentication failed')) {
-                alert('Session expired. Please login again.');
+            
+            // Be more specific about the error
+            if (error.message.includes('Failed to fetch')) {
+                console.error('Network error during auth check');
+                // Don't redirect immediately on network errors - might be temporary
+                setTimeout(() => {
+                    if (!this.userData) {
+                        alert('Network error. Please check your connection and try again.');
+                        window.location.href = '/';
+                    }
+                }, 2000);
+                return;
             }
+            
+            // Clear auth data and redirect for authentication failures
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user_data');
+            alert('Session expired. Please login again.');
             window.location.href = '/';
         }
     }
