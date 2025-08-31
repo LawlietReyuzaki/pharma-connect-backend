@@ -888,7 +888,7 @@ class RedDotPharmacy {
 
             if (response.ok) {
                 const doctor = this.doctors.find(d => d.id === appointmentData.doctor_id);
-                this.showSuccess(`Appointment booked successfully with ${doctor?.name || 'doctor'}! Check your email for the Google Meet link.`);
+                this.showSuccess(`Your consultation request has been sent to ${doctor?.name || 'doctor'} and is waiting for approval. You will receive an email with the consultation link once the doctor approves your request.`);
                 
                 // Reset form
                 document.getElementById('consultationForm')?.reset();
