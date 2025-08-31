@@ -4,6 +4,7 @@ class AdminDashboard {
         this.authToken = localStorage.getItem('auth_token');
         this.userData = null;
         this.currentSection = 'dashboard';
+        this.pendingAppointmentsCount = 0;
     }
 
     // ============ AUTHENTICATION ============
@@ -41,6 +42,7 @@ class AdminDashboard {
                 }
                 
                 console.log('Admin authentication successful');
+                this.loadPendingNotifications();
             } else {
                 throw new Error('Authentication failed');
             }
@@ -88,6 +90,7 @@ class AdminDashboard {
         switch (sectionName) {
             case 'dashboard':
                 this.loadDashboardStats();
+                this.loadPendingNotifications();
                 break;
             case 'medicines':
                 this.loadMedicines();
@@ -97,6 +100,7 @@ class AdminDashboard {
                 break;
             case 'appointments':
                 this.loadAppointments();
+                this.loadPendingNotifications();
                 break;
             case 'users':
                 this.loadUsers();
@@ -134,6 +138,52 @@ class AdminDashboard {
         document.getElementById('totalOrders').textContent = stats.total_orders || 0;
         document.getElementById('totalAppointments').textContent = stats.total_appointments || 0;
         document.getElementById('totalRevenue').textContent = `PKR ${stats.total_revenue || 0}`;
+    }
+
+    // ============ NOTIFICATIONS ============
+    
+    async loadPendingNotifications() {
+        try {
+            const response = await fetch('/admin/api/appointments?approval_status=pending', {
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.pendingAppointmentsCount = data.appointments?.length || 0;
+                this.updateNotificationUI();
+            }
+        } catch (error) {
+            console.error('Error loading pending notifications:', error);
+        }
+    }
+
+    updateNotificationUI() {
+        // Update badge in navigation
+        const badge = document.getElementById('pendingAppointmentsBadge');
+        if (badge) {
+            if (this.pendingAppointmentsCount > 0) {
+                badge.textContent = this.pendingAppointmentsCount;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        // Update dashboard alert
+        const alert = document.getElementById('pendingAppointmentsAlert');
+        const alertText = document.getElementById('pendingAppointmentsText');
+        
+        if (alert && alertText) {
+            if (this.pendingAppointmentsCount > 0) {
+                alert.classList.remove('d-none');
+                alertText.textContent = `You have ${this.pendingAppointmentsCount} appointment${this.pendingAppointmentsCount > 1 ? 's' : ''} waiting for approval`;
+            } else {
+                alert.classList.add('d-none');
+            }
+        }
     }
 
     // ============ MEDICINES MANAGEMENT ============
@@ -764,6 +814,7 @@ async function approveAppointment(appointmentId) {
         if (response.ok) {
             alert('Appointment approved successfully!');
             adminDashboard.loadAppointments();
+            adminDashboard.loadPendingNotifications();
         } else {
             alert(result.error || 'Failed to approve appointment');
         }
@@ -794,6 +845,7 @@ async function declineAppointment(appointmentId) {
         if (response.ok) {
             alert('Appointment declined successfully!');
             adminDashboard.loadAppointments();
+            adminDashboard.loadPendingNotifications();
         } else {
             alert(result.error || 'Failed to decline appointment');
         }
