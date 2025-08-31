@@ -215,14 +215,14 @@
                             <form id="consultationForm">
                                 <div class="mb-3">
                                     <label class="form-label">Select Doctor</label>
-                                    <select class="form-select" id="doctorSelect" required>
+                                    <select class="form-select" id="doctorSelect" name="doctor_id" required>
                                         <option value="">Choose a doctor...</option>
                                     </select>
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Preferred Date</label>
-                                    <input type="date" class="form-control" id="consultationDate" required>
+                                    <input type="date" class="form-control" id="consultationDate" name="consultation_date" required>
                                 </div>
                                 
                                 <div class="mb-3">
@@ -234,13 +234,13 @@
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Describe Your Symptoms</label>
-                                    <textarea class="form-control" id="symptoms" rows="3" 
+                                    <textarea class="form-control" id="symptoms" name="symptoms" rows="3" 
                                               placeholder="Please describe your symptoms or health concerns..." required></textarea>
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Additional Notes (Optional)</label>
-                                    <textarea class="form-control" id="consultationNotes" rows="2" 
+                                    <textarea class="form-control" id="consultationNotes" name="note" rows="2" 
                                               placeholder="Any additional information for the doctor..."></textarea>
                                 </div>
                                 
