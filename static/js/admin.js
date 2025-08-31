@@ -1159,9 +1159,11 @@ async function addMedicine() {
     }
     
     // Disable button and show loading
-    addBtn.disabled = true;
-    const originalText = addBtn.innerHTML;
-    addBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Adding...';
+    if (addBtn) {
+        addBtn.disabled = true;
+        const originalText = addBtn.innerHTML;
+        addBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Adding...';
+    }
     
     try {
         const response = await fetch('/admin/api/medicines', {
@@ -1195,8 +1197,10 @@ async function addMedicine() {
         adminDashboard.showAlert('Error adding medicine', 'danger');
     } finally {
         // Re-enable button
-        addBtn.disabled = false;
-        addBtn.innerHTML = originalText;
+        if (addBtn) {
+            addBtn.disabled = false;
+            addBtn.innerHTML = originalText;
+        }
     }
 }
 

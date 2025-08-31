@@ -52,7 +52,7 @@ def list_medicines():
                 "chemical": med.chemical,
                 "description": med.description,
                 "price": med.price,
-                "image_url": med.image_url or "/static/images/default-medicine.png",
+                "image_path": med.image_path or "/static/images/default-medicine.png",
                 "status": med.status,
                 "stock_quantity": med.stock_quantity,
                 "category": med.category
@@ -84,7 +84,7 @@ def get_medicine(medicine_id):
                 "chemical": medicine.chemical,
                 "description": medicine.description,
                 "price": medicine.price,
-                "image_url": medicine.image_url or "/static/images/default-medicine.png",
+                "image_path": medicine.image_path or "/static/images/default-medicine.png",
                 "status": medicine.status,
                 "stock_quantity": medicine.stock_quantity,
                 "category": medicine.category,
@@ -121,7 +121,7 @@ def add_medicine():
         medicine.chemical = data.get("chemical", "")
         medicine.description = data.get("description", "")
         medicine.price = int(data["price"])
-        medicine.image_url = data.get("image_url", "")
+        medicine.image_path = data.get("image_path", "")
         medicine.status = data.get("status", "in_stock")
         medicine.stock_quantity = int(data.get("stock_quantity", 0))
         medicine.category = data.get("category", "General")
@@ -168,8 +168,8 @@ def update_medicine(medicine_id):
             medicine.description = data["description"]
         if "price" in data:
             medicine.price = int(data["price"])
-        if "image_url" in data:
-            medicine.image_url = data["image_url"]
+        if "image_path" in data:
+            medicine.image_path = data["image_path"]
         if "status" in data:
             medicine.status = data["status"]
         if "stock_quantity" in data:
@@ -311,7 +311,7 @@ def search_medicines():
                 "chemical": med.chemical,
                 "price": med.price,
                 "category": med.category,
-                "image_url": med.image_url or "/static/images/default-medicine.png"
+                "image_path": med.image_path or "/static/images/default-medicine.png"
             })
         
         return jsonify({

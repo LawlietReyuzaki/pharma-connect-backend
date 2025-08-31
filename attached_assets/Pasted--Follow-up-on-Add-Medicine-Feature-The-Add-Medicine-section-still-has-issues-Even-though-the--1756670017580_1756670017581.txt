@@ -1,0 +1,84 @@
+### Follow-up on Add Medicine Feature
+
+The Add Medicine section still has issues. Even though the schema and upload logic were updated, the following problems remain:
+
+---
+
+#### 1. Image Upload Issue
+- The form still shows an **Image URL input field** instead of fully supporting file upload and camera capture.
+- Expected: 
+  - A file input with `accept="image/*"` and `capture="environment"` (for mobile camera).
+  - Backend should accept `multipart/form-data` and save image to `image_path` column.
+  - Store should display the uploaded image (not an image URL field).
+
+---
+
+#### 2. JavaScript Error
+
+2admin.js:1162 Uncaught (in promise) TypeError: Cannot set properties of null (setting 'disabled')
+at addMedicine (admin.js:1162:21)
+
+
+
+- This happens when clicking the "Add Medicine" button.
+- Cause: The button element being targeted in `addMedicine()` is `null`.
+- Fix:
+  1. Ensure the button in HTML has the correct `id` or `class`.
+     ```html
+     <button id="addMedicineBtn" onclick="addMedicine()">Add Medicine</button>
+     ```
+  2. Add a `null` check in JS:
+     ```javascript
+     const btn = document.getElementById("addMedicineBtn");
+     if (btn) btn.disabled = true;
+     ```
+
+---
+
+#### 3. Medicines Not Appearing in Store Section
+- After adding a medicine, it does not appear in the **Store** view.
+- Debugging Steps:
+  1. Confirm backend `/api/medicines` GET route returns newly added medicines.
+  2. Ensure the database insert is successful (`image_path`, `name`, `description`).
+  3. Update frontend store rendering logic to use DB fields:
+     ```javascript
+     medicines.forEach(med => {
+         storeContainer.innerHTML += `
+           <div class="medicine-card">
+             <img src="${med.image_path}" alt="${med.name}">
+             <h3>${med.name}</h3>
+             <p>${med.description}</p>
+           </div>`;
+     });
+     ```
+  4. Verify CORS or static file serving isn’t blocking images.
+
+---
+
+#### 4. Steps to Fix
+1. **Frontend Form**
+   - Replace Image URL input with file input:
+     ```html
+     <input type="file" id="medicineImage" accept="image/*" capture="environment">
+     ```
+2. **Backend**
+   - Ensure endpoint accepts `multipart/form-data` and saves uploaded image to server.
+   - Store path in `image_path` column of `medicines` table.
+3. **Button Error**
+   - Fix `addMedicine()` button reference (`id` must match).
+   - Add null check before setting `disabled`.
+4. **Store Rendering**
+   - Fetch medicines from `/api/medicines`.
+   - Render name, description, and uploaded image.
+5. **Testing**
+   - Add medicine from dashboard (file upload + camera capture).
+   - Check DB entry.
+   - Verify medicine appears in store section with proper image.
+
+---
+
+✅ Once these fixes are applied:
+- No JS error in `admin.js`.
+- Add Medicine form works with both gallery and camera.
+- Medicines appear in the store section with uploaded images.
+at HTMLButtonElement.onclick (admin:735:90)

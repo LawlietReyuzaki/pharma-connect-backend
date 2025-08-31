@@ -229,7 +229,7 @@ class RedDotPharmacy {
             <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
                 <div class="card medicine-card h-100">
                     <div class="position-relative">
-                        <img src="${medicine.image_url || 'https://pixabay.com/get/g7f4583c94af9a1854eb8b3aa95302ecc29bfb74ed9e4a49eda99a8d292810723fe0fa0624331e0b8a0976b75b535ad2cea69e85568e6e30d421d9e3ac8f3dfd1_1280.png'}" 
+                        <img src="${medicine.image_path || '/static/images/default-medicine.png'}" 
                              class="card-img-top medicine-image" 
                              alt="${medicine.name}"
                              onerror="this.src='https://pixabay.com/get/g7f4583c94af9a1854eb8b3aa95302ecc29bfb74ed9e4a49eda99a8d292810723fe0fa0624331e0b8a0976b75b535ad2cea69e85568e6e30d421d9e3ac8f3dfd1_1280.png'">
@@ -320,7 +320,7 @@ class RedDotPharmacy {
                         <div class="modal-body">
                             <div class="row">
                                 <div class="col-md-4">
-                                    <img src="${medicine.image_url || 'https://pixabay.com/get/g7f4583c94af9a1854eb8b3aa95302ecc29bfb74ed9e4a49eda99a8d292810723fe0fa0624331e0b8a0976b75b535ad2cea69e85568e6e30d421d9e3ac8f3dfd1_1280.png'}" 
+                                    <img src="${medicine.image_path || '/static/images/default-medicine.png'}" 
                                          class="img-fluid rounded" alt="${medicine.name}">
                                 </div>
                                 <div class="col-md-8">
@@ -384,7 +384,7 @@ class RedDotPharmacy {
                 medicine_name: medicine.name,
                 price: medicine.price,
                 quantity: quantity,
-                image_url: medicine.image_url
+                image_path: medicine.image_path
             });
         }
 
@@ -435,7 +435,7 @@ class RedDotPharmacy {
                                     <div class="card-body">
                                         <div class="row align-items-center">
                                             <div class="col-3">
-                                                <img src="${medicine.image_url || 'https://pixabay.com/get/g7f4583c94af9a1854eb8b3aa95302ecc29bfb74ed9e4a49eda99a8d292810723fe0fa0624331e0b8a0976b75b535ad2cea69e85568e6e30d421d9e3ac8f3dfd1_1280.png'}" 
+                                                <img src="${medicine.image_path || '/static/images/default-medicine.png'}" 
                                                      alt="${medicine.name}" class="img-fluid rounded">
                                             </div>
                                             <div class="col-6">
@@ -681,7 +681,7 @@ class RedDotPharmacy {
             <div class="cart-item">
                 <div class="row align-items-center">
                     <div class="col-2">
-                        <img src="${item.image_url || 'https://pixabay.com/get/g7f4583c94af9a1854eb8b3aa95302ecc29bfb74ed9e4a49eda99a8d292810723fe0fa0624331e0b8a0976b75b535ad2cea69e85568e6e30d421d9e3ac8f3dfd1_1280.png'}" 
+                        <img src="${item.image_path || '/static/images/default-medicine.png'}" 
                              alt="${item.medicine_name}" class="img-fluid rounded">
                     </div>
                     <div class="col-4">
