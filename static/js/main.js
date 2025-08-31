@@ -88,7 +88,16 @@ class RedDotPharmacy {
                 
                 this.updateAuthUI(true);
                 this.hideAllModals();
-                this.showSuccess('Login successful! Welcome back, ' + data.user.name);
+                
+                // Redirect admin users to admin dashboard
+                if (data.user.role === 'admin') {
+                    this.showSuccess('Login successful! Welcome back, ' + data.user.name + '. Redirecting to admin dashboard...');
+                    setTimeout(() => {
+                        window.location.href = '/admin';
+                    }, 1500);
+                } else {
+                    this.showSuccess('Login successful! Welcome back, ' + data.user.name);
+                }
                 
                 return true;
             } else {
