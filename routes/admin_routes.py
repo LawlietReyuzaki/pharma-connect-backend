@@ -628,9 +628,14 @@ def list_appointments():
         limit = int(request.args.get('limit', 50))
         offset = int(request.args.get('offset', 0))
         
-        # Build query
-        query = Appointment.query.join(User, Appointment.user_id == User.id).join(
-            User.doctor_appointments
+        # Build query - join with patient and doctor users using aliases
+        from sqlalchemy.orm import aliased
+        
+        PatientUser = aliased(User)
+        DoctorUser = aliased(User) 
+        
+        query = Appointment.query.join(PatientUser, Appointment.user_id == PatientUser.id).join(
+            DoctorUser, Appointment.doctor_id == DoctorUser.id
         )
         
         if approval_status:
@@ -644,13 +649,18 @@ def list_appointments():
         
         appointments_list = []
         for appointment in appointments:
+            # Get patient and doctor info directly from the appointment relationships
+            patient_name = appointment.patient.name if appointment.patient else "Unknown Patient"
+            patient_email = appointment.patient.email if appointment.patient else ""
+            doctor_name = appointment.doctor.name if appointment.doctor else "Unknown Doctor"
+            
             appointments_list.append({
                 "id": appointment.id,
                 "patient_id": appointment.user_id,
-                "patient_name": appointment.patient.name,
-                "patient_email": appointment.patient.email,
+                "patient_name": patient_name,
+                "patient_email": patient_email,
                 "doctor_id": appointment.doctor_id,
-                "doctor_name": appointment.doctor.name,
+                "doctor_name": doctor_name,
                 "appointment_date": appointment.appointment_date.isoformat(),
                 "starts_at": appointment.starts_at.isoformat(),
                 "ends_at": appointment.ends_at.isoformat(),
