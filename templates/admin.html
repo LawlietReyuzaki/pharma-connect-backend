@@ -62,6 +62,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="#doctors" onclick="showSection('doctors')">
+                            <i class="fas fa-user-md me-1"></i>Doctors
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="#users" onclick="showSection('users')">
                             <i class="fas fa-users me-1"></i>Users
                         </a>
@@ -517,6 +522,41 @@
             </div>
         </div>
 
+        <!-- Doctors Section -->
+        <div id="doctorsSection" class="admin-section" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-user-md text-danger me-2"></i>Doctors Management</h2>
+                <button class="btn btn-success" onclick="showAddDoctorModal()">
+                    <i class="fas fa-plus me-1"></i>Add New Doctor
+                </button>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Total Appointments</th>
+                                    <th>Created Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="doctorsTableBody">
+                                <tr>
+                                    <td colspan="7" class="text-center">Loading doctors...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Users Section -->
         <div id="usersSection" class="admin-section" style="display: none;">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -725,6 +765,82 @@
     <div id="loadingSpinner" class="loading-spinner" style="display: none;">
         <div class="spinner-border text-danger" role="status">
             <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Add Doctor Modal -->
+    <div class="modal fade" id="addDoctorModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-md me-2"></i>Add New Doctor
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addDoctorForm">
+                        <div class="mb-3">
+                            <label for="doctorName" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="doctorName" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="doctorEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="doctorEmail" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="doctorPhone" class="form-label">Phone</label>
+                            <input type="tel" class="form-control" id="doctorPhone" name="phone" required>
+                        </div>
+                        <div class="alert alert-info">
+                            <small><i class="fas fa-info-circle me-1"></i>Default password will be "doctor123" - doctor should change this after first login.</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="createDoctor()">
+                        <i class="fas fa-plus me-1"></i>Add Doctor
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Doctor Modal -->
+    <div class="modal fade" id="editDoctorModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-edit me-2"></i>Edit Doctor
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editDoctorForm">
+                        <input type="hidden" id="editDoctorId">
+                        <div class="mb-3">
+                            <label for="editDoctorName" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="editDoctorName" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDoctorEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="editDoctorEmail" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDoctorPhone" class="form-label">Phone</label>
+                            <input type="tel" class="form-control" id="editDoctorPhone" name="phone" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="updateDoctor()">
+                        <i class="fas fa-save me-1"></i>Save Changes
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 

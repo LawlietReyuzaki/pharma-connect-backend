@@ -524,14 +524,13 @@ def create_time_slot():
             return jsonify({"error": "Time slot overlaps with existing slot"}), 400
         
         # Create new time slot
-        new_slot = TimeSlot(
-            doctor_id=data["doctor_id"],
-            day_of_week=data["day_of_week"],
-            start_time=start_time,
-            end_time=end_time,
-            is_available=data.get("is_available", True),
-            max_appointments=data.get("max_appointments", 1)
-        )
+        new_slot = TimeSlot()
+        new_slot.doctor_id = data["doctor_id"]
+        new_slot.day_of_week = data["day_of_week"]
+        new_slot.start_time = start_time
+        new_slot.end_time = end_time
+        new_slot.is_available = data.get("is_available", True)
+        new_slot.max_appointments = data.get("max_appointments", 1)
         
         db.session.add(new_slot)
         db.session.commit()
@@ -612,6 +611,172 @@ def delete_time_slot(slot_id):
         logging.error(f"Delete time slot error: {e}")
         return jsonify({"error": f"Failed to delete time slot: {str(e)}"}), 500
 
+# ============ DOCTOR MANAGEMENT ============
+
+@bp.route("/api/doctors", methods=["GET"])
+def list_doctors():
+    """List all doctors"""
+    try:
+        current_user = get_current_user()
+        if not current_user or current_user.role != "admin":
+            return jsonify({"error": "Admin access required"}), 403
+        
+        doctors = User.query.filter_by(role="doctor").all()
+        
+        doctors_list = []
+        for doctor in doctors:
+            doctors_list.append({
+                "id": doctor.id,
+                "name": doctor.name,
+                "email": doctor.email,
+                "phone": doctor.phone,
+                "created_at": doctor.created_at.isoformat() if doctor.created_at else None,
+                "appointment_count": doctor.doctor_appointments.count()
+            })
+        
+        return jsonify({
+            "success": True,
+            "doctors": doctors_list,
+            "total_count": len(doctors_list)
+        })
+        
+    except Exception as e:
+        logging.error(f"List doctors error: {e}")
+        return jsonify({"error": f"Failed to load doctors: {str(e)}"}), 500
+
+@bp.route("/api/doctors", methods=["POST"])
+def create_doctor():
+    """Create a new doctor"""
+    try:
+        current_user = get_current_user()
+        if not current_user or current_user.role != "admin":
+            return jsonify({"error": "Admin access required"}), 403
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        # Validate required fields
+        required_fields = ["name", "email", "phone"]
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({"error": f"{field} is required"}), 400
+        
+        # Check if email already exists
+        existing_user = User.query.filter_by(email=data["email"]).first()
+        if existing_user:
+            return jsonify({"error": "Email already exists"}), 400
+        
+        # Create new doctor
+        from services.auth import phash
+        new_doctor = User()
+        new_doctor.name = data["name"]
+        new_doctor.email = data["email"]
+        new_doctor.phone = data["phone"]
+        new_doctor.role = "doctor"
+        new_doctor.password_hash = phash("doctor123")  # Default password
+        
+        db.session.add(new_doctor)
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Doctor created successfully",
+            "doctor": {
+                "id": new_doctor.id,
+                "name": new_doctor.name,
+                "email": new_doctor.email,
+                "phone": new_doctor.phone,
+                "default_password": "doctor123"
+            }
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Create doctor error: {e}")
+        return jsonify({"error": f"Failed to create doctor: {str(e)}"}), 500
+
+@bp.route("/api/doctors/<int:doctor_id>", methods=["PUT"])
+def update_doctor(doctor_id):
+    """Update a doctor"""
+    try:
+        current_user = get_current_user()
+        if not current_user or current_user.role != "admin":
+            return jsonify({"error": "Admin access required"}), 403
+        
+        doctor = User.query.filter_by(id=doctor_id, role="doctor").first()
+        if not doctor:
+            return jsonify({"error": "Doctor not found"}), 404
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        # Update fields
+        if data.get("name"):
+            doctor.name = data["name"]
+        if data.get("email"):
+            # Check if new email already exists (excluding current doctor)
+            existing = User.query.filter(User.email == data["email"], User.id != doctor_id).first()
+            if existing:
+                return jsonify({"error": "Email already exists"}), 400
+            doctor.email = data["email"]
+        if data.get("phone"):
+            doctor.phone = data["phone"]
+        
+        doctor.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Doctor updated successfully",
+            "doctor": {
+                "id": doctor.id,
+                "name": doctor.name,
+                "email": doctor.email,
+                "phone": doctor.phone
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Update doctor error: {e}")
+        return jsonify({"error": f"Failed to update doctor: {str(e)}"}), 500
+
+@bp.route("/api/doctors/<int:doctor_id>", methods=["DELETE"])
+def delete_doctor(doctor_id):
+    """Delete a doctor"""
+    try:
+        current_user = get_current_user()
+        if not current_user or current_user.role != "admin":
+            return jsonify({"error": "Admin access required"}), 403
+        
+        doctor = User.query.filter_by(id=doctor_id, role="doctor").first()
+        if not doctor:
+            return jsonify({"error": "Doctor not found"}), 404
+        
+        # Check if doctor has pending appointments
+        pending_appointments = Appointment.query.filter_by(
+            doctor_id=doctor_id,
+            approval_status="pending"
+        ).count()
+        
+        if pending_appointments > 0:
+            return jsonify({"error": "Cannot delete doctor with pending appointments"}), 400
+        
+        # Delete associated time slots first
+        TimeSlot.query.filter_by(doctor_id=doctor_id).delete()
+        
+        db.session.delete(doctor)
+        db.session.commit()
+        
+        return jsonify({"success": True, "message": "Doctor deleted successfully"})
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Delete doctor error: {e}")
+        return jsonify({"error": f"Failed to delete doctor: {str(e)}"}), 500
+
 # ============ APPOINTMENT APPROVAL MANAGEMENT ============
 
 @bp.route("/api/appointments", methods=["GET"])
@@ -661,9 +826,9 @@ def list_appointments():
                 "patient_email": patient_email,
                 "doctor_id": appointment.doctor_id,
                 "doctor_name": doctor_name,
-                "appointment_date": appointment.appointment_date.isoformat(),
-                "starts_at": appointment.starts_at.isoformat(),
-                "ends_at": appointment.ends_at.isoformat(),
+                "appointment_date": appointment.appointment_date.isoformat() if appointment.appointment_date else None,
+                "starts_at": appointment.starts_at.isoformat() if appointment.starts_at else None,
+                "ends_at": appointment.ends_at.isoformat() if appointment.ends_at else None,
                 "status": appointment.status,
                 "approval_status": appointment.approval_status,
                 "symptoms": appointment.symptoms,
@@ -671,7 +836,7 @@ def list_appointments():
                 "time_slot_id": appointment.time_slot_id,
                 "approved_by": appointment.approved_by,
                 "approved_at": appointment.approved_at.isoformat() if appointment.approved_at else None,
-                "created_at": appointment.created_at.isoformat()
+                "created_at": appointment.created_at.isoformat() if appointment.created_at else None
             })
         
         return jsonify({

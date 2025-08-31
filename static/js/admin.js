@@ -118,6 +118,9 @@ class AdminDashboard {
                 this.loadAppointments();
                 this.loadPendingNotifications();
                 break;
+            case 'doctors':
+                this.loadDoctors();
+                break;
             case 'users':
                 this.loadUsers();
                 break;
@@ -442,6 +445,55 @@ class AdminDashboard {
             `;
             tbody.appendChild(row);
         });
+    }
+
+    // ============ DOCTORS MANAGEMENT ============
+    
+    async loadDoctors() {
+        try {
+            const response = await fetch('/admin/api/doctors', {
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.displayDoctors(data.doctors);
+            } else {
+                console.error('Failed to load doctors');
+            }
+        } catch (error) {
+            console.error('Error loading doctors:', error);
+        }
+    }
+
+    displayDoctors(doctors) {
+        const tbody = document.getElementById('doctorsTableBody');
+        
+        if (doctors.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center">No doctors found</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = doctors.map(doctor => `
+            <tr>
+                <td>${doctor.id}</td>
+                <td>${doctor.name}</td>
+                <td>${doctor.email}</td>
+                <td>${doctor.phone || 'N/A'}</td>
+                <td>${doctor.appointment_count}</td>
+                <td>${doctor.created_at ? new Date(doctor.created_at).toLocaleDateString() : 'N/A'}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editDoctor(${doctor.id}, '${doctor.name}', '${doctor.email}', '${doctor.phone}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteDoctor(${doctor.id}, '${doctor.name}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
     }
 
     // ============ USERS MANAGEMENT ============
@@ -911,6 +963,120 @@ function filterAppointments(filter) {
 function viewAppointment(id) {
     console.log('View appointment:', id);
     // TODO: Implement appointment details modal
+}
+
+// ============ DOCTOR MANAGEMENT FUNCTIONS ============
+
+function showAddDoctorModal() {
+    document.getElementById('addDoctorForm').reset();
+    new bootstrap.Modal(document.getElementById('addDoctorModal')).show();
+}
+
+async function createDoctor() {
+    const form = document.getElementById('addDoctorForm');
+    const formData = new FormData(form);
+    
+    const doctorData = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        phone: formData.get('phone')
+    };
+    
+    try {
+        const response = await fetch('/admin/api/doctors', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${adminDashboard.authToken}`
+            },
+            body: JSON.stringify(doctorData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert(`Doctor created successfully! Default password is: ${result.doctor.default_password}`);
+            bootstrap.Modal.getInstance(document.getElementById('addDoctorModal')).hide();
+            adminDashboard.loadDoctors();
+        } else {
+            alert(`Error: ${result.error}`);
+        }
+    } catch (error) {
+        console.error('Error creating doctor:', error);
+        alert('Failed to create doctor');
+    }
+}
+
+function editDoctor(id, name, email, phone) {
+    document.getElementById('editDoctorId').value = id;
+    document.getElementById('editDoctorName').value = name;
+    document.getElementById('editDoctorEmail').value = email;
+    document.getElementById('editDoctorPhone').value = phone || '';
+    
+    new bootstrap.Modal(document.getElementById('editDoctorModal')).show();
+}
+
+async function updateDoctor() {
+    const doctorId = document.getElementById('editDoctorId').value;
+    const form = document.getElementById('editDoctorForm');
+    const formData = new FormData(form);
+    
+    const doctorData = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        phone: formData.get('phone')
+    };
+    
+    try {
+        const response = await fetch(`/admin/api/doctors/${doctorId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${adminDashboard.authToken}`
+            },
+            body: JSON.stringify(doctorData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Doctor updated successfully!');
+            bootstrap.Modal.getInstance(document.getElementById('editDoctorModal')).hide();
+            adminDashboard.loadDoctors();
+        } else {
+            alert(`Error: ${result.error}`);
+        }
+    } catch (error) {
+        console.error('Error updating doctor:', error);
+        alert('Failed to update doctor');
+    }
+}
+
+async function deleteDoctor(id, name) {
+    if (!confirm(`Are you sure you want to delete Dr. ${name}? This will also delete their time slots.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/api/doctors/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${adminDashboard.authToken}`
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Doctor deleted successfully!');
+            adminDashboard.loadDoctors();
+        } else {
+            alert(`Error: ${result.error}`);
+        }
+    } catch (error) {
+        console.error('Error deleting doctor:', error);
+        alert('Failed to delete doctor');
+    }
 }
 
 // ============ PLACEHOLDER FUNCTIONS FOR OTHER CRUD OPERATIONS ============
