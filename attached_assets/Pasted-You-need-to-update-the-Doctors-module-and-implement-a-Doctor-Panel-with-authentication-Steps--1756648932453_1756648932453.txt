@@ -1,0 +1,59 @@
+You need to update the Doctors module and implement a Doctor Panel with authentication.
+
+Steps:
+
+1. Update the `doctors` table schema:
+   - doctor_id (primary key)
+   - name
+   - email (unique)
+   - phone_number
+   - specialization
+   - qualification
+   - experience_years
+   - current_hospital
+   - password (hashed, for doctor login)
+   - created_at timestamp
+
+2. Update the Admin > Doctors page:
+   - When adding a doctor, include fields for:
+     - Name
+     - Email
+     - Phone Number
+     - Qualification
+     - Field / Specialization
+     - Experience in Years
+     - Current Hospital
+   - Store this information in the database.
+
+3. Doctor Authentication:
+   - On the login page, add a button: **"Are you a doctor?"**
+   - Clicking this shows the Doctor Login form (email + password).
+   - Use the `doctors` table for authentication (hashed password).
+   - Once authenticated, redirect to the Doctor Dashboard.
+
+4. Doctor Dashboard:
+   - After login, the doctor can:
+     - View their profile details (name, specialization, qualification, hospital, etc.).
+     - Update their own information (except email, which is fixed).
+     - View all appointments assigned to them (pulled from the `appointments` table).
+     - Mark appointments as completed/cancelled.
+
+5. Admin-Doctor Password Setup:
+   - When Admin adds a doctor, only basic details + email are required.
+   - Doctor will later use their email + a **"Set Password" flow** to create their password:
+     - Either via a "first-time setup" page (if password is empty).
+     - Or Admin can set a temporary password that doctor must change on first login.
+
+6. Update Appointment Booking Form (User side):
+   - When a user selects a doctor, show their:
+     - Name
+     - Specialization
+     - Qualification
+     - Experience (years)
+     - Current Hospital
+   - Store selected doctor_id with the appointment.
+
+7. Security:
+   - Hash passwords for doctors before saving.
+   - Prevent duplicate doctor emails.
+   - Only Admin can add doctors.

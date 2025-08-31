@@ -540,15 +540,17 @@
                                     <th>ID</th>
                                     <th>Name</th>
                                     <th>Email</th>
+                                    <th>Specialization</th>
+                                    <th>Experience</th>
+                                    <th>Hospital</th>
                                     <th>Phone</th>
                                     <th>Total Appointments</th>
-                                    <th>Created Date</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="doctorsTableBody">
                                 <tr>
-                                    <td colspan="7" class="text-center">Loading doctors...</td>
+                                    <td colspan="9" class="text-center">Loading doctors...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -780,17 +782,39 @@
                 </div>
                 <div class="modal-body">
                     <form id="addDoctorForm">
-                        <div class="mb-3">
-                            <label for="doctorName" class="form-label">Full Name</label>
-                            <input type="text" class="form-control" id="doctorName" name="name" required>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="doctorName" class="form-label">Full Name *</label>
+                                <input type="text" class="form-control" id="doctorName" name="name" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="doctorEmail" class="form-label">Email *</label>
+                                <input type="email" class="form-control" id="doctorEmail" name="email" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="doctorPhone" class="form-label">Phone Number *</label>
+                                <input type="tel" class="form-control" id="doctorPhone" name="phone" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="doctorSpecialization" class="form-label">Specialization *</label>
+                                <input type="text" class="form-control" id="doctorSpecialization" name="specialization" placeholder="e.g., Cardiology, Pediatrics" required>
+                            </div>
                         </div>
                         <div class="mb-3">
-                            <label for="doctorEmail" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="doctorEmail" name="email" required>
+                            <label for="doctorQualification" class="form-label">Qualification *</label>
+                            <input type="text" class="form-control" id="doctorQualification" name="qualification" placeholder="e.g., MBBS, MD Cardiology" required>
                         </div>
-                        <div class="mb-3">
-                            <label for="doctorPhone" class="form-label">Phone</label>
-                            <input type="tel" class="form-control" id="doctorPhone" name="phone" required>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="doctorExperience" class="form-label">Experience (Years) *</label>
+                                <input type="number" class="form-control" id="doctorExperience" name="experience_years" min="0" max="50" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="doctorHospital" class="form-label">Current Hospital *</label>
+                                <input type="text" class="form-control" id="doctorHospital" name="current_hospital" required>
+                            </div>
                         </div>
                         <div class="alert alert-info">
                             <small><i class="fas fa-info-circle me-1"></i>Default password will be "doctor123" - doctor should change this after first login.</small>
@@ -820,17 +844,39 @@
                 <div class="modal-body">
                     <form id="editDoctorForm">
                         <input type="hidden" id="editDoctorId">
-                        <div class="mb-3">
-                            <label for="editDoctorName" class="form-label">Full Name</label>
-                            <input type="text" class="form-control" id="editDoctorName" name="name" required>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editDoctorName" class="form-label">Full Name *</label>
+                                <input type="text" class="form-control" id="editDoctorName" name="name" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editDoctorEmail" class="form-label">Email *</label>
+                                <input type="email" class="form-control" id="editDoctorEmail" name="email" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editDoctorPhone" class="form-label">Phone Number *</label>
+                                <input type="tel" class="form-control" id="editDoctorPhone" name="phone" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editDoctorSpecialization" class="form-label">Specialization *</label>
+                                <input type="text" class="form-control" id="editDoctorSpecialization" name="specialization" required>
+                            </div>
                         </div>
                         <div class="mb-3">
-                            <label for="editDoctorEmail" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="editDoctorEmail" name="email" required>
+                            <label for="editDoctorQualification" class="form-label">Qualification *</label>
+                            <input type="text" class="form-control" id="editDoctorQualification" name="qualification" required>
                         </div>
-                        <div class="mb-3">
-                            <label for="editDoctorPhone" class="form-label">Phone</label>
-                            <input type="tel" class="form-control" id="editDoctorPhone" name="phone" required>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editDoctorExperience" class="form-label">Experience (Years) *</label>
+                                <input type="number" class="form-control" id="editDoctorExperience" name="experience_years" min="0" max="50" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editDoctorHospital" class="form-label">Current Hospital *</label>
+                                <input type="text" class="form-control" id="editDoctorHospital" name="current_hospital" required>
+                            </div>
                         </div>
                     </form>
                 </div>

@@ -11,6 +11,14 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     phone = db.Column(db.String(50))
     password_hash = db.Column(db.String(256), nullable=False)
+    
+    # Doctor-specific fields
+    specialization = db.Column(db.String(100))  # Medical specialization/field
+    qualification = db.Column(db.String(200))   # Medical qualifications
+    experience_years = db.Column(db.Integer)    # Years of experience
+    current_hospital = db.Column(db.String(200))  # Current workplace
+    doctor_password_set = db.Column(db.Boolean, default=False)  # Track if doctor has set their password
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

@@ -818,19 +818,39 @@ class RedDotPharmacy {
             <div class="col-lg-4 col-md-6 mb-4">
                 <div class="card doctor-card h-100">
                     <div class="card-body">
-                        <div class="doctor-avatar">
-                            <i class="fas fa-user-md"></i>
+                        <div class="text-center mb-3">
+                            <div class="doctor-avatar mb-3">
+                                <i class="fas fa-user-md fa-3x text-primary"></i>
+                            </div>
+                            <h5 class="card-title mb-1">${doctor.name}</h5>
+                            <p class="text-primary fw-bold mb-2">${doctor.specialization || 'General Medicine'}</p>
                         </div>
-                        <h6 class="card-title">${doctor.name}</h6>
-                        <p class="text-muted mb-2">${doctor.email}</p>
-                        ${doctor.phone ? `<p class="text-muted mb-2"><i class="fas fa-phone me-1"></i>${doctor.phone}</p>` : ''}
-                        <p class="text-muted small">
-                            <i class="fas fa-calendar me-1"></i>
-                            ${doctor.upcoming_appointments} upcoming appointments
-                        </p>
-                        <button class="btn btn-danger btn-sm w-100" onclick="app.selectDoctor(${doctor.id})">
-                            <i class="fas fa-calendar-plus me-1"></i>Book Appointment
-                        </button>
+                        
+                        <div class="doctor-details mb-3">
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Experience</small>
+                                    <strong>${doctor.experience_years || 0} years</strong>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Qualification</small>
+                                    <strong class="small">${(doctor.qualification || 'MBBS').substring(0, 15)}${(doctor.qualification || '').length > 15 ? '...' : ''}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <small class="text-muted d-block"><i class="fas fa-hospital me-1"></i>Currently at</small>
+                            <p class="mb-0 small fw-bold">${doctor.current_hospital || 'Red Dot Medical Center'}</p>
+                        </div>
+                        
+                        ${doctor.phone ? `<div class="mb-3"><small class="text-muted"><i class="fas fa-phone me-1"></i>${doctor.phone}</small></div>` : ''}
+                        
+                        <div class="text-center">
+                            <button class="btn btn-danger btn-sm w-100" onclick="app.selectDoctor(${doctor.id})">
+                                <i class="fas fa-calendar-plus me-1"></i>Book Appointment
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -842,7 +862,7 @@ class RedDotPharmacy {
         if (!select) return;
 
         select.innerHTML = '<option value="">Choose a doctor...</option>' +
-            doctors.map(doctor => `<option value="${doctor.id}">${doctor.name}</option>`).join('');
+            doctors.map(doctor => `<option value="${doctor.id}">${doctor.name} - ${doctor.specialization || 'General Medicine'}</option>`).join('');
     }
 
     selectDoctor(doctorId) {
@@ -1397,6 +1417,16 @@ function showRegister() {
     app.showRegister();
 }
 
+function showDoctorLogin() {
+    hideAllModals();
+    new bootstrap.Modal(document.getElementById('doctorLoginModal')).show();
+}
+
+function showPasswordSetup() {
+    hideAllModals();
+    new bootstrap.Modal(document.getElementById('passwordSetupModal')).show();
+}
+
 function showCart() {
     app.showCart();
 }
@@ -1473,6 +1503,96 @@ function loadTimeSlots() {
     app.loadTimeSlots();
 }
 
+// Doctor authentication functions
+async function handleDoctorLogin(event) {
+    event.preventDefault();
+    
+    const email = document.getElementById('doctorLoginEmail').value;
+    const password = document.getElementById('doctorLoginPassword').value;
+    
+    if (!email || !password) {
+        alert('Please enter both email and password');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/doctor/api/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            localStorage.setItem('doctor_token', data.token);
+            localStorage.setItem('doctor_data', JSON.stringify(data.doctor));
+            hideAllModals();
+            alert('Login successful! Redirecting to doctor dashboard...');
+            window.location.href = '/doctor/dashboard';
+        } else {
+            alert(data.error || 'Login failed');
+        }
+    } catch (error) {
+        console.error('Doctor login error:', error);
+        alert('Login failed. Please try again.');
+    }
+}
+
+async function handlePasswordSetup(event) {
+    event.preventDefault();
+    
+    const email = document.getElementById('setupEmail').value;
+    const password = document.getElementById('setupPassword').value;
+    const confirmPassword = document.getElementById('setupConfirmPassword').value;
+    
+    if (!email || !password || !confirmPassword) {
+        alert('Please fill in all fields');
+        return;
+    }
+    
+    if (password !== confirmPassword) {
+        alert('Passwords do not match');
+        return;
+    }
+    
+    if (password.length < 6) {
+        alert('Password must be at least 6 characters long');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/doctor/api/setup-password', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                email, 
+                password, 
+                confirm_password: confirmPassword 
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            localStorage.setItem('doctor_token', data.token);
+            localStorage.setItem('doctor_data', JSON.stringify(data.doctor));
+            hideAllModals();
+            alert('Password set successfully! Redirecting to doctor dashboard...');
+            window.location.href = '/doctor/dashboard';
+        } else {
+            alert(data.error || 'Failed to set password');
+        }
+    } catch (error) {
+        console.error('Password setup error:', error);
+        alert('Failed to set password. Please try again.');
+    }
+}
+
 // Initialize all components when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize forms
@@ -1498,5 +1618,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize voice assistant
     if (typeof initializeVoiceAssistant === 'function') {
         initializeVoiceAssistant();
+    }
+    
+    // Initialize doctor forms
+    const doctorLoginForm = document.getElementById('doctorLoginForm');
+    if (doctorLoginForm) {
+        doctorLoginForm.addEventListener('submit', handleDoctorLogin);
+    }
+    
+    const passwordSetupForm = document.getElementById('passwordSetupForm');
+    if (passwordSetupForm) {
+        passwordSetupForm.addEventListener('submit', handlePasswordSetup);
     }
 });

@@ -630,6 +630,10 @@ def list_doctors():
                 "name": doctor.name,
                 "email": doctor.email,
                 "phone": doctor.phone,
+                "specialization": doctor.specialization,
+                "qualification": doctor.qualification,
+                "experience_years": doctor.experience_years,
+                "current_hospital": doctor.current_hospital,
                 "created_at": doctor.created_at.isoformat() if doctor.created_at else None,
                 "appointment_count": doctor.doctor_appointments.count()
             })
@@ -657,7 +661,7 @@ def create_doctor():
             return jsonify({"error": "No data provided"}), 400
         
         # Validate required fields
-        required_fields = ["name", "email", "phone"]
+        required_fields = ["name", "email", "phone", "specialization", "qualification", "experience_years", "current_hospital"]
         for field in required_fields:
             if not data.get(field):
                 return jsonify({"error": f"{field} is required"}), 400
@@ -673,8 +677,13 @@ def create_doctor():
         new_doctor.name = data["name"]
         new_doctor.email = data["email"]
         new_doctor.phone = data["phone"]
+        new_doctor.specialization = data["specialization"]
+        new_doctor.qualification = data["qualification"]
+        new_doctor.experience_years = data["experience_years"]
+        new_doctor.current_hospital = data["current_hospital"]
         new_doctor.role = "doctor"
         new_doctor.password_hash = phash("doctor123")  # Default password
+        new_doctor.doctor_password_set = False
         
         db.session.add(new_doctor)
         db.session.commit()
@@ -723,6 +732,14 @@ def update_doctor(doctor_id):
             doctor.email = data["email"]
         if data.get("phone"):
             doctor.phone = data["phone"]
+        if data.get("specialization"):
+            doctor.specialization = data["specialization"]
+        if data.get("qualification"):
+            doctor.qualification = data["qualification"]
+        if data.get("experience_years"):
+            doctor.experience_years = data["experience_years"]
+        if data.get("current_hospital"):
+            doctor.current_hospital = data["current_hospital"]
         
         doctor.updated_at = datetime.utcnow()
         db.session.commit()
@@ -734,7 +751,11 @@ def update_doctor(doctor_id):
                 "id": doctor.id,
                 "name": doctor.name,
                 "email": doctor.email,
-                "phone": doctor.phone
+                "phone": doctor.phone,
+                "specialization": doctor.specialization,
+                "qualification": doctor.qualification,
+                "experience_years": doctor.experience_years,
+                "current_hospital": doctor.current_hospital
             }
         })
         
@@ -776,6 +797,37 @@ def delete_doctor(doctor_id):
         db.session.rollback()
         logging.error(f"Delete doctor error: {e}")
         return jsonify({"error": f"Failed to delete doctor: {str(e)}"}), 500
+
+@bp.route("/api/doctors/<int:doctor_id>", methods=["GET"])
+def get_doctor(doctor_id):
+    """Get a specific doctor's details"""
+    try:
+        current_user = get_current_user()
+        if not current_user or current_user.role != "admin":
+            return jsonify({"error": "Admin access required"}), 403
+        
+        doctor = User.query.filter_by(id=doctor_id, role="doctor").first()
+        if not doctor:
+            return jsonify({"error": "Doctor not found"}), 404
+        
+        return jsonify({
+            "success": True,
+            "doctor": {
+                "id": doctor.id,
+                "name": doctor.name,
+                "email": doctor.email,
+                "phone": doctor.phone,
+                "specialization": doctor.specialization,
+                "qualification": doctor.qualification,
+                "experience_years": doctor.experience_years,
+                "current_hospital": doctor.current_hospital,
+                "created_at": doctor.created_at.isoformat() if doctor.created_at else None
+            }
+        })
+        
+    except Exception as e:
+        logging.error(f"Get doctor error: {e}")
+        return jsonify({"error": f"Failed to retrieve doctor: {str(e)}"}), 500
 
 # ============ APPOINTMENT APPROVAL MANAGEMENT ============
 
@@ -878,9 +930,9 @@ def approve_appointment(appointment_id):
             "message": "Appointment approved successfully",
             "appointment": {
                 "id": appointment.id,
-                "patient_name": appointment.patient.name,
-                "doctor_name": appointment.doctor.name,
-                "appointment_date": appointment.appointment_date.isoformat(),
+                "patient_name": appointment.patient.name if appointment.patient else "Unknown",
+                "doctor_name": appointment.doctor.name if appointment.doctor else "Unknown",
+                "appointment_date": appointment.appointment_date.isoformat() if appointment.appointment_date else None,
                 "approval_status": appointment.approval_status
             }
         })

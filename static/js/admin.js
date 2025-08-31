@@ -472,7 +472,7 @@ class AdminDashboard {
         const tbody = document.getElementById('doctorsTableBody');
         
         if (doctors.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center">No doctors found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center">No doctors found</td></tr>';
             return;
         }
 
@@ -481,11 +481,13 @@ class AdminDashboard {
                 <td>${doctor.id}</td>
                 <td>${doctor.name}</td>
                 <td>${doctor.email}</td>
+                <td>${doctor.specialization || 'N/A'}</td>
+                <td>${doctor.experience_years ? doctor.experience_years + ' years' : 'N/A'}</td>
+                <td>${doctor.current_hospital || 'N/A'}</td>
                 <td>${doctor.phone || 'N/A'}</td>
                 <td>${doctor.appointment_count}</td>
-                <td>${doctor.created_at ? new Date(doctor.created_at).toLocaleDateString() : 'N/A'}</td>
                 <td>
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editDoctor(${doctor.id}, '${doctor.name}', '${doctor.email}', '${doctor.phone}')">
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editDoctor(${doctor.id})">
                         <i class="fas fa-edit"></i>
                     </button>
                     <button class="btn btn-sm btn-outline-danger" onclick="deleteDoctor(${doctor.id}, '${doctor.name}')">
@@ -979,7 +981,11 @@ async function createDoctor() {
     const doctorData = {
         name: formData.get('name'),
         email: formData.get('email'),
-        phone: formData.get('phone')
+        phone: formData.get('phone'),
+        specialization: formData.get('specialization'),
+        qualification: formData.get('qualification'),
+        experience_years: parseInt(formData.get('experience_years')),
+        current_hospital: formData.get('current_hospital')
     };
     
     try {
@@ -1007,13 +1013,36 @@ async function createDoctor() {
     }
 }
 
-function editDoctor(id, name, email, phone) {
-    document.getElementById('editDoctorId').value = id;
-    document.getElementById('editDoctorName').value = name;
-    document.getElementById('editDoctorEmail').value = email;
-    document.getElementById('editDoctorPhone').value = phone || '';
-    
-    new bootstrap.Modal(document.getElementById('editDoctorModal')).show();
+async function editDoctor(id) {
+    try {
+        // Fetch doctor details from the server
+        const response = await fetch(`/admin/api/doctors/${id}`, {
+            headers: {
+                'Authorization': `Bearer ${adminDashboard.authToken}`
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            const doctor = data.doctor;
+            
+            document.getElementById('editDoctorId').value = doctor.id;
+            document.getElementById('editDoctorName').value = doctor.name;
+            document.getElementById('editDoctorEmail').value = doctor.email;
+            document.getElementById('editDoctorPhone').value = doctor.phone || '';
+            document.getElementById('editDoctorSpecialization').value = doctor.specialization || '';
+            document.getElementById('editDoctorQualification').value = doctor.qualification || '';
+            document.getElementById('editDoctorExperience').value = doctor.experience_years || '';
+            document.getElementById('editDoctorHospital').value = doctor.current_hospital || '';
+            
+            new bootstrap.Modal(document.getElementById('editDoctorModal')).show();
+        } else {
+            alert('Failed to load doctor details');
+        }
+    } catch (error) {
+        console.error('Error loading doctor details:', error);
+        alert('Failed to load doctor details');
+    }
 }
 
 async function updateDoctor() {
@@ -1024,7 +1053,11 @@ async function updateDoctor() {
     const doctorData = {
         name: formData.get('name'),
         email: formData.get('email'),
-        phone: formData.get('phone')
+        phone: formData.get('phone'),
+        specialization: formData.get('specialization'),
+        qualification: formData.get('qualification'),
+        experience_years: parseInt(formData.get('experience_years')),
+        current_hospital: formData.get('current_hospital')
     };
     
     try {
