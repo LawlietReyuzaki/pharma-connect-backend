@@ -656,7 +656,10 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeForms();
     
     // Initialize language for voice functionality
-    window.currentLanguage = window.currentLanguage || 'en';
+    if (typeof window.currentLanguage === 'undefined' || window.currentLanguage === null) {
+        window.currentLanguage = 'en';
+    }
+    console.log('Initialized currentLanguage:', window.currentLanguage);
     
     // Initialize chatbot (if available)
     if (typeof initializeChatbot === 'function') {
