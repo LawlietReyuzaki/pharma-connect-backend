@@ -186,6 +186,9 @@ let chatHistory = [];
 
 // Initialize chat functionality when page loads
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize the window.currentLanguage properly
+    window.currentLanguage = currentLanguage; // Set it to the initial value ('en')
+    
     // Enable Enter key to send message
     document.getElementById('messageInput').addEventListener('keypress', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -196,6 +199,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load chat history if exists
     loadChatHistory();
+    
+    console.log('Chat initialized with language:', window.currentLanguage);
 });
 
 // Function to ask a sample question
@@ -438,7 +443,11 @@ function speakMessage(button, text) {
         // Show loading state
         icon.className = 'fas fa-spinner fa-spin';
         
-        if (window.currentLanguage === 'ur') {
+        // Ensure we have a current language set, fallback to 'en' if not
+        const currentLang = window.currentLanguage || currentLanguage || 'en';
+        console.log('speakMessage called with language:', currentLang, 'text:', text.substring(0, 50));
+        
+        if (currentLang === 'ur') {
             // For Urdu, call the server-side TTS endpoint
             fetch('/api/chat/speak-urdu', {
                 method: 'POST',
