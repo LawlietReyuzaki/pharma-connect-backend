@@ -11,55 +11,34 @@ if os.getenv("OPENAI_API_KEY"):
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     except Exception as e:
         logging.error(f"Failed to initialize OpenAI client: {e}")
-else:
-    client = OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=
-        "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",
-    )
+
 # Medical red flags in both English and Urdu
 RED_FLAGS = [
     # English patterns
-    r"chest pain",
-    r"heart attack",
-    r"stroke",
-    r"seizure",
-    r"unconscious",
-    r"severe bleeding",
-    r"difficulty breathing",
-    r"can't breathe",
-    r"suicidal",
-    r"suicide",
-    r"overdose",
-    r"poisoning",
-
+    r"chest pain", r"heart attack", r"stroke", r"seizure", r"unconscious", 
+    r"severe bleeding", r"difficulty breathing", r"can't breathe",
+    r"suicidal", r"suicide", r"overdose", r"poisoning",
+    
     # Urdu patterns
-    r"سینے میں درد",
-    r"سانس.*میں دقت",
-    r"سانس.*نہیں آ رہا",
-    r"بیہوش",
-    r"خون.*بہت زیادہ",
-    r"دل کا دورہ",
-    r"فالج",
-    r"خودکشی"
+    r"سینے میں درد", r"سانس.*میں دقت", r"سانس.*نہیں آ رہا", r"بیہوش", 
+    r"خون.*بہت زیادہ", r"دل کا دورہ", r"فالج", r"خودکشی"
 ]
 
 # Medical disclaimer in Urdu and English
 DISCLAIMER_UR = (
-    "⚠️ اہم: یہ معلومات طبی مشورہ نہیں ہے۔ ہنگامی صورتحال میں فوراً 1122 پر کال کریں یا \n"
-    "قریبی ہسپتال جائیں۔ Red Dot Pharmacy آپ کی صحت کی دیکھ بھال کرتا ہے۔")
+    "⚠️ اہم: یہ معلومات طبی مشورہ نہیں ہے۔ ہنگامی صورتحال میں فوراً 1122 پر کال کریں یا "
+    "قریبی ہسپتال جائیں۔ Red Dot Pharmacy آپ کی صحت کی دیکھ بھال کرتا ہے۔"
+)
 
 DISCLAIMER_EN = (
     "⚠️ Important: This information is not medical advice. In emergency situations, "
     "immediately call 1122 or visit the nearest hospital. Red Dot Pharmacy cares for your health."
 )
 
-
 def needs_escalation(text: str) -> bool:
     """Check if message contains medical red flags requiring immediate attention"""
     text_lower = text.lower()
     return any(re.search(pattern, text_lower) for pattern in RED_FLAGS)
-
 
 def generate_response(text: str, prefer_urdu=True, session_id=None) -> dict:
     """
@@ -71,11 +50,11 @@ def generate_response(text: str, prefer_urdu=True, session_id=None) -> dict:
         'suggested_medicines': list
     }
     """
-
+    
     # Check for medical emergencies
     if needs_escalation(text):
         warning_msg = DISCLAIMER_UR if prefer_urdu else DISCLAIMER_EN
-
+        
         if prefer_urdu:
             emergency_msg = (
                 f"{warning_msg}\n\n"
@@ -90,18 +69,18 @@ def generate_response(text: str, prefer_urdu=True, session_id=None) -> dict:
                 "🚨 Your symptoms may be serious. Please immediately:\n"
                 "• Call 1122\n"
                 "• Visit the nearest hospital\n"
-                "• Or come to Red Dot Pharmacy to consult with our doctors")
-
+                "• Or come to Red Dot Pharmacy to consult with our doctors"
+            )
+        
         return {
             'message': emergency_msg,
             'flagged': True,
             'needs_doctor': True,
             'suggested_medicines': []
         }
-
+    
     # Try to generate AI response if OpenAI is available
     if client:
-        print("OpenAI client is available")
         try:
             # System prompt with Red Dot Pharmacy context
             system_prompt = (
@@ -111,59 +90,45 @@ def generate_response(text: str, prefer_urdu=True, session_id=None) -> dict:
                 "Suggest they visit Red Dot Pharmacy for proper consultation. "
                 "Keep responses concise and helpful. "
                 "If asked about medicines, suggest common over-the-counter options available in Pakistan. "
-                "Make sure your responses are easy for a simple TTS to read."
-                "Keep the responses limited to one to three sentences.")
-
+            )
+            
             if prefer_urdu:
                 system_prompt += (
                     "Respond in Urdu. Use respectful language. "
-                    "Keep the names of the medicine in URDU as well. NO ENGLISH. NO NAMES in ENGLISH unless user asks"
+                    "Always end with reminder to visit Red Dot Pharmacy for proper consultation."
                 )
-
-            # response = client.chat.completions.create(
-            #     model="gpt-5",  # the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-            #     messages=[
-            #         {"role": "system", "content": system_prompt},
-            #         {"role": "user", "content": text}
-            #     ],
-            #     temperature=0.3,
-            #     max_tokens=300
-            # )
-
+            
             response = client.chat.completions.create(
-                model="google/gemini-2.5-flash-image-preview:free",
-                messages=[{
-                    "role": "system",
-                    "content": system_prompt
-                }, {
-                    "role": "user",
-                    "content": text
-                }],
+                model="gpt-5",  # the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": text}
+                ],
                 temperature=0.3,
-                max_tokens=300)
-
+                max_tokens=300
+            )
+            
             ai_message = response.choices[0].message.content
             if ai_message:
                 ai_message = ai_message.strip()
             else:
                 ai_message = "I apologize, but I couldn't process your request. Please try again."
-
+            
             # Add Red Dot Pharmacy disclaimer
             disclaimer = DISCLAIMER_UR if prefer_urdu else DISCLAIMER_EN
-            final_message = f"{ai_message}"
-
+            final_message = f"{ai_message}\n\n{disclaimer}"
+            
             return {
                 'message': final_message,
                 'flagged': False,
                 'needs_doctor': False,
                 'suggested_medicines': []
             }
-
+            
         except Exception as e:
             logging.error(f"OpenAI API error: {e}")
-            print(f"OpenAI API error: {e}")
             # Fall through to offline response
-
+    
     # Offline fallback response
     if prefer_urdu:
         offline_msg = (
@@ -173,7 +138,8 @@ def generate_response(text: str, prefer_urdu=True, session_id=None) -> dict:
             "• دوا کی تاریخ شیئر کریں\n"
             "• آن لائن ملاقات بک کریں\n"
             "• یا ہمارے فارمیسی آئیں\n\n"
-            f"{DISCLAIMER_UR}")
+            f"{DISCLAIMER_UR}"
+        )
     else:
         offline_msg = (
             "Thank you for your question! Red Dot Pharmacy has experienced doctors available.\n\n"
@@ -182,8 +148,9 @@ def generate_response(text: str, prefer_urdu=True, session_id=None) -> dict:
             "• Share your medication history\n"
             "• Book an online consultation\n"
             "• Or visit our pharmacy\n\n"
-            f"{DISCLAIMER_EN}")
-
+            f"{DISCLAIMER_EN}"
+        )
+    
     return {
         'message': offline_msg,
         'flagged': False,
@@ -191,17 +158,12 @@ def generate_response(text: str, prefer_urdu=True, session_id=None) -> dict:
         'suggested_medicines': []
     }
 
-
-def log_chat_interaction(session_id,
-                         user_message,
-                         bot_response,
-                         user_id=None,
-                         flagged=False):
+def log_chat_interaction(session_id, user_message, bot_response, user_id=None, flagged=False):
     """Log chat interaction for analysis and improvement"""
     try:
         from app import db
         from models import ChatLog
-
+        
         chat_log = ChatLog()
         chat_log.user_id = user_id
         chat_log.session_id = session_id
@@ -209,9 +171,9 @@ def log_chat_interaction(session_id,
         chat_log.response = bot_response
         chat_log.language = "ur"  # Default to Urdu
         chat_log.flagged = flagged
-
+        
         db.session.add(chat_log)
         db.session.commit()
-
+        
     except Exception as e:
         logging.error(f"Failed to log chat interaction: {e}")
