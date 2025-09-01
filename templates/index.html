@@ -599,6 +599,9 @@
             <div class="input-group">
                 <input type="text" class="form-control" id="chatInput" 
                        placeholder="Type your message... / اپنا پیغام لکھیں...">
+                <button class="btn btn-outline-secondary btn-sm" id="languageToggle" onclick="toggleLanguage()" title="Switch Language">
+                    <span id="currentLang">English</span>
+                </button>
                 <button class="btn btn-danger" id="voiceButton" onclick="toggleVoiceInput()">
                     <i class="fas fa-microphone"></i>
                 </button>
@@ -652,6 +655,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize forms
     initializeForms();
     
+    // Initialize language for voice functionality
+    window.currentLanguage = window.currentLanguage || 'en';
+    
     // Initialize chatbot (if available)
     if (typeof initializeChatbot === 'function') {
         initializeChatbot();
@@ -663,6 +669,24 @@ function scrollToSection(sectionId) {
     if (element) {
         element.scrollIntoView({ behavior: 'smooth' });
     }
+}
+
+// Language toggle functionality for voice input
+function toggleLanguage() {
+    // Toggle between English and Urdu
+    window.currentLanguage = window.currentLanguage === 'en' ? 'ur' : 'en';
+    const langButton = document.getElementById('currentLang');
+    langButton.textContent = window.currentLanguage === 'en' ? 'English' : 'اردو';
+    
+    // Update input placeholder
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput) {
+        chatInput.placeholder = window.currentLanguage === 'en' 
+            ? 'Type your message... / اپنا پیغام لکھیں...'
+            : 'اپنا پیغام لکھیں... / Type your message...';
+    }
+    
+    console.log('Language changed to:', window.currentLanguage, 'Voice language:', window.currentLanguage === 'en' ? 'en-US' : 'ur-PK');
 }
 </script>
 {% endblock %}
