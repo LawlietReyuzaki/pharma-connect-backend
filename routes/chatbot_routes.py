@@ -225,10 +225,10 @@ def transcribe_urdu_audio():
 
         # If user does not select file, browser also
         # submit an empty part without filename
-        if audio_file.filename == '':
+        if audio_file.filename == '' or audio_file.filename is None:
             return jsonify({"error": "No selected file"}), 400
 
-        if audio_file:
+        if audio_file and audio_file.filename:
             # Create uploads directory if it doesn't exist
             upload_folder = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -298,6 +298,9 @@ def transcribe_urdu_audio():
                     "error":
                     f"Speech recognition service error: {str(e)}"
                 }), 500
+        
+        # If no valid audio file
+        return jsonify({"error": "Invalid audio file"}), 400
 
     except Exception as e:
         logging.error(f"Transcription error: {e}")
@@ -323,10 +326,10 @@ def transcribe_english_audio():
 
         # If user does not select file, browser also
         # submit an empty part without filename
-        if audio_file.filename == '':
+        if audio_file.filename == '' or audio_file.filename is None:
             return jsonify({"error": "No selected file"}), 400
 
-        if audio_file:
+        if audio_file and audio_file.filename:
             # Create uploads directory if it doesn't exist
             upload_folder = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -396,6 +399,9 @@ def transcribe_english_audio():
                     "error":
                     f"Speech recognition service error: {str(e)}"
                 }), 500
+        
+        # If no valid audio file
+        return jsonify({"error": "Invalid audio file"}), 400
 
     except Exception as e:
         logging.error(f"English transcription error: {e}")
