@@ -652,8 +652,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize forms
     initializeForms();
     
-    // Initialize chatbot
-    initializeChatbot();
+    // Initialize chatbot (if available)
+    if (typeof initializeChatbot === 'function') {
+        initializeChatbot();
+    }
 });
 
 function scrollToSection(sectionId) {
