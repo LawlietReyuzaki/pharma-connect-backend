@@ -344,11 +344,6 @@ def transcribe_english_audio():
             try:
                 # Transcribe the audio file
                 recognizer = sr.Recognizer()
-                
-                # Configure recognizer for better accuracy
-                recognizer.energy_threshold = 300
-                recognizer.dynamic_energy_threshold = True
-                recognizer.pause_threshold = 0.8
 
                 # Convert the file to WAV if it's not already
                 try:
@@ -358,22 +353,16 @@ def transcribe_english_audio():
                     # Create a temporary WAV file
                     with tempfile.NamedTemporaryFile(suffix='.wav',
                                                      delete=False) as temp_wav:
-                        # Convert to WAV using pydub with better settings
+                        # Convert to WAV using pydub
                         sound = pydub.AudioSegment.from_file(temp_path)
-                        # Normalize audio and improve quality
-                        sound = sound.normalize()
                         sound = sound.set_frame_rate(16000).set_channels(1)
                         sound.export(temp_wav.name, format='wav')
-                        
-                        logging.info(f"English audio converted: duration={len(sound)}ms, frame_rate=16000Hz")
 
                         # Use the WAV file for recognition
                         with sr.AudioFile(temp_wav.name) as source:
-                            # Adjust for ambient noise
-                            recognizer.adjust_for_ambient_noise(source, duration=0.5)
                             audio = recognizer.record(source)
                             text = recognizer.recognize_google(
-                                audio, language="en-US", show_all=False)
+                                audio, language="en-US")
 
                         # Clean up the temporary WAV file
                         try:
@@ -384,10 +373,9 @@ def transcribe_english_audio():
                 except ImportError:
                     # Fall back to direct WAV processing if pydub is not available
                     with sr.AudioFile(temp_path) as source:
-                        recognizer.adjust_for_ambient_noise(source, duration=0.5)
                         audio = recognizer.record(source)
                         text = recognizer.recognize_google(audio,
-                                                           language="en-US", show_all=False)
+                                                           language="en-US")
 
                 # Clean up the temporary file
                 try:
@@ -396,18 +384,15 @@ def transcribe_english_audio():
                     logging.warning(
                         f"Could not remove temporary file {temp_path}: {e}")
 
-                logging.info(f"English transcription successful: '{text}'")
                 return jsonify({"success": True, "transcript": text})
 
             except sr.UnknownValueError:
-                logging.warning("English speech recognition could not understand the audio")
                 return jsonify({
                     "success": False,
-                    "error": "Could not understand the English audio. Please speak clearly and try again."
+                    "error": "Could not understand the audio"
                 }), 400
 
             except sr.RequestError as e:
-                logging.error(f"English speech recognition service error: {e}")
                 return jsonify({
                     "success":
                     False,
