@@ -229,6 +229,8 @@ function toggleLanguage() {
     input.placeholder = currentLanguage === 'en' 
         ? 'Type your medical question here...'
         : 'یہاں اپنا طبی سوال ٹائپ کریں...';
+
+    window.currentLanguage = currentLanguage;
     
     // Show language change confirmation
     updateChatStatus(currentLanguage === 'en' ? 'Language changed to English' : 'زبان اردو میں تبدیل ہو گئی');
@@ -238,43 +240,52 @@ function toggleLanguage() {
 
 // Function to toggle voice input
 function toggleVoiceInput() {
-    const voiceButton = document.getElementById('voiceButton');
-    const voiceIcon = document.getElementById('voiceIcon');
-    
-    if (!isListening) {
-        // Start listening
-        try {
-            if (typeof startVoiceRecognition === 'function') {
-                startVoiceRecognition({
-                    language: currentLanguage === 'en' ? 'en-US' : 'ur-PK',
-                    onResult: function(result) {
-                        if (result.isFinal) {
-                            document.getElementById('messageInput').value = result.transcript;
-                            stopVoiceInput();
-                        }
-                    },
-                    onError: function(error) {
-                        console.error('Voice recognition error:', error);
-                        showError('Voice recognition failed: ' + error.message);
-                        stopVoiceInput();
-                    }
-                });
-                
-                isListening = true;
-                voiceButton.classList.add('btn-danger');
-                voiceButton.classList.remove('btn-outline-danger');
-                voiceIcon.className = 'fas fa-stop';
-                updateChatStatus('Listening...');
-                
-            } else {
-                showError('Voice recognition not available');
-            }
-        } catch (error) {
-            console.error('Voice recognition error:', error);
-            showError('Voice recognition not supported in this browser');
+    try {
+        // Check if browser supports media devices
+        if (!navigator.mediaDevices || !window.MediaRecorder) {
+            throw new Error('Voice recording not supported in this browser');
         }
-    } else {
-        stopVoiceInput();
+        
+        // Start or stop recording based on current state
+        if (window.isRecording) {
+            // Stop recording if already recording
+            if (window.stopVoiceRecording) {
+                window.stopVoiceRecording();
+            }
+        } else {
+            // Start new recording
+            if (window.startVoiceRecording) {
+                window.startVoiceRecording();
+            } else {
+                throw new Error('Voice recording functions not loaded');
+            }
+        }
+    } catch (error) {
+        console.error('Voice recording error:', error);
+        showError(error.message || 'Voice recording failed');
+        // Reset UI in case of error
+        const voiceButton = document.getElementById('voiceButton');
+        const voiceIcon = document.getElementById('voiceIcon');
+        if (voiceButton && voiceIcon) {
+            voiceButton.classList.remove('btn-danger');
+            voiceButton.classList.add('btn-outline-danger');
+            voiceIcon.className = 'fas fa-microphone';
+        }
+    }
+}
+
+// Function to show error messages
+function showError(message) {
+    console.error(message);
+    const statusElement = document.getElementById('recordingStatus');
+    if (statusElement) {
+        statusElement.textContent = message;
+        // Clear the error after 3 seconds
+        setTimeout(() => {
+            if (statusElement.textContent === message) {
+                statusElement.textContent = '';
+            }
+        }, 3000);
     }
 }
 
@@ -323,50 +334,10 @@ async function sendMessage() {
         
         if (response.ok) {
             const data = await response.json();
+            console.log(data);
             
             // Add bot response to chat
-            addMessageToChat('bot', data.response);
-            
-            // Speak response with correct language
-            const ttsLanguage = currentLanguage === 'en' ? 'en-US' : 'ur-PK';
-            const ttsOptions = {
-                language: ttsLanguage,
-                rate: currentLanguage === 'en' ? 0.9 : 0.8,
-                pitch: currentLanguage === 'en' ? 1.0 : 1.1,
-                volume: 0.8
-            };
-            
-            console.log('Attempting TTS with language:', ttsLanguage, 'for text:', data.response.substring(0, 50) + '...');
-            
-            // Try voice assistant first (primary method)
-            if (typeof voiceAssistant !== 'undefined' && voiceAssistant) {
-                try {
-                    // Ensure voice assistant is set to correct language
-                    voiceAssistant.setLanguage(ttsLanguage);
-                    await voiceAssistant.speak(data.response, ttsOptions);
-                    console.log('TTS successful with voiceAssistant');
-                } catch (error) {
-                    console.log('Voice Assistant TTS failed:', error);
-                    // Fallback to speakText function
-                    if (typeof speakText === 'function') {
-                        try {
-                            await speakText(data.response, ttsOptions);
-                            console.log('TTS successful with speakText');
-                        } catch (fallbackError) {
-                            console.log('Fallback TTS also failed:', fallbackError);
-                        }
-                    }
-                }
-            } else if (typeof speakText === 'function') {
-                try {
-                    await speakText(data.response, ttsOptions);
-                    console.log('TTS successful with speakText');
-                } catch (error) {
-                    console.log('Text-to-speech not available:', error);
-                }
-            } else {
-                console.log('No TTS methods available');
-            }
+            addMessageToChat('bot', data.message);
             
         } else {
             throw new Error('Failed to get response from assistant');
@@ -394,11 +365,14 @@ function addMessageToChat(sender, message) {
             <div class="${isBot ? 'bot' : 'user'}-avatar ${isBot ? 'me-3' : 'ms-3'}">
                 <i class="fas fa-${isBot ? 'robot' : 'user'}"></i>
             </div>
-            <div class="message-content ${isBot ? '' : 'text-end'}">
-                <div class="message-bubble ${isBot ? 'bot' : 'user'}">
-                    <p class="mb-0">${message}</p>
+            <div class="message-content d-flex align-items-end ${isBot ? '' : 'text-end'}">
+                <div>
+                    <div class="message-bubble ${isBot ? 'bot' : 'user'}">
+                        <p class="mb-0">${message}</p>
+                    </div>
+                    <small class="text-muted">${timestamp}</small>
                 </div>
-                <small class="text-muted">${timestamp}</small>
+                ${isBot ? '<button class="btn btn-sm btn-outline-secondary play-audio ms-2" title="Play message" onclick="speakMessage(this, `' + message.replace(/`/g, '\`') + '`)"><i class="fas fa-volume-up"></i></button>' : ''}
             </div>
         </div>
     `;
@@ -453,6 +427,80 @@ function loadChatHistory() {
 // Function to show error message
 function showError(message) {
     addMessageToChat('bot', `Error: ${message}. Please try again.`);
+}
+
+// Function to speak the message using Web Speech API or server-side TTS
+function speakMessage(button, text) {
+    try {
+        const icon = button.querySelector('i');
+        const originalIcon = icon.className;
+        
+        // Show loading state
+        icon.className = 'fas fa-spinner fa-spin';
+        
+        if (window.currentLanguage === 'ur') {
+            // For Urdu, call the server-side TTS endpoint
+            fetch('/api/chat/speak-urdu', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ text: text })
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to get audio');
+                return response.blob();
+            })
+            .then(blob => {
+                const audioUrl = URL.createObjectURL(blob);
+                const audio = new Audio(audioUrl);
+                
+                // Update icon while playing
+                icon.className = 'fas fa-volume-up';
+                
+                audio.onended = () => {
+                    URL.revokeObjectURL(audioUrl); // Clean up the object URL
+                    icon.className = originalIcon;
+                };
+                
+                audio.onerror = () => {
+                    URL.revokeObjectURL(audioUrl); // Clean up on error
+                    throw new Error('Failed to play audio');
+                };
+                
+                return audio.play();
+            })
+            .catch(error => {
+                console.error('Error playing Urdu audio:', error);
+                icon.className = originalIcon;
+                showError('Could not play the message');
+            });
+        } else {
+            // For English, use Web Speech API
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            
+            // Update icon while speaking
+            icon.className = 'fas fa-volume-up';
+            
+            utterance.onend = () => {
+                icon.className = originalIcon;
+            };
+            
+            utterance.onerror = (event) => {
+                console.error('Speech synthesis error:', event);
+                icon.className = originalIcon;
+                showError('Could not read the message');
+            };
+            
+            window.speechSynthesis.speak(utterance);
+        }
+    } catch (error) {
+        console.error('Error in speakMessage:', error);
+        showError('Could not read the message');
+        const icon = button.querySelector('i');
+        if (icon) icon.className = 'fas fa-volume-up';
+    }
 }
 </script>
 
