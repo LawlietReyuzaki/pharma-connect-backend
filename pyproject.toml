@@ -23,4 +23,5 @@ dependencies = [
     "flask-cors>=6.0.1",
     "google-auth>=2.40.3",
     "speechrecognition>=3.14.3",
+    "gtts>=2.5.4",
 ]
