@@ -208,76 +208,77 @@ def transcribe_urdu_audio():
         
         audio_file = request.files['audio']
         
-        # If user does not select file, browser also
-        # submit an empty part without filename
-        if audio_file.filename == '':
-            return jsonify({"error": "No selected file"}), 400
-            
-        if audio_file:
-            # Create uploads directory if it doesn't exist
-            upload_folder = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'uploads')
-            os.makedirs(upload_folder, exist_ok=True)
-            
-            # Save the uploaded file temporarily
+        # Create uploads directory if it doesn't exist
+        upload_folder = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'uploads')
+        os.makedirs(upload_folder, exist_ok=True)
+        
+        # Save the uploaded file temporarily with proper filename handling
+        if audio_file.filename:
             filename = secure_filename(audio_file.filename)
-            temp_path = os.path.join(upload_folder, filename)
-            audio_file.save(temp_path)
+        else:
+            filename = 'recording_urdu.wav'
+        
+        if not filename or filename == '':
+            filename = 'recording_urdu.wav'
             
+        temp_path = os.path.join(upload_folder, filename)
+        audio_file.save(temp_path)
+        
+        try:
+            # Transcribe the audio file
+            recognizer = sr.Recognizer()
+            
+            # Convert the file to WAV if it's not already
             try:
-                # Transcribe the audio file
-                recognizer = sr.Recognizer()
+                import pydub
+                import tempfile
                 
-                # Convert the file to WAV if it's not already
-                try:
-                    import pydub
-                    import tempfile
+                # Create a temporary WAV file
+                with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_wav:
+                    # Convert to WAV using pydub
+                    sound = pydub.AudioSegment.from_file(temp_path)
+                    sound = sound.set_frame_rate(16000).set_channels(1)
+                    sound.export(temp_wav.name, format='wav')
                     
-                    # Create a temporary WAV file
-                    with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_wav:
-                        # Convert to WAV using pydub
-                        sound = pydub.AudioSegment.from_file(temp_path)
-                        sound = sound.set_frame_rate(16000).set_channels(1)
-                        sound.export(temp_wav.name, format='wav')
-                        
-                        # Use the WAV file for recognition
-                        with sr.AudioFile(temp_wav.name) as source:
-                            audio = recognizer.record(source)
-                            text = recognizer.recognize_google(audio, language="ur")
-                        
-                        # Clean up the temporary WAV file
-                        try:
-                            os.unlink(temp_wav.name)
-                        except:
-                            pass
-                            
-                except ImportError:
-                    # Fall back to direct WAV processing if pydub is not available
-                    with sr.AudioFile(temp_path) as source:
+                    # Use the WAV file for recognition
+                    with sr.AudioFile(temp_wav.name) as source:
                         audio = recognizer.record(source)
                         text = recognizer.recognize_google(audio, language="ur")
-                
-                # Clean up the temporary file
-                try:
-                    os.remove(temp_path)
-                except Exception as e:
-                    logging.warning(f"Could not remove temporary file {temp_path}: {e}")
-                
-                return jsonify({
-                    "success": True,
-                    "transcript": text
-                })
-                
-            except sr.UnknownValueError:
-                return jsonify({
-                    "success": False,
-                    "error": "Could not understand the audio"
-                }), 400
-                
-            except sr.RequestError as e:
-                return jsonify({
-                    "success": False,
-                    "error": f"Speech recognition service error: {str(e)}"
-                }), 500
+                    
+                    # Clean up the temporary WAV file
+                    try:
+                        os.unlink(temp_wav.name)
+                    except:
+                        pass
+                        
+            except ImportError:
+                # Fall back to direct WAV processing if pydub is not available
+                with sr.AudioFile(temp_path) as source:
+                    audio = recognizer.record(source)
+                    text = recognizer.recognize_google(audio, language="ur")
+            
+            # Clean up the temporary file
+            try:
+                os.remove(temp_path)
+            except Exception as e:
+                logging.warning(f"Could not remove temporary file {temp_path}: {e}")
+            
+            return jsonify({
+                "success": True,
+                "transcript": text
+            })
+            
+        except sr.UnknownValueError:
+            return jsonify({
+                "success": False,
+                "error": "Could not understand the audio"
+            }), 400
+            
+        except sr.RequestError as e:
+            return jsonify({
+                "success": False,
+                "error": f"Speech recognition service error: {str(e)}"
+            }), 500
                 
     except Exception as e:
         logging.error(f"Transcription error: {e}")
@@ -301,76 +302,77 @@ def transcribe_english_audio():
         
         audio_file = request.files['audio']
         
-        # If user does not select file, browser also
-        # submit an empty part without filename
-        if audio_file.filename == '':
-            return jsonify({"error": "No selected file"}), 400
-            
-        if audio_file:
-            # Create uploads directory if it doesn't exist
-            upload_folder = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'uploads')
-            os.makedirs(upload_folder, exist_ok=True)
-            
-            # Save the uploaded file temporarily
+        # Create uploads directory if it doesn't exist
+        upload_folder = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'uploads')
+        os.makedirs(upload_folder, exist_ok=True)
+        
+        # Save the uploaded file temporarily with proper filename handling
+        if audio_file.filename:
             filename = secure_filename(audio_file.filename)
-            temp_path = os.path.join(upload_folder, filename)
-            audio_file.save(temp_path)
+        else:
+            filename = 'recording_english.wav'
+        
+        if not filename or filename == '':
+            filename = 'recording_english.wav'
             
+        temp_path = os.path.join(upload_folder, filename)
+        audio_file.save(temp_path)
+        
+        try:
+            # Transcribe the audio file
+            recognizer = sr.Recognizer()
+            
+            # Convert the file to WAV if it's not already
             try:
-                # Transcribe the audio file
-                recognizer = sr.Recognizer()
+                import pydub
+                import tempfile
                 
-                # Convert the file to WAV if it's not already
-                try:
-                    import pydub
-                    import tempfile
+                # Create a temporary WAV file
+                with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_wav:
+                    # Convert to WAV using pydub
+                    sound = pydub.AudioSegment.from_file(temp_path)
+                    sound = sound.set_frame_rate(16000).set_channels(1)
+                    sound.export(temp_wav.name, format='wav')
                     
-                    # Create a temporary WAV file
-                    with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_wav:
-                        # Convert to WAV using pydub
-                        sound = pydub.AudioSegment.from_file(temp_path)
-                        sound = sound.set_frame_rate(16000).set_channels(1)
-                        sound.export(temp_wav.name, format='wav')
-                        
-                        # Use the WAV file for recognition
-                        with sr.AudioFile(temp_wav.name) as source:
-                            audio = recognizer.record(source)
-                            text = recognizer.recognize_google(audio, language="en-US")
-                        
-                        # Clean up the temporary WAV file
-                        try:
-                            os.unlink(temp_wav.name)
-                        except:
-                            pass
-                            
-                except ImportError:
-                    # Fall back to direct WAV processing if pydub is not available
-                    with sr.AudioFile(temp_path) as source:
+                    # Use the WAV file for recognition
+                    with sr.AudioFile(temp_wav.name) as source:
                         audio = recognizer.record(source)
                         text = recognizer.recognize_google(audio, language="en-US")
-                
-                # Clean up the temporary file
-                try:
-                    os.remove(temp_path)
-                except Exception as e:
-                    logging.warning(f"Could not remove temporary file {temp_path}: {e}")
-                
-                return jsonify({
-                    "success": True,
-                    "transcript": text
-                })
-                
-            except sr.UnknownValueError:
-                return jsonify({
-                    "success": False,
-                    "error": "Could not understand the audio"
-                }), 400
-                
-            except sr.RequestError as e:
-                return jsonify({
-                    "success": False,
-                    "error": f"Speech recognition service error: {str(e)}"
-                }), 500
+                    
+                    # Clean up the temporary WAV file
+                    try:
+                        os.unlink(temp_wav.name)
+                    except:
+                        pass
+                        
+            except ImportError:
+                # Fall back to direct WAV processing if pydub is not available
+                with sr.AudioFile(temp_path) as source:
+                    audio = recognizer.record(source)
+                    text = recognizer.recognize_google(audio, language="en-US")
+            
+            # Clean up the temporary file
+            try:
+                os.remove(temp_path)
+            except Exception as e:
+                logging.warning(f"Could not remove temporary file {temp_path}: {e}")
+            
+            return jsonify({
+                "success": True,
+                "transcript": text
+            })
+            
+        except sr.UnknownValueError:
+            return jsonify({
+                "success": False,
+                "error": "Could not understand the audio"
+            }), 400
+            
+        except sr.RequestError as e:
+            return jsonify({
+                "success": False,
+                "error": f"Speech recognition service error: {str(e)}"
+            }), 500
                 
     except Exception as e:
         logging.error(f"English transcription error: {e}")

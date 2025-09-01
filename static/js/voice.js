@@ -111,23 +111,30 @@ async function sendAudioToBackend(audioBlob) {
         : '/api/chat/transcribe-english';
     
     try {
+        console.log('Sending audio to:', endpoint);
         const response = await fetch(endpoint, {
             method: 'POST',
             body: formData
         });
         
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Server error response:', errorText);
+            throw new Error(`Server error: ${response.status} - ${errorText}`);
+        }
+        
         const data = await response.json();
+        console.log('Transcription response:', data);
         
         if (data.success && data.transcript) {
             // Set the transcribed text in the input field
             const messageInput = document.getElementById('messageInput');
             if (messageInput) {
                 messageInput.value = data.transcript;
-                // Auto-submit the form
-                const chatForm = document.querySelector('form#chatForm');
-                if (chatForm) {
-                    chatForm.dispatchEvent(new Event('submit'));
-                }
+                // Auto-send the message
+                sendMessage();
             }
         } else {
             throw new Error(data.error || 'Failed to transcribe audio');
