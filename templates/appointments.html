@@ -106,6 +106,23 @@
                         </h1>
                         <p class="text-muted">Manage your consultation appointments</p>
                     </div>
+                </div>
+                
+                <!-- Google Calendar Integration Status -->
+                <div id="googleCalendarStatus" class="alert alert-info mb-4" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="fab fa-google me-2"></i>
+                            <span id="googleStatusText">Enable Google Calendar integration for real Meet links</span>
+                        </span>
+                        <button id="googleAuthBtn" class="btn btn-primary btn-sm">
+                            <i class="fas fa-link me-1"></i>Connect Google Calendar
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <div></div>
                     <div>
                         <a href="/consultation" class="btn btn-danger">
                             <i class="fas fa-plus me-2"></i>Book New Appointment
@@ -404,6 +421,74 @@
             const pendingAppointments = appointments.filter(apt => apt.approval_status === 'pending');
             app.updateNotificationCount(pendingAppointments.length);
         }
+
+        // Google Calendar Integration functions
+        async function checkGoogleAuthStatus() {
+            try {
+                const response = await fetch('/auth/google/status');
+                const data = await response.json();
+                
+                const statusDiv = document.getElementById('googleCalendarStatus');
+                const statusText = document.getElementById('googleStatusText');
+                const authBtn = document.getElementById('googleAuthBtn');
+                
+                if (data.service_available) {
+                    statusDiv.style.display = 'block';
+                    
+                    if (data.authorized) {
+                        statusText.textContent = `✅ Google Calendar connected (${data.email || 'unknown'})`;
+                        authBtn.innerHTML = '<i class="fas fa-unlink me-1"></i>Disconnect';
+                        authBtn.onclick = () => revokeGoogleAuth();
+                        statusDiv.className = 'alert alert-success mb-4';
+                    } else {
+                        statusText.textContent = 'Connect Google Calendar for real Meet links';
+                        authBtn.innerHTML = '<i class="fas fa-link me-1"></i>Connect Google Calendar';
+                        authBtn.onclick = () => initiateGoogleAuth();
+                        statusDiv.className = 'alert alert-info mb-4';
+                    }
+                } else {
+                    statusDiv.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Failed to check Google auth status:', error);
+            }
+        }
+
+        function initiateGoogleAuth() {
+            window.location.href = '/auth/google/authorize?redirect=' + encodeURIComponent(window.location.pathname);
+        }
+
+        async function revokeGoogleAuth() {
+            try {
+                const response = await fetch('/auth/google/revoke');
+                const data = await response.json();
+                
+                if (data.success) {
+                    checkGoogleAuthStatus(); // Refresh status
+                } else {
+                    alert('Failed to disconnect Google Calendar');
+                }
+            } catch (error) {
+                console.error('Failed to revoke Google auth:', error);
+                alert('Failed to disconnect Google Calendar');
+            }
+        }
+
+        // Initialize Google auth status check when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            checkGoogleAuthStatus();
+            
+            // Check for OAuth success/error in URL params
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('oauth') === 'success') {
+                setTimeout(() => {
+                    alert('✅ Google Calendar connected successfully! New appointments will now get real Google Meet links.');
+                    checkGoogleAuthStatus();
+                }, 1000);
+            } else if (urlParams.get('error')?.includes('oauth')) {
+                alert('❌ Failed to connect Google Calendar. Please try again.');
+            }
+        });
     </script>
 </body>
 </html>

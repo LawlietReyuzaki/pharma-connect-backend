@@ -54,13 +54,14 @@ def create_appointment():
         
         # We'll create the Google Meet link after the appointment is saved
         
-        # Create calendar event
+        # Prepare calendar event data with appointment ID placeholder
         calendar_data = {
             'summary': f'Red Dot Pharmacy - Consultation with {doctor.name}',
             'description': f'Patient: {current_user.name}\nSymptoms: {data["symptoms"]}',
             'start_time': start_time,
             'end_time': end_time,
-            'attendee_emails': [current_user.email, doctor.email]
+            'attendee_emails': [current_user.email, doctor.email],
+            'appointment_id': None  # Will be set after appointment is created
         }
         
         calendar_result = calendar_service.create_appointment_event(calendar_data)
@@ -88,12 +89,24 @@ def create_appointment():
         
         db.session.commit()
         
-        # Create Google Meet link with actual appointment ID
-        appointment.google_meet_link = meet_service.create_meet_room(
-            appointment_id=appointment.id,
-            doctor_name=doctor.name,
-            patient_name=current_user.name
-        )
+        # Now update calendar data with real appointment ID and try to create real Google Meet
+        calendar_data['appointment_id'] = appointment.id
+        
+        # Try to create a real Google Calendar event with Meet integration
+        real_calendar_result = calendar_service.create_appointment_event(calendar_data)
+        
+        if real_calendar_result and real_calendar_result.get('meet_link'):
+            # Use the real Google Meet link from Calendar API
+            appointment.google_meet_link = real_calendar_result['meet_link']
+            appointment.google_calendar_event_id = real_calendar_result.get('event_id')
+        else:
+            # Fallback to generated meet link
+            appointment.google_meet_link = meet_service.create_meet_room(
+                appointment_id=appointment.id,
+                doctor_name=doctor.name,
+                patient_name=current_user.name
+            )
+        
         db.session.commit()
         
         # Send fake emails (logging only as requested)
