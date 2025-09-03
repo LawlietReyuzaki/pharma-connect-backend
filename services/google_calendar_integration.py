@@ -153,27 +153,52 @@ class GoogleCalendarAPIService:
                 conferenceDataVersion=1  # Required for Meet integration
             ).execute()
             
-            # Extract the Google Meet link
+            # Extract the Google Meet link with enhanced logic
             meet_link = None
+            
+            # Method 1: Check conferenceData entryPoints (most reliable)
             if 'conferenceData' in created_event and 'entryPoints' in created_event['conferenceData']:
                 for entry_point in created_event['conferenceData']['entryPoints']:
-                    if entry_point['entryPointType'] == 'video':
-                        meet_link = entry_point['uri']
+                    if entry_point.get('entryPointType') == 'video':
+                        meet_link = entry_point.get('uri')
                         break
             
-            # Fallback if Meet link not found
+            # Method 2: Check hangoutLink (legacy but works)
             if not meet_link:
                 meet_link = created_event.get('hangoutLink')
+            
+            # Method 3: Try to extract from htmlLink if present
+            if not meet_link and 'htmlLink' in created_event:
+                html_link = created_event['htmlLink']
+                # Sometimes the Meet link is embedded in the calendar HTML link
+                import re
+                meet_match = re.search(r'meet\.google\.com/([a-z]{3}-[a-z0-9]{4}-[a-z]{3})', html_link)
+                if meet_match:
+                    meet_link = f"https://meet.google.com/{meet_match.group(1)}"
+            
+            # Method 4: Check conference solution for conference ID
+            if not meet_link and 'conferenceData' in created_event:
+                conf_solution = created_event['conferenceData'].get('conferenceSolution', {})
+                if conf_solution.get('key', {}).get('type') == 'hangoutsMeet':
+                    conf_id = created_event['conferenceData'].get('conferenceId')
+                    if conf_id:
+                        meet_link = f"https://meet.google.com/{conf_id}"
             
             event_id = created_event['id']
             calendar_link = created_event.get('htmlLink')
             
-            logging.info(f"Created Google Calendar event with Meet: {event_id}")
+            if meet_link:
+                logging.info(f"✅ SUCCESS: Created Google Calendar event with REAL Meet link: {meet_link}")
+            else:
+                logging.error(f"❌ FAILED: Calendar event created but no Meet link found. Event data: {created_event}")
+                # Log the full event structure for debugging
+                logging.debug(f"Full event structure: {json.dumps(created_event, indent=2, default=str)}")
             
             return {
                 'event_id': event_id,
                 'meet_link': meet_link,
-                'calendar_link': calendar_link
+                'calendar_link': calendar_link,
+                'raw_event': created_event  # Include for debugging
             }
             
         except HttpError as e:

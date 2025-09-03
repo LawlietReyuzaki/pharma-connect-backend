@@ -89,23 +89,33 @@ def create_appointment():
         
         db.session.commit()
         
-        # Now update calendar data with real appointment ID and try to create real Google Meet
+        # Now update calendar data with real appointment ID and try to create real Google Calendar event
         calendar_data['appointment_id'] = appointment.id
         
-        # Try to create a real Google Calendar event with Meet integration
-        real_calendar_result = calendar_service.create_appointment_event(calendar_data)
+        # Try Google Calendar API first for REAL Google Meet links
+        from services.google_calendar_integration import google_calendar_api
         
-        if real_calendar_result and real_calendar_result.get('meet_link'):
-            # Use the real Google Meet link from Calendar API
-            appointment.google_meet_link = real_calendar_result['meet_link']
-            appointment.google_calendar_event_id = real_calendar_result.get('event_id')
+        real_meet_link = None
+        if google_calendar_api.service:
+            # User has authenticated with Google - try to create real event
+            real_calendar_result = google_calendar_api.create_calendar_event_with_meet(calendar_data)
+            if real_calendar_result and real_calendar_result.get('meet_link'):
+                real_meet_link = real_calendar_result['meet_link']
+                appointment.google_calendar_event_id = real_calendar_result.get('event_id')
+                logging.info(f"✅ Created REAL Google Meet link: {real_meet_link}")
+        
+        if real_meet_link:
+            # SUCCESS: Real Google Meet link from Calendar API
+            appointment.google_meet_link = real_meet_link
         else:
-            # Fallback to generated meet link
+            # FALLBACK: Generate valid Google Meet format (but not a real room)
+            # This creates URLs that look real but may not work
             appointment.google_meet_link = meet_service.create_meet_room(
                 appointment_id=appointment.id,
                 doctor_name=doctor.name,
                 patient_name=current_user.name
             )
+            logging.warning(f"⚠️ Using fallback Meet link (may not be real): {appointment.google_meet_link}")
         
         db.session.commit()
         

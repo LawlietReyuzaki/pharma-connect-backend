@@ -1,0 +1,73 @@
+### Follow-up on Appointment Meeting Link
+
+Issue:  
+Currently, when a user books an appointment, the system generates a **fake/static Meet URL** (e.g., `reddot-consultation-temp_1756630800` or `https://meet.google.com/iaa-1008-eka`).  
+This link is not valid, no Google Calendar event is created, and both doctor and patient cannot join a real meeting.
+
+Steps to fix:
+
+1. **Stop using static/fake Meet URLs**  
+   - Remove placeholder generation like `reddot-consultation-temp_xxx`.  
+   - Always call the Google Calendar API to create an event with a Meet link.
+
+2. **Google OAuth Credentials**  
+   - Use the existing `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` from Google Cloud Console.  
+   - Add a **refresh token** (or use a Service Account) so the backend can authenticate automatically without requiring user login every time.
+
+3. **Create Event via Google Calendar API**  
+   - When a user books an appointment, insert a calendar event:  
+     - `summary`: "Doctor Appointment"  
+     - `start` and `end`: Use appointment date and times from DB  
+     - `attendees`: patient email + doctor email (if available)  
+     - `conferenceData.createRequest`: auto-generate Google Meet link  
+
+   Example (Python pseudocode):
+   ```python
+   event = {
+       'summary': 'Doctor Appointment',
+       'description': 'Consultation between patient and doctor',
+       'start': {'dateTime': starts_at, 'timeZone': 'Asia/Karachi'},
+       'end': {'dateTime': ends_at, 'timeZone': 'Asia/Karachi'},
+       'attendees': [
+           {'email': patient_email},
+           {'email': doctor_email}
+       ],
+       'conferenceData': {
+           'createRequest': {
+               'requestId': f"reddot-{uuid.uuid4()}",
+               'conferenceSolutionKey': {'type': 'hangoutsMeet'}
+           }
+       }
+   }
+
+   created_event = service.events().insert(
+       calendarId='primary',
+       body=event,
+       conferenceDataVersion=1
+   ).execute()
+
+   meet_link = created_event.get('hangoutLink')
+
+Save the Meet link
+
+Store hangoutLink into the appointments table under google_meet_link.
+
+Ensure both doctor and patient dashboards read the same saved link.
+
+Frontend Update
+
+Update the "Join Meeting" button to open the stored google_meet_link directly.
+
+Confirm both doctor and patient are redirected to the same functional Meet room.
+
+Testing
+
+Book an appointment as a patient → doctor should see the same link.
+
+Clicking "Join Meeting" should open a real Google Meet (no “Check your code” error).
+
+Verify that the event appears in Google Calendar with attendees invited.
+
+Future Improvement:
+
+Send automated email/calendar invites to attendees when the event is created. 

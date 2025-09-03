@@ -652,8 +652,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize forms
     initializeForms();
     
-    // Initialize chatbot
-    initializeChatbot();
+    // Initialize chatbot (if on assistant page)
+    if (window.location.pathname === '/assistant') {
+        console.log('Chatbot initialization handled by assistant page');
+    }
 });
 
 function scrollToSection(sectionId) {
