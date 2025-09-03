@@ -1625,8 +1625,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Initialize chatbot
-    if (typeof initializeChatbot === 'function') {
-        initializeChatbot();
+    // Initialize chatbot if we're on the assistant page
+    if (window.location.pathname === '/assistant') {
+        // Chat initialization is handled by voice.js and assistant page scripts
+        console.log('Chat initialized with language:', window.currentLanguage || 'en');
     }
     
     // Initialize voice assistant

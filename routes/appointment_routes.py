@@ -52,12 +52,7 @@ def create_appointment():
         end_time = slot.ends_at
         appointment_date = slot.appointment_date
         
-        # Create Google Meet link
-        meet_link = meet_service.create_meet_room(
-            appointment_id=f"temp_{int(start_time.timestamp())}",
-            doctor_name=doctor.name,
-            patient_name=current_user.name
-        )
+        # We'll create the Google Meet link after the appointment is saved
         
         # Create calendar event
         calendar_data = {
@@ -80,7 +75,7 @@ def create_appointment():
         appointment.ends_at = end_time
         appointment.symptoms = data["symptoms"]
         appointment.note = data.get("note", "")
-        appointment.google_meet_link = meet_link
+        appointment.google_meet_link = None  # Will be set after commit
         appointment.google_calendar_event_id = calendar_result["event_id"] if calendar_result else None
         appointment.status = "pending"  # Initial status
         appointment.approval_status = "pending"  # Needs doctor/admin approval
@@ -93,7 +88,7 @@ def create_appointment():
         
         db.session.commit()
         
-        # Update meet link with actual appointment ID
+        # Create Google Meet link with actual appointment ID
         appointment.google_meet_link = meet_service.create_meet_room(
             appointment_id=appointment.id,
             doctor_name=doctor.name,

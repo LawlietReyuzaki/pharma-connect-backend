@@ -78,10 +78,17 @@ class GoogleCalendarService:
     def _generate_meet_link(self, appointment_data):
         """Generate Google Meet link for appointment"""
         # In production, this would be generated via Google Calendar API
-        # For MVP, create a structured meet link
+        # For MVP, generate a valid Google Meet format: https://meet.google.com/abc-defg-hij
         
-        start_time = appointment_data.get('start_time', datetime.now())
-        meeting_id = f"reddot-{start_time.strftime('%Y%m%d-%H%M')}"
+        import random
+        import string
+        
+        # Generate proper Google Meet room ID format: 3letters-4numbers-3letters
+        letters1 = ''.join(random.choices(string.ascii_lowercase, k=3))
+        numbers = ''.join(random.choices(string.digits, k=4))
+        letters2 = ''.join(random.choices(string.ascii_lowercase, k=3))
+        
+        meeting_id = f"{letters1}-{numbers}-{letters2}"
         
         # Google Meet URL format
         meet_link = f"https://meet.google.com/{meeting_id}"
@@ -122,11 +129,20 @@ class GoogleMeetService:
         Returns:
             str: Google Meet URL
         """
-        # Create unique room identifier
-        room_id = f"reddot-consultation-{appointment_id}"
+        import random
+        import string
+        
+        # Generate proper Google Meet room ID format: 3letters-4numbers-3letters
+        # Use appointment_id to seed for consistency
+        random.seed(appointment_id)
+        letters1 = ''.join(random.choices(string.ascii_lowercase, k=3))
+        numbers = ''.join(random.choices(string.digits, k=4))
+        letters2 = ''.join(random.choices(string.ascii_lowercase, k=3))
+        
+        room_id = f"{letters1}-{numbers}-{letters2}"
         
         # In production, you would create this via Google Calendar API
-        # For MVP, generate a structured Meet URL
+        # For MVP, generate a valid Google Meet URL
         meet_url = f"https://meet.google.com/{room_id}"
         
         logging.info(f"Created Google Meet room: {meet_url}")
@@ -135,7 +151,16 @@ class GoogleMeetService:
     @staticmethod
     def generate_join_url(appointment_id, user_role="patient"):
         """Generate join URL with user context"""
-        room_id = f"reddot-consultation-{appointment_id}"
+        import random
+        import string
+        
+        # Generate consistent room ID using same seed as create_meet_room
+        random.seed(appointment_id)
+        letters1 = ''.join(random.choices(string.ascii_lowercase, k=3))
+        numbers = ''.join(random.choices(string.digits, k=4))
+        letters2 = ''.join(random.choices(string.ascii_lowercase, k=3))
+        
+        room_id = f"{letters1}-{numbers}-{letters2}"
         base_url = f"https://meet.google.com/{room_id}"
         
         # Add user context parameters
