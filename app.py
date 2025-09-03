@@ -45,6 +45,7 @@ def create_app():
     from routes.admin_auth_routes import bp as admin_auth_bp
     from routes.doctor_routes import bp as doctor_bp
     from routes.google_auth_routes import bp as google_auth_bp
+    from routes.doctor_oauth_routes import bp as doctor_oauth_bp
     
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(chatbot_bp, url_prefix="/api/chat")
@@ -55,6 +56,7 @@ def create_app():
     app.register_blueprint(admin_auth_bp, url_prefix="/admin/auth")
     app.register_blueprint(doctor_bp, url_prefix="/doctor")
     app.register_blueprint(google_auth_bp)
+    app.register_blueprint(doctor_oauth_bp)
     
     @app.route("/")
     def index():

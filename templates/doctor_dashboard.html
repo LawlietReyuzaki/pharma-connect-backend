@@ -146,6 +146,61 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Google Calendar Integration Card -->
+            <div class="card doctor-card mt-4">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">
+                        <i class="fab fa-google me-2"></i>
+                        Google Calendar Integration
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="googleCalendarNotConnected" style="display: none;">
+                        <div class="text-center py-3">
+                            <i class="fab fa-google fa-3x text-muted mb-3"></i>
+                            <h6 class="text-muted">Connect Your Google Calendar</h6>
+                            <p class="small text-muted mb-3">
+                                Link your Google Calendar to automatically create real Google Meet links for appointments.
+                            </p>
+                            <button id="connectGoogleBtn" class="btn btn-primary" onclick="connectGoogleCalendar()">
+                                <i class="fas fa-link me-1"></i>Connect Google Calendar
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="googleCalendarConnected" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-success mb-1">
+                                    <i class="fas fa-check-circle me-1"></i>Connected
+                                </h6>
+                                <p class="small text-muted mb-0" id="connectedEmail">Loading...</p>
+                                <small class="text-muted" id="connectedDate">Connected on: ...</small>
+                            </div>
+                            <div>
+                                <button id="testCalendarBtn" class="btn btn-outline-secondary btn-sm me-2" onclick="testGoogleCalendar()">
+                                    <i class="fas fa-vial me-1"></i>Test
+                                </button>
+                                <button id="disconnectGoogleBtn" class="btn btn-outline-danger btn-sm" onclick="disconnectGoogleCalendar()">
+                                    <i class="fas fa-unlink me-1"></i>Disconnect
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <div class="alert alert-success alert-sm">
+                                <i class="fas fa-info-circle me-1"></i>
+                                <small>New appointments will automatically create Google Calendar events with real Meet links in your calendar.</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="googleCalendarError" class="alert alert-warning" style="display: none;">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        <span id="googleErrorMessage">Connection issue detected</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Appointments List -->

@@ -19,6 +19,13 @@ class User(UserMixin, db.Model):
     current_hospital = db.Column(db.String(200))  # Current workplace
     doctor_password_set = db.Column(db.Boolean, default=False)  # Track if doctor has set their password
     
+    # Google Calendar OAuth integration fields (for doctors)
+    google_access_token = db.Column(db.Text, nullable=True)  # Encrypted access token
+    google_refresh_token = db.Column(db.Text, nullable=True)  # Encrypted refresh token
+    google_token_expiry = db.Column(db.DateTime, nullable=True)  # Token expiration time
+    google_email = db.Column(db.String(120), nullable=True)  # Connected Google account email
+    google_connected_at = db.Column(db.DateTime, nullable=True)  # When OAuth was completed
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

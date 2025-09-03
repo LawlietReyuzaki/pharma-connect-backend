@@ -40,6 +40,9 @@ class DoctorDashboard {
         document.getElementById('profileQualification').textContent = this.doctorData.qualification || 'Medical Qualification';
         document.getElementById('profileExperience').textContent = this.doctorData.experience_years || '0';
         document.getElementById('profileHospital').textContent = this.doctorData.current_hospital || 'Hospital';
+        
+        // Load Google Calendar integration status
+        this.loadGoogleCalendarStatus();
     }
 
     async loadAppointments(status = 'all') {
@@ -330,6 +333,125 @@ class DoctorDashboard {
             }
         }, 3000);
     }
+
+    // Google Calendar Integration Methods
+    async loadGoogleCalendarStatus() {
+        try {
+            const response = await fetch('/doctor/auth/google/status', {
+                headers: {
+                    'Authorization': `Bearer ${this.doctorToken}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.updateGoogleCalendarUI(data);
+            } else {
+                console.error('Failed to load Google Calendar status');
+                this.showGoogleCalendarError('Unable to check Google Calendar status');
+            }
+        } catch (error) {
+            console.error('Error checking Google Calendar status:', error);
+            this.showGoogleCalendarError('Connection error');
+        }
+    }
+
+    updateGoogleCalendarUI(status) {
+        const notConnected = document.getElementById('googleCalendarNotConnected');
+        const connected = document.getElementById('googleCalendarConnected');
+        const errorDiv = document.getElementById('googleCalendarError');
+
+        // Hide error by default
+        errorDiv.style.display = 'none';
+
+        if (status.connected && status.credentials_valid) {
+            // Connected and working
+            notConnected.style.display = 'none';
+            connected.style.display = 'block';
+            
+            document.getElementById('connectedEmail').textContent = status.google_email || 'Unknown';
+            
+            if (status.connected_at) {
+                const date = new Date(status.connected_at).toLocaleDateString();
+                document.getElementById('connectedDate').textContent = `Connected on: ${date}`;
+            }
+        } else if (status.connected && !status.credentials_valid) {
+            // Connected but credentials expired
+            notConnected.style.display = 'none';
+            connected.style.display = 'block';
+            this.showGoogleCalendarError('Credentials expired - please reconnect');
+        } else {
+            // Not connected
+            notConnected.style.display = 'block';
+            connected.style.display = 'none';
+        }
+    }
+
+    showGoogleCalendarError(message) {
+        const errorDiv = document.getElementById('googleCalendarError');
+        const messageSpan = document.getElementById('googleErrorMessage');
+        
+        messageSpan.textContent = message;
+        errorDiv.style.display = 'block';
+    }
+
+    async connectGoogleCalendar() {
+        try {
+            // Redirect to OAuth authorization
+            window.location.href = '/doctor/auth/google/authorize?redirect=' + encodeURIComponent(window.location.pathname);
+        } catch (error) {
+            console.error('Error initiating Google OAuth:', error);
+            this.showGoogleCalendarError('Failed to initiate Google connection');
+        }
+    }
+
+    async disconnectGoogleCalendar() {
+        if (!confirm('Are you sure you want to disconnect Google Calendar? Future appointments will use fallback Meet links.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/doctor/auth/google/revoke', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.doctorToken}`
+                }
+            });
+
+            if (response.ok) {
+                this.showAlert('✅ Google Calendar disconnected successfully', 'success');
+                this.loadGoogleCalendarStatus(); // Refresh status
+            } else {
+                const data = await response.json();
+                this.showAlert(`Failed to disconnect: ${data.error}`, 'danger');
+            }
+        } catch (error) {
+            console.error('Error disconnecting Google Calendar:', error);
+            this.showAlert('Failed to disconnect Google Calendar', 'danger');
+        }
+    }
+
+    async testGoogleCalendar() {
+        try {
+            const response = await fetch('/doctor/auth/google/test-calendar', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.doctorToken}`
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                this.showAlert(`✅ Google Calendar test successful! Found ${data.calendar_count} calendars.`, 'success');
+            } else {
+                this.showAlert(`❌ Calendar test failed: ${data.error}`, 'danger');
+            }
+        } catch (error) {
+            console.error('Error testing Google Calendar:', error);
+            this.showAlert('Failed to test Google Calendar connection', 'danger');
+        }
+    }
 }
 
 // Global functions
@@ -459,5 +581,24 @@ function createTimeSlot() {
 function loadTimeSlots() {
     if (window.doctorDashboard) {
         window.doctorDashboard.loadTimeSlots();
+    }
+}
+
+// Global functions for Google Calendar integration
+function connectGoogleCalendar() {
+    if (window.doctorDashboard) {
+        window.doctorDashboard.connectGoogleCalendar();
+    }
+}
+
+function disconnectGoogleCalendar() {
+    if (window.doctorDashboard) {
+        window.doctorDashboard.disconnectGoogleCalendar();
+    }
+}
+
+function testGoogleCalendar() {
+    if (window.doctorDashboard) {
+        window.doctorDashboard.testGoogleCalendar();
     }
 }
