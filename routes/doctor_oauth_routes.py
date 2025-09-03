@@ -1,15 +1,30 @@
 from flask import Blueprint, request, redirect, session, jsonify, url_for
 import logging
 from services.doctor_oauth_service import doctor_oauth_service
+from services.auth import verify_token
 from models import User
 from functools import wraps
 
-# Simple doctor authentication decorator
+# JWT-based doctor authentication decorator
 def require_doctor_auth(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'doctor_id' not in session:
-            return jsonify({"error": "Doctor authentication required"}), 401
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"error": "Authentication required"}), 401
+        
+        token = auth_header.split(' ')[1]
+        user_data = verify_token(token)
+        
+        if not user_data:
+            return jsonify({"error": "Invalid or expired token"}), 401
+        
+        doctor = User.query.filter_by(id=user_data['sub'], role="doctor").first()
+        if not doctor:
+            return jsonify({"error": "Doctor not found"}), 404
+        
+        # Store doctor in kwargs for the decorated function
+        kwargs['doctor'] = doctor
         return f(*args, **kwargs)
     return decorated_function
 
@@ -17,23 +32,21 @@ bp = Blueprint('doctor_oauth', __name__, url_prefix='/doctor/auth/google')
 
 @bp.route('/authorize')
 @require_doctor_auth
-def authorize():
+def authorize(doctor):
     """Initiate Google OAuth flow for the logged-in doctor"""
     try:
-        # Get current doctor from session
-        doctor_id = session.get('doctor_id')
-        if not doctor_id:
-            return jsonify({"error": "Doctor not authenticated"}), 401
-        
-        doctor = User.query.filter_by(id=doctor_id, role='doctor').first()
-        if not doctor:
-            return jsonify({"error": "Doctor not found"}), 404
+        doctor_id = doctor.id
         
         # Get OAuth authorization URL
-        auth_url, state = doctor_oauth_service.get_authorization_url(doctor_id)
+        auth_result = doctor_oauth_service.get_authorization_url(doctor_id)
+        
+        if not auth_result or auth_result == (None, None):
+            return jsonify({"error": "Google OAuth not configured"}), 500
+        
+        auth_url, state = auth_result
         
         if not auth_url:
-            return jsonify({"error": "Google OAuth not configured"}), 500
+            return jsonify({"error": "Failed to generate OAuth URL"}), 500
         
         # Store state in session for security
         session['oauth_state'] = state
@@ -88,16 +101,10 @@ def callback():
 
 @bp.route('/status')
 @require_doctor_auth
-def status():
+def status(doctor):
     """Check Google OAuth status for the logged-in doctor"""
     try:
-        doctor_id = session.get('doctor_id')
-        if not doctor_id:
-            return jsonify({"error": "Doctor not authenticated"}), 401
-        
-        doctor = User.query.filter_by(id=doctor_id, role='doctor').first()
-        if not doctor:
-            return jsonify({"error": "Doctor not found"}), 404
+        doctor_id = doctor.id
         
         # Check if doctor has Google OAuth connected
         is_connected = bool(doctor.google_access_token and doctor.google_email)
@@ -123,12 +130,10 @@ def status():
 
 @bp.route('/revoke', methods=['POST'])
 @require_doctor_auth
-def revoke():
+def revoke(doctor):
     """Revoke Google OAuth authorization for the logged-in doctor"""
     try:
-        doctor_id = session.get('doctor_id')
-        if not doctor_id:
-            return jsonify({"error": "Doctor not authenticated"}), 401
+        doctor_id = doctor.id
         
         success = doctor_oauth_service.revoke_doctor_authorization(doctor_id)
         
@@ -151,16 +156,10 @@ def revoke():
 
 @bp.route('/test-calendar', methods=['POST'])
 @require_doctor_auth
-def test_calendar():
+def test_calendar(doctor):
     """Test doctor's Google Calendar integration"""
     try:
-        doctor_id = session.get('doctor_id')
-        if not doctor_id:
-            return jsonify({"error": "Doctor not authenticated"}), 401
-        
-        doctor = User.query.filter_by(id=doctor_id, role='doctor').first()
-        if not doctor:
-            return jsonify({"error": "Doctor not found"}), 404
+        doctor_id = doctor.id
         
         # Check if doctor has Google OAuth connected
         if not doctor.google_access_token:
