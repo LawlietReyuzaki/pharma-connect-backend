@@ -397,8 +397,16 @@ class DoctorDashboard {
 
     async connectGoogleCalendar() {
         try {
-            // Redirect to OAuth authorization
-            window.location.href = '/doctor/auth/google/authorize?redirect=' + encodeURIComponent(window.location.pathname);
+            // Get doctor ID from stored data
+            const doctorId = this.doctorData.id;
+            if (!doctorId) {
+                this.showGoogleCalendarError('Doctor ID not found. Please refresh and try again.');
+                return;
+            }
+            
+            // Redirect to OAuth authorization with doctor ID
+            const redirectUrl = encodeURIComponent(window.location.pathname);
+            window.location.href = `/doctor/auth/google/authorize?doctor_id=${doctorId}&redirect=${redirectUrl}`;
         } catch (error) {
             console.error('Error initiating Google OAuth:', error);
             this.showGoogleCalendarError('Failed to initiate Google connection');

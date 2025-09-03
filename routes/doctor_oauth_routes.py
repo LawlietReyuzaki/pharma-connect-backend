@@ -31,11 +31,23 @@ def require_doctor_auth(f):
 bp = Blueprint('doctor_oauth', __name__, url_prefix='/doctor/auth/google')
 
 @bp.route('/authorize')
-@require_doctor_auth
-def authorize(doctor):
+def authorize():
     """Initiate Google OAuth flow for the logged-in doctor"""
     try:
-        doctor_id = doctor.id
+        # Get doctor ID from query parameter (passed from frontend)
+        doctor_id = request.args.get('doctor_id')
+        if not doctor_id:
+            return redirect('/doctor/dashboard?error=missing_doctor_id')
+        
+        try:
+            doctor_id = int(doctor_id)
+        except ValueError:
+            return redirect('/doctor/dashboard?error=invalid_doctor_id')
+        
+        # Verify doctor exists
+        doctor = User.query.filter_by(id=doctor_id, role='doctor').first()
+        if not doctor:
+            return redirect('/doctor/dashboard?error=doctor_not_found')
         
         # Get OAuth authorization URL
         auth_result = doctor_oauth_service.get_authorization_url(doctor_id)
