@@ -612,6 +612,53 @@ def create_doctor_time_slot():
         db.session.add(new_slot)
         db.session.commit()
         
+        # Try to create Google Calendar event for the time slot
+        google_event_details = None
+        try:
+            from services.doctor_oauth_service import doctor_oauth_service
+            
+            # Build appointment_data dictionary for Google Calendar event
+            appointment_data = {
+                'summary': 'Available Consultation Slot',
+                'description': f'Doctor {current_user.name} available for consultation',
+                'start_time': starts_at,
+                'end_time': ends_at,
+                'attendee_emails': [],  # Empty since this is just availability
+                'appointment_id': new_slot.id
+            }
+            
+            # Create Google Calendar event
+            google_result = doctor_oauth_service.create_calendar_event_for_doctor(
+                current_user.id, 
+                appointment_data
+            )
+            
+            if google_result:
+                # Save the Google event ID to the slot
+                new_slot.google_event_id = google_result.get('event_id')
+                db.session.commit()
+                
+                google_event_details = {
+                    'event_id': google_result.get('event_id'),
+                    'calendar_link': google_result.get('calendar_link'),
+                    'doctor_calendar': google_result.get('doctor_calendar'),
+                    'status': 'created'
+                }
+                logging.info(f"✅ Created Google Calendar event for slot {new_slot.id}: {google_result.get('event_id')}")
+            else:
+                google_event_details = {
+                    'status': 'failed',
+                    'reason': 'Google Calendar not connected or API error'
+                }
+                logging.warning(f"⚠️ Failed to create Google Calendar event for slot {new_slot.id}")
+                
+        except Exception as e:
+            google_event_details = {
+                'status': 'error',
+                'reason': str(e)
+            }
+            logging.error(f"❌ Error creating Google Calendar event for slot {new_slot.id}: {e}")
+        
         return jsonify({
             "success": True,
             "message": "Time slot created successfully",
@@ -622,8 +669,10 @@ def create_doctor_time_slot():
                 "ends_at": new_slot.ends_at.isoformat(),
                 "start_time": new_slot.starts_at.strftime("%H:%M"),
                 "end_time": new_slot.ends_at.strftime("%H:%M"),
-                "is_booked": new_slot.is_booked
-            }
+                "is_booked": new_slot.is_booked,
+                "google_event_id": new_slot.google_event_id
+            },
+            "google_calendar": google_event_details
         })
         
     except Exception as e:

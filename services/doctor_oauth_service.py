@@ -11,7 +11,11 @@ from models import User, db
 import uuid
 
 # Google OAuth configuration for doctors
-SCOPES = ['https://www.googleapis.com/auth/calendar']
+SCOPES = [
+    "openid", "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
+    "https://www.googleapis.com/auth/calendar"
+]
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_OAUTH_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_OAUTH_CLIENT_SECRET')
 REDIRECT_URI = f"https://{os.environ.get('REPLIT_DEV_DOMAIN', 'localhost')}/doctor/auth/google/callback"
@@ -95,6 +99,7 @@ class DoctorOAuthService:
             # Exchange code for tokens
             flow.fetch_token(code=auth_code)
             credentials = flow.credentials
+            print("credentials = ", credentials)
 
             # Get user info to verify the Google account
             user_info = self._get_user_info(credentials)

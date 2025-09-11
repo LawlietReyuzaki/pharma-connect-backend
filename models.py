@@ -58,6 +58,7 @@ class TimeSlot(db.Model):
     starts_at = db.Column(db.DateTime, nullable=False)     # Full datetime when slot starts
     ends_at = db.Column(db.DateTime, nullable=False)       # Full datetime when slot ends
     is_booked = db.Column(db.Boolean, default=False)       # Whether this slot is booked
+    google_event_id = db.Column(db.String(255), nullable=True)  # Google Calendar Event ID
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
