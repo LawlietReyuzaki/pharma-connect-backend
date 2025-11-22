@@ -1,0 +1,41 @@
+Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+injected.js:37 Error loading doctors: Error: Failed to load doctors
+(anonymous) @ injected.js:37Understand this error
+af8eb87e-3b6a-4703-b436-1a1f7b823920-00-28dp31yh8gjkh.riker.replit.dev/api/store/medicines?:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+injected.js:37 Error loading medicines: Error: Failed to load medicines
+(anonymous) @ injected.js:37Understand this error
+af8eb87e-3b6a-4703-b436-1a1f7b823920-00-28dp31yh8gjkh.riker.replit.dev/api/appointments/doctors:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+injected.js:37 Error loading doctors: Error: Failed to load doctors
+(anonymous) @ injected.js:37Understand this error
+af8eb87e-3b6a-4703-b436-1a1f7b823920-00-28dp31yh8gjkh.riker.replit.dev/api/store/medicines?:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+injected.js:37 Error loading medicines: Error: Failed to load medicines
+(anonymous) @ injected.js:37Understand this error
+af8eb87e-3b6a-4703-b436-1a1f7b823920-00-28dp31yh8gjkh.riker.replit.dev/api/store/medicines?:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+injected.js:37 Error loading medicines: Error: Failed to load medicines
+(anonymous) @ injected.js:37Understand this error
+g5701e7af97e3199562c85d0c7a9e8017e7e6f527491d302256d54d37e1eda35b7f9f51599b75d9301f16167be58f9c6054cf7785b471adb05e5fd2143a011da6_1280.jpg:1  Failed to load resource: the server responded with a status of 400 ()Understand this error
+af8eb87e-3b6a-4703-b436-1a1f7b823920-00-28dp31yh8gjkh.riker.replit.dev/api/appointments/doctors:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+injected.js:37 Error loading doctors: Error: Failed to load doctors
+(anonymous) @ injected.js:37Understand this error
+g5701e7af97e3199562c85d0c7a9e8017e7e6f527491d302256d54d37e1eda35b7f9f51599b75d9301f16167be58f9c6054cf7785b471adb05e5fd2143a011da6_1280.jpg:1  Failed to load resource: the server responded with a status of 400 ()Understand this error
+af8eb87e-3b6a-4703-b436-1a1f7b823920-00-28dp31yh8gjkh.riker.replit.dev/api/appointments/doctors:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+injected.js:37 Error loading doctors: Error: Failed to load doctors
+(anonymous) @ injected.js:37Understand this error
+ge56aa52d3c2a7ca670ff6f37d186c8ca60f096c222ff7a160f701392e5c667d395e266349a789caf5e8b554798a054a65266669270dff530d0b63566f8b95791_1280.jpg:1  Failed to load resource: the server responded with a status of 400 ()Understand this error
+g5701e7af97e3199562c85d0c7a9e8017e7e6f527491d302256d54d37e1eda35b7f9f51599b75d9301f16167be58f9c6054cf7785b471adb05e5fd2143a011da6_1280.jpg:1  Failed to load resource: the server responded with a status of 400 ()Understand this error
+gfbc678e1fa19e63229a2920e676426c13c671be99ffcf08f195602004a4e853c4fad6e35c2b7a2f0e2e700480366e045aff8b67b0b9876e5ddec4eeeac05ff57_1280.png:1  Failed to load resource: the server responded with a status of 400 ()Understand this error
+af8eb87e-3b6a-4703-b436-1a1f7b823920-00-28dp31yh8gjkh.riker.replit.dev/api/appointments/doctors:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+injected.js:37 Error loading doctors: Error: Failed to load doctors
+    at RedDotPharmacy.loadDoctors (main.js:794:23)
+(anonymous) @ injected.js:37Understand this error
+af8eb87e-3b6a-4703-b436-1a1f7b823920-00-28dp31yh8gjkh.riker.replit.dev/api/store/medicines?:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+injected.js:37 Error loading medicines: Error: Failed to load medicines
+    at RedDotPharmacy.loadMedicines (main.js:204:23)
+(anonymous) @ injected.js:37Understand this error
+af8eb87e-3b6a-4703-b436-1a1f7b823920-00-28dp31yh8gjkh.riker.replit.dev/api/appointments/doctors:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+injected.js:37 Error loading doctors: Error: Failed to load doctors
+    at RedDotPharmacy.loadDoctors (main.js:794:23)
+(anonymous) @ injected.js:37Understand this error
+af8eb87e-3b6a-4703-b436-1a1f7b823920-00-28dp31yh8gjkh.riker.replit.dev/api/store/medicines?:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+injected.js:37 Error loading medicines: Error: Failed to load medicines
+    at RedDotPharmacy.loadMedicines (main.js:204:23)

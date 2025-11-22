@@ -1,9 +1,11 @@
 import os
 import logging
-from flask import Flask, render_template
+from functools import wraps
+from flask import Flask, render_template, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.exc import SQLAlchemyError, OperationalError
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Configure logging
@@ -103,8 +105,59 @@ def create_app():
 # Create app instance
 app = create_app()
 
-# Create tables
-with app.app_context():
-    import models  # noqa: F401
-    db.create_all()
-    logging.info("Database tables created for Red Dot Pharmacy")
+# Lazy database initialization with retry logic
+db_initialized = False
+
+def initialize_database():
+    """Initialize database tables with error handling and retry logic"""
+    global db_initialized
+    if db_initialized:
+        return True
+    
+    try:
+        with app.app_context():
+            import models  # noqa: F401
+            db.create_all()
+            db_initialized = True
+            logging.info("✅ Database tables created successfully for Red Dot Pharmacy")
+            return True
+    except Exception as e:
+        logging.warning(f"⚠️ Database initialization failed (will retry on next request): {e}")
+        return False
+
+# Try to initialize database at startup, but don't fail if it doesn't work
+initialize_database()
+
+@app.before_request
+def ensure_database():
+    """Ensure database is initialized before handling requests"""
+    if not db_initialized:
+        initialize_database()
+
+# Global database error handler
+@app.errorhandler(OperationalError)
+@app.errorhandler(SQLAlchemyError)
+def handle_database_error(error):
+    """Handle all database-related errors gracefully"""
+    logging.error(f"Database error occurred: {error}")
+    return jsonify({
+        "error": "Database temporarily unavailable",
+        "message": "Our database is currently offline. Please try again in a few moments.",
+        "status": 503
+    }), 503
+
+# Decorator for database-dependent routes
+def handle_db_errors(f):
+    """Decorator to catch database errors and return graceful responses"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except (OperationalError, SQLAlchemyError) as e:
+            logging.error(f"Database error in {f.__name__}: {e}")
+            return jsonify({
+                "error": "Database temporarily unavailable",
+                "message": "The database is currently unavailable. Please try again shortly.",
+                "status": 503
+            }), 503
+    return decorated_function
