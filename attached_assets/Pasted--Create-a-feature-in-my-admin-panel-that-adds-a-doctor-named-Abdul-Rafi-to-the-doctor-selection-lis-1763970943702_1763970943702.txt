@@ -1,0 +1,127 @@
+“Create a feature in my /admin panel that adds a doctor named Abdul Rafi to the doctor selection list.
+
+In the admin panel, there should be an option to:
+
+
+Add, show, and manage doctors
+
+
+Display the doctor “Abdul Rafi” in the dropdown/select menu
+
+
+Allow customers/patients to select this doctor when booking an appointment
+
+
+Make sure the doctor’s name appears anywhere the system requires a doctor selection
+
+
+Enable the admin to view the appointment requests coming from customers for this doctor
+
+
+Ensure the appointment booking system properly connects patients with the selected doctor (Abdul Rafi)
+
+
+Make the UI simple, clean, and fully functional for both Admin and Customer sides
+
+
+Build all necessary backend routes, database entries, and frontend UI components. Make sure the Doctor is visible, selectable, and associated with patient appointments.”**
+
+You, 3 min
+
+“Fix the issue in our consultation booking system where patients cannot see correct available time slots.
+
+Create a complete Doctor Availability Management System inside the /admin panel with the following features:
+
+1. Doctor Days & Availability Setup
+
+Each doctor must be able to add, edit, and update their available days (Mon–Sun).
+
+
+Doctors must also be able to set start time, end time, and break/blocked time slots.
+
+
+Ensure the UI clearly shows which days the doctor is available.
+
+
+2. Automatic Time Slot Generation
+
+Based on the doctor’s availability, automatically generate accurate bookable time slots for patients.
+
+
+Prevent overlapping or duplicate slots.
+
+
+Only show valid time slots to the patient side.
+
+
+3. Patient Booking Fix
+
+Fix the issue where patients cannot see available time slots.
+
+
+When a patient tries to book a consultation, they must see:
+
+
+Doctor’s available days
+
+
+Time slots generated from doctor’s schedule
+
+
+Only active, editable, and future slots
+
+
+
+Make sure booking rules validate the doctor’s availability.
+
+
+4. Admin Panel Features
+
+Admin can view all doctors and their availability.
+
+
+Admin can edit any doctor's schedule.
+
+
+Provide clean UI:
+
+
+Add Day
+
+
+Edit Day
+
+
+Delete Day
+
+
+Update Time Slots
+
+
+
+5. Database + Backend
+
+Create or update backend models for:
+
+
+Doctors
+
+
+Availability (days + time slots)
+
+
+Booked appointments
+
+
+
+Ensure the booking system correctly reads availability from the database.
+
+
+6. Goal
+
+Fix patient-side time slot issues.
+
+
+Allow doctors to fully manage their availability.
+
+
