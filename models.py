@@ -49,6 +49,23 @@ class Medicine(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+class DoctorAvailability(db.Model):
+    """Recurring weekly availability schedule for doctors"""
+    __tablename__ = 'doctor_availability'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    doctor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    day_of_week = db.Column(db.Integer, nullable=False)  # 0=Monday, 1=Tuesday, ... 6=Sunday
+    start_time = db.Column(db.Time, nullable=False)  # e.g., 09:00
+    end_time = db.Column(db.Time, nullable=False)    # e.g., 17:00
+    slot_duration = db.Column(db.Integer, default=30)  # Minutes per slot (default 30)
+    is_active = db.Column(db.Boolean, default=True)  # Can be disabled without deleting
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship
+    doctor = db.relationship('User', foreign_keys=[doctor_id], backref='availabilities')
+
 class TimeSlot(db.Model):
     __tablename__ = 'time_slots'
     

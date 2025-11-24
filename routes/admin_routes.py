@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify, render_template
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date, time as dt_time
 from services.auth import require_auth, get_current_user, require_role
 from routes.admin_auth_routes import get_current_admin, require_admin
-from models import User, Medicine, Appointment, Order, OrderItem, ChatLog, TimeSlot
+from models import User, Medicine, Appointment, Order, OrderItem, ChatLog, TimeSlot, DoctorAvailability
 from app import db
 import logging
 import hashlib
@@ -721,9 +721,48 @@ def list_time_slots():
         logging.error(f"List time slots error: {e}")
         return jsonify({"error": f"Failed to retrieve time slots: {str(e)}"}), 500
 
-@bp.route("/api/timeslots", methods=["POST"])
-def create_time_slot():
-    """Create a new time slot"""
+# ============ DOCTOR AVAILABILITY MANAGEMENT ============
+
+@bp.route("/api/availability", methods=["GET"])
+def list_availabilities():
+    """List all doctor availabilities"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        doctor_id = request.args.get('doctor_id')
+        
+        query = DoctorAvailability.query.join(User)
+        if doctor_id:
+            query = query.filter(DoctorAvailability.doctor_id == doctor_id)
+        
+        availabilities = query.order_by(DoctorAvailability.day_of_week, DoctorAvailability.start_time).all()
+        
+        avail_list = []
+        for avail in availabilities:
+            avail_list.append({
+                "id": avail.id,
+                "doctor_id": avail.doctor_id,
+                "doctor_name": avail.doctor.name,
+                "day_of_week": avail.day_of_week,
+                "day_name": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][avail.day_of_week],
+                "start_time": avail.start_time.strftime("%H:%M"),
+                "end_time": avail.end_time.strftime("%H:%M"),
+                "slot_duration": avail.slot_duration,
+                "is_active": avail.is_active,
+                "created_at": avail.created_at.isoformat() if avail.created_at else None
+            })
+        
+        return jsonify({"success": True, "availabilities": avail_list})
+        
+    except Exception as e:
+        logging.error(f"List availabilities error: {e}")
+        return jsonify({"error": f"Failed to retrieve availabilities: {str(e)}"}), 500
+
+@bp.route("/api/availability", methods=["POST"])
+def create_availability():
+    """Create doctor availability"""
     try:
         current_admin = get_current_admin()
         if not current_admin:
@@ -739,61 +778,203 @@ def create_time_slot():
             if field not in data:
                 return jsonify({"error": f"{field} is required"}), 400
         
-        # Validate doctor exists and is a doctor
+        # Validate doctor exists
         doctor = User.query.filter_by(id=data["doctor_id"], role="doctor").first()
         if not doctor:
             return jsonify({"error": "Invalid doctor selected"}), 400
         
+        # Validate day_of_week
+        day_of_week = int(data["day_of_week"])
+        if day_of_week < 0 or day_of_week > 6:
+            return jsonify({"error": "day_of_week must be 0-6 (Monday-Sunday)"}), 400
+        
         # Parse time strings
-        from datetime import time
         try:
-            start_time = time.fromisoformat(data["start_time"])
-            end_time = time.fromisoformat(data["end_time"])
+            start_time = dt_time.fromisoformat(data["start_time"])
+            end_time = dt_time.fromisoformat(data["end_time"])
         except ValueError:
             return jsonify({"error": "Invalid time format. Use HH:MM"}), 400
         
         if start_time >= end_time:
             return jsonify({"error": "Start time must be before end time"}), 400
         
-        # Check for overlapping slots
-        existing_slot = TimeSlot.query.filter(
-            TimeSlot.doctor_id == data["doctor_id"],
-            TimeSlot.day_of_week == data["day_of_week"],
-            TimeSlot.start_time < end_time,
-            TimeSlot.end_time > start_time
-        ).first()
+        # Check for overlapping availability
+        existing = DoctorAvailability.query.filter(
+            DoctorAvailability.doctor_id == data["doctor_id"],
+            DoctorAvailability.day_of_week == day_of_week,
+            DoctorAvailability.is_active == True
+        ).all()
         
-        if existing_slot:
-            return jsonify({"error": "Time slot overlaps with existing slot"}), 400
+        for avail in existing:
+            if (start_time < avail.end_time and end_time > avail.start_time):
+                return jsonify({"error": f"Overlaps with existing availability on {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][day_of_week]}"}), 400
         
-        # Create new time slot
-        new_slot = TimeSlot()
-        new_slot.doctor_id = data["doctor_id"]
-        new_slot.day_of_week = data["day_of_week"]
-        new_slot.start_time = start_time
-        new_slot.end_time = end_time
-        new_slot.is_available = data.get("is_available", True)
-        new_slot.max_appointments = data.get("max_appointments", 1)
+        # Create availability
+        new_avail = DoctorAvailability(
+            doctor_id=data["doctor_id"],
+            day_of_week=day_of_week,
+            start_time=start_time,
+            end_time=end_time,
+            slot_duration=data.get("slot_duration", 30),
+            is_active=True
+        )
         
-        db.session.add(new_slot)
+        db.session.add(new_avail)
         db.session.commit()
+        
+        # Auto-generate time slots for next 30 days
+        generate_slots_from_availability(new_avail.id, days_ahead=30)
         
         return jsonify({
             "success": True,
-            "message": "Time slot created successfully",
-            "time_slot": {
-                "id": new_slot.id,
+            "message": "Doctor availability created successfully",
+            "availability": {
+                "id": new_avail.id,
                 "doctor_name": doctor.name,
-                "day_name": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][new_slot.day_of_week],
-                "start_time": new_slot.start_time.strftime("%H:%M"),
-                "end_time": new_slot.end_time.strftime("%H:%M")
+                "day_name": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][day_of_week],
+                "start_time": start_time.strftime("%H:%M"),
+                "end_time": end_time.strftime("%H:%M")
             }
         }), 201
         
     except Exception as e:
         db.session.rollback()
-        logging.error(f"Create time slot error: {e}")
-        return jsonify({"error": f"Failed to create time slot: {str(e)}"}), 500
+        logging.error(f"Create availability error: {e}")
+        return jsonify({"error": f"Failed to create availability: {str(e)}"}), 500
+
+@bp.route("/api/availability/<int:avail_id>", methods=["PUT"])
+def update_availability(avail_id):
+    """Update doctor availability"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        avail = DoctorAvailability.query.get_or_404(avail_id)
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        # Update fields
+        if "start_time" in data:
+            avail.start_time = dt_time.fromisoformat(data["start_time"])
+        if "end_time" in data:
+            avail.end_time = dt_time.fromisoformat(data["end_time"])
+        if "slot_duration" in data:
+            avail.slot_duration = int(data["slot_duration"])
+        if "is_active" in data:
+            avail.is_active = data["is_active"]
+        
+        avail.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        # Regenerate future time slots
+        if avail.is_active:
+            generate_slots_from_availability(avail.id, days_ahead=30)
+        
+        return jsonify({"success": True, "message": "Availability updated successfully"})
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Update availability error: {e}")
+        return jsonify({"error": f"Failed to update availability: {str(e)}"}), 500
+
+@bp.route("/api/availability/<int:avail_id>", methods=["DELETE"])
+def delete_availability(avail_id):
+    """Delete doctor availability"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        avail = DoctorAvailability.query.get_or_404(avail_id)
+        
+        # Just mark as inactive instead of deleting
+        avail.is_active = False
+        avail.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({"success": True, "message": "Availability deleted successfully"})
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Delete availability error: {e}")
+        return jsonify({"error": f"Failed to delete availability: {str(e)}"}), 500
+
+def generate_slots_from_availability(availability_id, days_ahead=30):
+    """Auto-generate TimeSlots from DoctorAvailability for future dates"""
+    try:
+        avail = DoctorAvailability.query.get(availability_id)
+        if not avail or not avail.is_active:
+            return
+        
+        today = date.today()
+        end_date = today + timedelta(days=days_ahead)
+        
+        current_date = today
+        while current_date <= end_date:
+            # Check if this date matches the availability day_of_week
+            if current_date.weekday() == avail.day_of_week:
+                # Generate slots for this day
+                current_time = datetime.combine(current_date, avail.start_time)
+                end_time = datetime.combine(current_date, avail.end_time)
+                
+                while current_time < end_time:
+                    slot_end = current_time + timedelta(minutes=avail.slot_duration)
+                    if slot_end > end_time:
+                        break
+                    
+                    # Check if slot already exists
+                    existing = TimeSlot.query.filter_by(
+                        doctor_id=avail.doctor_id,
+                        appointment_date=current_date,
+                        starts_at=current_time,
+                        ends_at=slot_end
+                    ).first()
+                    
+                    if not existing:
+                        new_slot = TimeSlot(
+                            doctor_id=avail.doctor_id,
+                            appointment_date=current_date,
+                            starts_at=current_time,
+                            ends_at=slot_end,
+                            is_booked=False
+                        )
+                        db.session.add(new_slot)
+                    
+                    current_time = slot_end
+            
+            current_date += timedelta(days=1)
+        
+        db.session.commit()
+        logging.info(f"Generated slots for availability {availability_id}")
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Generate slots error: {e}")
+
+@bp.route("/api/availability/generate-slots", methods=["POST"])
+def trigger_slot_generation():
+    """Manually trigger slot generation for all active availabilities"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        availabilities = DoctorAvailability.query.filter_by(is_active=True).all()
+        
+        for avail in availabilities:
+            generate_slots_from_availability(avail.id, days_ahead=30)
+        
+        return jsonify({
+            "success": True,
+            "message": f"Generated slots for {len(availabilities)} doctor availabilities"
+        })
+        
+    except Exception as e:
+        logging.error(f"Trigger slot generation error: {e}")
+        return jsonify({"error": f"Failed to generate slots: {str(e)}"}), 500
 
 @bp.route("/api/timeslots/<int:slot_id>", methods=["PUT"])
 def update_time_slot(slot_id):
