@@ -120,6 +120,9 @@ class AdminDashboard {
                 this.loadAppointments();
                 this.loadPendingNotifications();
                 break;
+            case 'timeslots':
+                this.loadTimeSlots();
+                break;
             case 'doctors':
                 this.loadDoctors();
                 break;
