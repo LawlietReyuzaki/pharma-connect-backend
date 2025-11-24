@@ -1078,9 +1078,144 @@ function filterAppointments(filter) {
     adminDashboard.loadAppointments(filter);
 }
 
-function viewAppointment(id) {
-    console.log('View appointment:', id);
-    // TODO: Implement appointment details modal
+async function viewAppointment(id) {
+    try {
+        // Show the modal with loading state
+        const modal = new bootstrap.Modal(document.getElementById('appointmentDetailsModal'));
+        const contentDiv = document.getElementById('appointmentDetailsContent');
+        
+        contentDiv.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-danger" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Loading appointment details...</p>
+            </div>
+        `;
+        
+        modal.show();
+        
+        // Fetch appointment details
+        const response = await fetch(`/admin/api/appointments/${id}`, {
+            headers: {
+                'Authorization': `Bearer ${adminDashboard.authToken}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load appointment details');
+        }
+        
+        const data = await response.json();
+        const appt = data.appointment;
+        
+        // Format dates
+        const appointmentDate = appt.starts_at ? new Date(appt.starts_at).toLocaleString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        }) : 'N/A';
+        
+        const createdAt = appt.created_at ? new Date(appt.created_at).toLocaleString() : 'N/A';
+        
+        // Get status badge colors
+        const approvalBadgeColor = adminDashboard.getApprovalStatusColor(appt.approval_status);
+        const statusBadgeColor = adminDashboard.getStatusColor(appt.status);
+        
+        // Build the details HTML
+        contentDiv.innerHTML = `
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-user text-danger me-2"></i>Patient Information</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-2"><strong>Name:</strong> ${appt.patient.name}</p>
+                            <p class="mb-2"><strong>Email:</strong> ${appt.patient.email}</p>
+                            <p class="mb-0"><strong>Phone:</strong> ${appt.patient.phone}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-user-md text-danger me-2"></i>Doctor Information</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-2"><strong>Name:</strong> ${appt.doctor.name}</p>
+                            <p class="mb-2"><strong>Specialization:</strong> ${appt.doctor.specialization}</p>
+                            <p class="mb-2"><strong>Qualification:</strong> ${appt.doctor.qualification}</p>
+                            <p class="mb-0"><strong>Phone:</strong> ${appt.doctor.phone}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-calendar-alt text-danger me-2"></i>Appointment Details</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-2"><strong>Appointment ID:</strong> #${appt.id}</p>
+                                    <p class="mb-2"><strong>Date & Time:</strong> ${appointmentDate}</p>
+                                    <p class="mb-2"><strong>Created:</strong> ${createdAt}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-2"><strong>Approval Status:</strong> <span class="badge bg-${approvalBadgeColor}">${appt.approval_status}</span></p>
+                                    <p class="mb-2"><strong>Appointment Status:</strong> <span class="badge bg-${statusBadgeColor}">${appt.status}</span></p>
+                                    ${appt.meet_link ? `<p class="mb-0"><strong>Meet Link:</strong> <a href="${appt.meet_link}" target="_blank" class="text-decoration-none">${appt.meet_link}</a></p>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            ${appt.symptoms ? `
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-notes-medical text-danger me-2"></i>Patient Symptoms</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">${appt.symptoms}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+            
+            ${appt.decline_reason ? `
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <div class="alert alert-warning">
+                        <h6 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Decline Reason</h6>
+                        <p class="mb-0">${appt.decline_reason}</p>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+        `;
+        
+    } catch (error) {
+        console.error('Error loading appointment details:', error);
+        const contentDiv = document.getElementById('appointmentDetailsContent');
+        contentDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <strong>Error:</strong> Failed to load appointment details. Please try again.
+            </div>
+        `;
+    }
 }
 
 // ============ DOCTOR MANAGEMENT FUNCTIONS ============

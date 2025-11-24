@@ -1429,6 +1429,64 @@ def decline_appointment(appointment_id):
         logging.error(f"Decline appointment error: {e}")
         return jsonify({"error": f"Failed to decline appointment: {str(e)}"}), 500
 
+@bp.route("/api/appointments/<int:appointment_id>", methods=["GET"])
+def get_appointment_details(appointment_id):
+    """Get detailed information about a specific appointment"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        appointment = Appointment.query.get(appointment_id)
+        if not appointment:
+            return jsonify({"error": "Appointment not found"}), 404
+        
+        # Get patient and doctor details
+        patient = User.query.get(appointment.user_id)
+        doctor = User.query.get(appointment.doctor_id)
+        time_slot = TimeSlot.query.get(appointment.slot_id) if appointment.slot_id else None
+        
+        appointment_details = {
+            "id": appointment.id,
+            "patient": {
+                "id": patient.id if patient else None,
+                "name": patient.name if patient else "Unknown",
+                "email": patient.email if patient else "N/A",
+                "phone": patient.phone if patient else "N/A"
+            },
+            "doctor": {
+                "id": doctor.id if doctor else None,
+                "name": doctor.name if doctor else "Unknown",
+                "email": doctor.email if doctor else "N/A",
+                "phone": doctor.phone if doctor else "N/A",
+                "specialization": doctor.specialization if doctor else "N/A",
+                "qualification": doctor.qualification if doctor else "N/A"
+            },
+            "appointment_date": appointment.appointment_date.isoformat() if appointment.appointment_date else None,
+            "starts_at": appointment.starts_at.isoformat() if appointment.starts_at else None,
+            "ends_at": appointment.ends_at.isoformat() if appointment.ends_at else None,
+            "symptoms": appointment.symptoms,
+            "status": appointment.status,
+            "approval_status": appointment.approval_status,
+            "decline_reason": appointment.decline_reason,
+            "meet_link": appointment.meet_link,
+            "created_at": appointment.created_at.isoformat() if appointment.created_at else None,
+            "updated_at": appointment.updated_at.isoformat() if appointment.updated_at else None,
+            "time_slot": {
+                "starts_at": time_slot.starts_at.isoformat() if time_slot and time_slot.starts_at else None,
+                "ends_at": time_slot.ends_at.isoformat() if time_slot and time_slot.ends_at else None
+            } if time_slot else None
+        }
+        
+        return jsonify({
+            "success": True,
+            "appointment": appointment_details
+        })
+        
+    except Exception as e:
+        logging.error(f"Get appointment details error: {e}")
+        return jsonify({"error": f"Failed to retrieve appointment details: {str(e)}"}), 500
+
 @bp.route("/api/appointments/<int:appointment_id>", methods=["DELETE"])
 def cancel_appointment(appointment_id):
     """Cancel an approved appointment"""
