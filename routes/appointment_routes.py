@@ -364,10 +364,13 @@ def get_available_slots(doctor_id):
             return jsonify({"error": "Doctor not found"}), 404
         
         # Get doctor's available time slots for the target date
+        # Only show future slots (not past slots if today is selected)
+        now = datetime.now()
         available_slots = TimeSlot.query.filter(
             TimeSlot.doctor_id == doctor_id,
             TimeSlot.appointment_date == target_date,
-            TimeSlot.is_booked == False
+            TimeSlot.is_booked == False,
+            TimeSlot.starts_at > now  # Only future slots
         ).order_by(TimeSlot.starts_at).all()
         
         slots = []
