@@ -402,31 +402,31 @@
             </div>
         </div>
 
-        <!-- Time Slots Section -->
+        <!-- Time Slots Section (Doctor Availability) -->
         <div id="timeslotsSection" class="admin-section" style="display: none;">
             <h2 class="mb-4">
-                <i class="fas fa-clock text-danger me-2"></i>Time Slots Management
+                <i class="fas fa-calendar-week text-danger me-2"></i>Doctor Availability Management
             </h2>
             
-            <!-- Add Time Slot Card -->
+            <!-- Add Availability Card -->
             <div class="card mb-4">
-                <div class="card-header">
+                <div class="card-header bg-danger text-white">
                     <h5 class="mb-0">
-                        <i class="fas fa-plus me-2"></i>Add New Time Slot
+                        <i class="fas fa-plus me-2"></i>Add Doctor Availability
                     </h5>
                 </div>
                 <div class="card-body">
                     <form id="addTimeSlotForm">
                         <div class="row">
-                            <div class="col-md-3">
-                                <label class="form-label">Doctor</label>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Doctor *</label>
                                 <select class="form-select" id="slotDoctorId" required>
                                     <option value="">Select Doctor</option>
                                     <!-- Will be populated dynamically -->
                                 </select>
                             </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Day</label>
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label">Day of Week *</label>
                                 <select class="form-select" id="slotDayOfWeek" required>
                                     <option value="0">Monday</option>
                                     <option value="1">Tuesday</option>
@@ -437,21 +437,26 @@
                                     <option value="6">Sunday</option>
                                 </select>
                             </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Start Time</label>
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label">Start Time *</label>
                                 <input type="time" class="form-control" id="slotStartTime" required>
                             </div>
-                            <div class="col-md-2">
-                                <label class="form-label">End Time</label>
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label">End Time *</label>
                                 <input type="time" class="form-control" id="slotEndTime" required>
                             </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Max Appointments</label>
-                                <input type="number" class="form-control" id="slotMaxAppointments" value="1" min="1" max="5">
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label">Slot Duration (min) *</label>
+                                <select class="form-select" id="slotDuration">
+                                    <option value="15">15 minutes</option>
+                                    <option value="30" selected>30 minutes</option>
+                                    <option value="45">45 minutes</option>
+                                    <option value="60">60 minutes</option>
+                                </select>
                             </div>
-                            <div class="col-md-1 d-flex align-items-end">
-                                <button type="submit" class="btn btn-success">
-                                    <i class="fas fa-plus"></i>
+                            <div class="col-md-1 mb-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-danger w-100">
+                                    <i class="fas fa-plus"></i> Add
                                 </button>
                             </div>
                         </div>
@@ -459,60 +464,70 @@
                 </div>
             </div>
             
-            <!-- Time Slots by Day -->
+            <!-- Availability List -->
             <div class="row">
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">Weekly Time Slots</h5>
-                            <button class="btn btn-primary btn-sm" onclick="loadTimeSlots()">
-                                <i class="fas fa-sync-alt me-1"></i>Refresh
-                            </button>
+                            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Doctor Weekly Schedules</h5>
+                            <div>
+                                <button class="btn btn-sm btn-outline-success me-2" onclick="generateTimeSlots()">
+                                    <i class="fas fa-cogs me-1"></i>Generate Time Slots
+                                </button>
+                                <button class="btn btn-primary btn-sm" onclick="adminDashboard.loadTimeSlots()">
+                                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                                </button>
+                            </div>
                         </div>
                         <div class="card-body">
                             <!-- Day Tabs -->
                             <ul class="nav nav-pills mb-3" id="dayTabs">
                                 <li class="nav-item">
-                                    <a class="nav-link active" href="#" onclick="filterSlotsByDay(0)">Monday</a>
+                                    <a class="nav-link active" href="#" onclick="filterAvailabilityByDay(-1); return false;">All Days</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="#" onclick="filterSlotsByDay(1)">Tuesday</a>
+                                    <a class="nav-link" href="#" onclick="filterAvailabilityByDay(0); return false;">Mon</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="#" onclick="filterSlotsByDay(2)">Wednesday</a>
+                                    <a class="nav-link" href="#" onclick="filterAvailabilityByDay(1); return false;">Tue</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="#" onclick="filterSlotsByDay(3)">Thursday</a>
+                                    <a class="nav-link" href="#" onclick="filterAvailabilityByDay(2); return false;">Wed</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="#" onclick="filterSlotsByDay(4)">Friday</a>
+                                    <a class="nav-link" href="#" onclick="filterAvailabilityByDay(3); return false;">Thu</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="#" onclick="filterSlotsByDay(5)">Saturday</a>
+                                    <a class="nav-link" href="#" onclick="filterAvailabilityByDay(4); return false;">Fri</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="#" onclick="filterSlotsByDay(6)">Sunday</a>
+                                    <a class="nav-link" href="#" onclick="filterAvailabilityByDay(5); return false;">Sat</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="#" onclick="filterSlotsByDay(-1)">All Days</a>
+                                    <a class="nav-link" href="#" onclick="filterAvailabilityByDay(6); return false;">Sun</a>
                                 </li>
                             </ul>
                             
-                            <!-- Time Slots Table -->
+                            <!-- Availability Table -->
                             <div class="table-responsive">
                                 <table class="table table-hover">
-                                    <thead>
+                                    <thead class="table-light">
                                         <tr>
                                             <th>Doctor</th>
                                             <th>Day</th>
-                                            <th>Time</th>
-                                            <th>Available</th>
-                                            <th>Max Appointments</th>
+                                            <th>Time Range</th>
+                                            <th>Slot Duration</th>
+                                            <th>Status</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="timeSlotsTableBody">
-                                        <!-- Time slots will be loaded here -->
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted py-4">
+                                                <i class="fas fa-calendar-plus fa-3x mb-3 d-block"></i>
+                                                No doctor availability schedules found. Add one above to get started.
+                                            </td>
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>

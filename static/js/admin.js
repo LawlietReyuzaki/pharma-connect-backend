@@ -401,11 +401,11 @@ class AdminDashboard {
         });
     }
 
-    // ============ TIME SLOTS MANAGEMENT ============
+    // ============ DOCTOR AVAILABILITY MANAGEMENT ============
     
     async loadTimeSlots() {
         try {
-            const response = await fetch('/admin/api/timeslots', {
+            const response = await fetch('/admin/api/availability', {
                 headers: {
                     'Authorization': `Bearer ${this.authToken}`
                 }
@@ -413,11 +413,12 @@ class AdminDashboard {
 
             if (response.ok) {
                 const data = await response.json();
-                this.renderTimeSlotsTable(data.time_slots);
+                this.currentAvailabilities = data.availabilities || [];
+                this.renderAvailabilityTable(this.currentAvailabilities);
                 this.loadDoctorsForSlots();
             }
         } catch (error) {
-            console.error('Error loading time slots:', error);
+            console.error('Error loading availabilities:', error);
         }
     }
 
@@ -435,7 +436,7 @@ class AdminDashboard {
                 if (doctorSelect) {
                     doctorSelect.innerHTML = '<option value="">Select Doctor</option>';
                     data.users.forEach(doctor => {
-                        doctorSelect.innerHTML += `<option value="${doctor.id}">${doctor.name}</option>`;
+                        doctorSelect.innerHTML += `<option value="${doctor.id}">${doctor.name} - ${doctor.specialization || 'General'}</option>`;
                     });
                 }
             }
@@ -444,38 +445,49 @@ class AdminDashboard {
         }
     }
 
-    renderTimeSlotsTable(timeSlots) {
+    renderAvailabilityTable(availabilities) {
         const tbody = document.getElementById('timeSlotsTableBody');
         if (!tbody) return;
 
         tbody.innerHTML = '';
 
-        timeSlots.forEach(slot => {
+        if (availabilities.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                        <i class="fas fa-calendar-plus fa-3x mb-3 d-block"></i>
+                        No doctor availability schedules found. Add one above to get started.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        availabilities.forEach(avail => {
             const row = document.createElement('tr');
+            const statusBadge = avail.is_active ? 
+                '<span class="badge bg-success">Active</span>' : 
+                '<span class="badge bg-secondary">Inactive</span>';
             
             row.innerHTML = `
-                <td>${slot.doctor_name}</td>
-                <td>${slot.day_name}</td>
-                <td>${slot.start_time} - ${slot.end_time}</td>
+                <td><strong>${avail.doctor_name}</strong></td>
+                <td><span class="badge bg-primary">${avail.day_name}</span></td>
+                <td>${avail.start_time} - ${avail.end_time}</td>
+                <td>${avail.slot_duration} min</td>
+                <td>${statusBadge}</td>
                 <td>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" ${slot.is_available ? 'checked' : ''} 
-                               onchange="toggleSlotAvailability(${slot.id}, this.checked)">
-                    </div>
-                </td>
-                <td>
-                    <input type="number" class="form-control form-control-sm" style="width: 80px;" 
-                           value="${slot.max_appointments}" min="1" max="10" 
-                           onchange="updateSlotMaxAppointments(${slot.id}, this.value)">
-                </td>
-                <td>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteTimeSlot(${slot.id})" title="Delete Slot">
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteAvailability(${avail.id})" title="Delete">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
             `;
             tbody.appendChild(row);
         });
+    }
+
+    renderTimeSlotsTable(data) {
+        // Alias for compatibility
+        this.renderAvailabilityTable(data);
     }
 
     // ============ DOCTORS MANAGEMENT ============
@@ -763,7 +775,7 @@ async function addTimeSlot(event) {
     const dayOfWeek = document.getElementById('slotDayOfWeek').value;
     const startTime = document.getElementById('slotStartTime').value;
     const endTime = document.getElementById('slotEndTime').value;
-    const maxAppointments = document.getElementById('slotMaxAppointments').value;
+    const slotDuration = document.getElementById('slotDuration').value;
     
     if (!doctorId || !startTime || !endTime) {
         alert('Please fill in all required fields');
@@ -771,7 +783,7 @@ async function addTimeSlot(event) {
     }
     
     try {
-        const response = await fetch('/admin/api/timeslots', {
+        const response = await fetch('/admin/api/availability', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${adminDashboard.authToken}`,
@@ -782,22 +794,94 @@ async function addTimeSlot(event) {
                 day_of_week: parseInt(dayOfWeek),
                 start_time: startTime,
                 end_time: endTime,
-                max_appointments: parseInt(maxAppointments)
+                slot_duration: parseInt(slotDuration)
             })
         });
         
         const result = await response.json();
         
         if (response.ok) {
-            alert('Time slot created successfully!');
+            alert('Doctor availability added successfully! Time slots will be auto-generated.');
             document.getElementById('addTimeSlotForm').reset();
             adminDashboard.loadTimeSlots();
         } else {
-            alert(result.error || 'Failed to create time slot');
+            alert(result.error || 'Failed to add availability');
         }
     } catch (error) {
-        console.error('Error creating time slot:', error);
-        alert('Failed to create time slot');
+        console.error('Error adding availability:', error);
+        alert('Failed to add availability');
+    }
+}
+
+async function deleteAvailability(availId) {
+    if (!confirm('Are you sure you want to delete this availability schedule?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/api/availability/${availId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${adminDashboard.authToken}`
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Availability deleted successfully!');
+            adminDashboard.loadTimeSlots();
+        } else {
+            alert(result.error || 'Failed to delete availability');
+        }
+    } catch (error) {
+        console.error('Error deleting availability:', error);
+        alert('Failed to delete availability');
+    }
+}
+
+function filterAvailabilityByDay(dayOfWeek) {
+    // Update active tab
+    const tabs = document.querySelectorAll('#dayTabs .nav-link');
+    tabs.forEach(tab => tab.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Filter the current availabilities
+    if (!adminDashboard.currentAvailabilities) {
+        return;
+    }
+    
+    const filtered = dayOfWeek === -1 ? 
+        adminDashboard.currentAvailabilities :
+        adminDashboard.currentAvailabilities.filter(a => a.day_of_week === dayOfWeek);
+    
+    adminDashboard.renderAvailabilityTable(filtered);
+}
+
+async function generateTimeSlots() {
+    if (!confirm('This will generate time slots for all active doctor availabilities for the next 30 days. Continue?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/admin/api/availability/generate-slots', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${adminDashboard.authToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert(result.message || 'Time slots generated successfully!');
+        } else {
+            alert(result.error || 'Failed to generate time slots');
+        }
+    } catch (error) {
+        console.error('Error generating time slots:', error);
+        alert('Failed to generate time slots');
     }
 }
 
