@@ -330,6 +330,10 @@ def list_doctors():
                 "name": doctor.name,
                 "email": doctor.email,
                 "phone": doctor.phone,
+                "specialization": doctor.specialization,
+                "qualification": doctor.qualification,
+                "experience_years": doctor.experience_years,
+                "current_hospital": doctor.current_hospital,
                 "upcoming_appointments": upcoming_count
             })
         
