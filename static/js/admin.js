@@ -79,6 +79,14 @@ class AdminDashboard {
     // ============ SECTION MANAGEMENT ============
     
     showSection(sectionName) {
+        // Check if auth token is available before switching sections
+        if (!this.authToken) {
+            console.warn('Auth token not ready, deferring section switch');
+            // Retry after a short delay
+            setTimeout(() => this.showSection(sectionName), 100);
+            return;
+        }
+
         // Hide all sections
         const sections = document.querySelectorAll('.admin-section');
         sections.forEach(section => {
