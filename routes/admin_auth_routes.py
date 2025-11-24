@@ -58,7 +58,7 @@ def admin_login():
             return jsonify({"error": "No data provided"}), 400
         
         email = data.get("email", "").strip()
-        password = data.get("password", "")
+        password = data.get("password", "").strip()
         
         if not email or not password:
             return jsonify({"error": "Email and password are required"}), 400
