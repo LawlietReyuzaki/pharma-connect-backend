@@ -697,7 +697,7 @@ def list_time_slots():
         if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
-        time_slots = TimeSlot.query.join(User).order_by(TimeSlot.day_of_week, TimeSlot.start_time).all()
+        time_slots = TimeSlot.query.join(User).order_by(TimeSlot.appointment_date, TimeSlot.starts_at).all()
         
         slots_list = []
         for slot in time_slots:
@@ -705,13 +705,14 @@ def list_time_slots():
                 "id": slot.id,
                 "doctor_id": slot.doctor_id,
                 "doctor_name": slot.doctor.name,
-                "day_of_week": slot.day_of_week,
-                "day_name": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][slot.day_of_week],
-                "start_time": slot.start_time.strftime("%H:%M"),
-                "end_time": slot.end_time.strftime("%H:%M"),
-                "is_available": slot.is_available,
-                "max_appointments": slot.max_appointments,
-                "created_at": slot.created_at.isoformat()
+                "appointment_date": slot.appointment_date.isoformat() if slot.appointment_date else None,
+                "starts_at": slot.starts_at.isoformat() if slot.starts_at else None,
+                "ends_at": slot.ends_at.isoformat() if slot.ends_at else None,
+                "start_time": slot.starts_at.strftime("%H:%M") if slot.starts_at else "",
+                "end_time": slot.ends_at.strftime("%H:%M") if slot.ends_at else "",
+                "is_booked": slot.is_booked,
+                "google_event_id": slot.google_event_id,
+                "created_at": slot.created_at.isoformat() if slot.created_at else None
             })
         
         return jsonify({"success": True, "time_slots": slots_list})
