@@ -18,10 +18,14 @@ Preferred communication style: Simple, everyday language.
 
 ### Database Design
 - **Users table** with role-based access control (patient/doctor/admin)
+  - Doctor-specific fields: specialization, qualification, experience_years, current_hospital
+  - Google OAuth integration for calendar access
 - **Medicines table** with inventory management and categorization
+- **TimeSlots table** for doctor availability management
 - **Appointments table** linking patients to doctors with video call support
 - **Orders/OrderItems** for medicine purchase workflow
 - **ChatLog** for tracking conversational AI interactions
+- **Admins table** for secure admin authentication (JWT-based)
 
 ### Authentication & Authorization
 - SHA256 password hashing for user security
@@ -43,10 +47,28 @@ Preferred communication style: Simple, everyday language.
 - **Chart.js** for admin dashboard analytics
 - **Font Awesome** for consistent iconography
 
+### Doctor Management
+- **Admin Panel Features**:
+  - Add, edit, and delete doctors from the admin dashboard
+  - Manage doctor profiles (specialization, experience, qualifications, hospital)
+  - View appointment counts and doctor statistics
+  - Time slot management for each doctor
+- **Customer-Facing Features**:
+  - Browse available doctors with detailed profiles
+  - Select doctors by specialization and availability
+  - View doctor experience, qualifications, and current hospital
+  - Book appointments with specific doctors
+- **Appointment Workflow**:
+  - Customer selects doctor and available time slot
+  - Admin reviews and approves appointment requests
+  - Google Meet links generated automatically for approved appointments
+  - Status tracking (pending → approved → scheduled → ongoing → completed)
+
 ### Video Consultation
-- **Jitsi Meet** embedded iframe solution (no server infrastructure required)
-- **Google Calendar API** integration for appointment scheduling
-- **Appointment status workflow** (scheduled → ongoing → completed)
+- **Google Meet** integration for video consultations
+- **Google Calendar API** for automatic appointment scheduling
+- **Time slot system** prevents double-booking
+- **Appointment approval workflow** managed by admin
 
 ### Order Management
 - **Shopping cart** with local storage persistence
