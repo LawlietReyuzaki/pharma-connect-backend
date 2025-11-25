@@ -77,6 +77,32 @@ Preferred communication style: Simple, everyday language.
 - **Order status tracking** (pending → processing → delivered)
 - **Address and phone validation** for delivery coordination
 
+### Payment Management
+- **Dedicated Payment Admin Page** at `/admin/payments` for full payment method control
+- **PaymentMethod model** with fields:
+  - name, slug, logo_path
+  - account_title, account_number (for displaying to customers)
+  - account_details (additional instructions)
+  - is_active (admin toggle), requires_receipt
+  - display_order for sorting
+- **Supported Payment Methods**:
+  - Cash on Delivery
+  - EasyPaisa (online, requires receipt)
+  - JazzCash (online, requires receipt)
+  - Meezan Bank (online, requires receipt)
+  - NayaPay (online, requires receipt)
+- **Admin Features**:
+  - Add/Edit account title and account number for each method
+  - Toggle payment methods on/off
+  - Set display order
+  - View and verify payment receipts
+  - Accept/Decline payments
+- **Customer Features**:
+  - View active payment methods during checkout
+  - See account details (title, number) with copy button
+  - Upload payment receipt for online payments
+  - Order confirmation shows selected payment method info
+
 ## External Dependencies
 
 ### Core Framework
