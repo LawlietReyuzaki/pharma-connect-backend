@@ -76,6 +76,17 @@ def create_order():
         order.notes = data.get("notes", "")
         order.status = "pending"
         
+        # Handle payment receipt for online payments
+        payment_receipt = data.get("payment_receipt_path")
+        if payment_receipt:
+            order.payment_receipt_path = payment_receipt
+            order.receipt_uploaded_at = datetime.utcnow()
+            order.payment_status = "pending"
+        elif order.payment_method == "cash_on_delivery":
+            order.payment_status = "pending"
+        else:
+            order.payment_status = "pending"
+        
         db.session.add(order)
         db.session.flush()  # Get order ID
         

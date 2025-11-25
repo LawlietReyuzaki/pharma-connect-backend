@@ -1,0 +1,73 @@
+Please update and expand the entire Payment System in our website with the following requirements:
+
+1. Add New Payment Methods:
+   Currently the user only sees Cash and EasyPaisa.  
+   I want to add these new methods:
+   - Meezan Bank Transfer
+   - NayaPay
+   - JazzCash
+   - EasyPaisa (already exists)
+   - Cash on Delivery (keep as default)
+
+   Each payment method must display its logo (I will upload the image files manually).
+
+2. Patient Side – During Order Placement:
+   When the user selects any *online payment method* (EasyPaisa, JazzCash, Meezan Bank, NayaPay), then:
+   - A “Upload Payment Receipt” option must appear.
+   - User must upload a receipt image (PNG, JPG, JPEG only).
+   - Without uploading a receipt, the order cannot be submitted or marked as successful.
+   - After upload, show a preview of the receipt image.
+   - Save receipt URL/path with the order details in the database.
+
+3. Admin Panel – New Payment Management Section:
+   Create a separate section inside Admin Panel called “Payments”.
+   In this section admin should be able to:
+   - View all payments made by users.
+   - See payment method, status, order ID, customer details, amount, and receipt image.
+   - Full authority to Accept, Decline, or Mark Pending.
+   - Download or open receipt image.
+   - See receipt upload time.
+
+4. Admin Payment Method Controls:
+   Add a toggle switch for each payment method:
+   - EasyPaisa
+   - JazzCash
+   - Meezan Bank
+   - NayaPay
+   - Cash on Delivery
+
+   Admin can turn ON/OFF payment methods anytime.  
+   If OFF, the customer should not see that option during ordering.
+
+5. Order Page (Customer Order Summary):
+   When a customer selects an online payment method, the order summary page must show:
+   - Payment Method with its logo
+   - “Receipt Uploaded” or “Receipt Not Uploaded”
+   - Thumbnail preview of receipt
+
+6. Order Management (Admin):
+   Fix the order panel so admin can see:
+   - All new orders
+   - Payment method used
+   - Receipt image if online payment
+   - Status updates related to payment (Pending / Accepted / Declined)
+
+7. Frontend UI Requirement:
+   When the customer is selecting a payment method on checkout, show:
+   - Logo of EasyPaisa
+   - Logo of JazzCash
+   - Logo of Meezan Bank
+   - Logo of NayaPay
+   - Logo of Cash on Delivery
+
+   (I will upload the logos; just place the image slots.)
+
+8. Complete System Flow Required:
+   - Customer chooses payment method
+   - If online payment → receipt upload required
+   - Store receipt image in backend
+   - Order saved correctly with all payment details
+   - Admin sees order + payment + receipt in Payment Management
+   - Admin can approve/decline manually
+
+Please implement all these features fully and fix any backend/frontend issues preventing orders or payments from saving or displaying correctly.

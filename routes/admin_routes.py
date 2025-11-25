@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, render_template
 from datetime import datetime, timedelta, date, time as dt_time
 from services.auth import require_auth, get_current_user, require_role
 from routes.admin_auth_routes import get_current_admin, require_admin
-from models import User, Medicine, Appointment, Order, OrderItem, ChatLog, TimeSlot, DoctorAvailability
+from models import User, Medicine, Appointment, Order, OrderItem, ChatLog, TimeSlot, DoctorAvailability, PaymentMethod, Admin
 from app import db
 import logging
 import hashlib
@@ -1829,3 +1829,198 @@ def update_admin_order_status(order_id):
         db.session.rollback()
         logging.error(f"Update admin order status error: {e}")
         return jsonify({"error": f"Failed to update order status: {str(e)}"}), 500
+
+# ============ PAYMENT MANAGEMENT ============
+
+@bp.route("/api/payments", methods=["GET"])
+def list_admin_payments():
+    """List all payments (orders with payment info) for admin"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        # Get all orders sorted by date
+        orders = Order.query.order_by(Order.created_at.desc()).all()
+        
+        payments = []
+        for order in orders:
+            customer = User.query.get(order.user_id)
+            
+            payments.append({
+                "id": order.id,
+                "order_id": order.id,
+                "customer_name": customer.name if customer else "Unknown",
+                "customer_email": customer.email if customer else "N/A",
+                "customer_phone": order.phone,
+                "amount": order.total_amount,
+                "payment_method": order.payment_method,
+                "payment_status": order.payment_status or "pending",
+                "receipt_path": order.payment_receipt_path,
+                "receipt_uploaded_at": order.receipt_uploaded_at.isoformat() if order.receipt_uploaded_at else None,
+                "order_status": order.status,
+                "verified_at": order.payment_verified_at.isoformat() if order.payment_verified_at else None,
+                "created_at": order.created_at.isoformat() if order.created_at else None
+            })
+        
+        return jsonify({
+            "success": True,
+            "payments": payments,
+            "total_count": len(payments)
+        })
+        
+    except Exception as e:
+        logging.error(f"List admin payments error: {e}")
+        return jsonify({"error": f"Failed to retrieve payments: {str(e)}"}), 500
+
+@bp.route("/api/payments/<int:order_id>/status", methods=["PUT"])
+def update_payment_status(order_id):
+    """Update payment status (accept/decline/pending)"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        data = request.get_json()
+        if not data or "payment_status" not in data:
+            return jsonify({"error": "Payment status is required"}), 400
+        
+        order = Order.query.get_or_404(order_id)
+        
+        valid_statuses = ["pending", "accepted", "declined"]
+        if data["payment_status"] not in valid_statuses:
+            return jsonify({"error": f"Invalid status. Valid options: {', '.join(valid_statuses)}"}), 400
+        
+        order.payment_status = data["payment_status"]
+        order.payment_verified_at = datetime.utcnow()
+        order.payment_verified_by = current_admin.id
+        
+        # If payment is accepted and order is pending, update order status to confirmed
+        if data["payment_status"] == "accepted" and order.status == "pending":
+            order.status = "confirmed"
+        
+        # If payment is declined, add note
+        if data["payment_status"] == "declined":
+            note = data.get("note", "Payment declined by admin")
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M')
+            note_entry = f"[{timestamp}] Payment declined: {note}"
+            if order.notes:
+                order.notes += f"\n{note_entry}"
+            else:
+                order.notes = note_entry
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": f"Payment status updated to {data['payment_status']}",
+            "payment": {
+                "order_id": order.id,
+                "payment_status": order.payment_status,
+                "order_status": order.status,
+                "verified_at": order.payment_verified_at.isoformat() if order.payment_verified_at else None
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Update payment status error: {e}")
+        return jsonify({"error": f"Failed to update payment status: {str(e)}"}), 500
+
+@bp.route("/api/payment-methods", methods=["GET"])
+def get_admin_payment_methods():
+    """Get all payment methods for admin"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        methods = PaymentMethod.query.order_by(PaymentMethod.display_order).all()
+        
+        return jsonify({
+            "success": True,
+            "payment_methods": [{
+                "id": m.id,
+                "name": m.name,
+                "slug": m.slug,
+                "logo_path": m.logo_path,
+                "is_active": m.is_active,
+                "requires_receipt": m.requires_receipt,
+                "display_order": m.display_order,
+                "account_details": m.account_details
+            } for m in methods]
+        })
+        
+    except Exception as e:
+        logging.error(f"Get payment methods error: {e}")
+        return jsonify({"error": "Failed to get payment methods"}), 500
+
+@bp.route("/api/payment-methods/<int:method_id>/toggle", methods=["PUT"])
+def toggle_payment_method(method_id):
+    """Toggle payment method on/off"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        method = PaymentMethod.query.get_or_404(method_id)
+        method.is_active = not method.is_active
+        method.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": f"{method.name} is now {'active' if method.is_active else 'inactive'}",
+            "payment_method": {
+                "id": method.id,
+                "name": method.name,
+                "is_active": method.is_active
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Toggle payment method error: {e}")
+        return jsonify({"error": f"Failed to toggle payment method: {str(e)}"}), 500
+
+@bp.route("/api/payment-methods/<int:method_id>", methods=["PUT"])
+def update_payment_method(method_id):
+    """Update payment method details"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        method = PaymentMethod.query.get_or_404(method_id)
+        
+        if "account_details" in data:
+            method.account_details = data["account_details"]
+        if "is_active" in data:
+            method.is_active = data["is_active"]
+        if "display_order" in data:
+            method.display_order = data["display_order"]
+        
+        method.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": f"{method.name} updated successfully",
+            "payment_method": {
+                "id": method.id,
+                "name": method.name,
+                "slug": method.slug,
+                "is_active": method.is_active,
+                "account_details": method.account_details
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Update payment method error: {e}")
+        return jsonify({"error": f"Failed to update payment method: {str(e)}"}), 500

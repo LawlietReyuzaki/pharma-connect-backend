@@ -119,11 +119,20 @@ class Order(db.Model):
     delivery_fee = db.Column(db.Integer, default=100)  # PKR
     payment_method = db.Column(db.String(50), default="cash_on_delivery")
     notes = db.Column(db.Text)
+    
+    # Payment receipt fields for online payments
+    payment_receipt_path = db.Column(db.String(500), nullable=True)  # Path to uploaded receipt image
+    payment_status = db.Column(db.String(30), default="pending")  # pending|accepted|declined
+    payment_verified_at = db.Column(db.DateTime, nullable=True)
+    payment_verified_by = db.Column(db.Integer, db.ForeignKey('admins.admin_id'), nullable=True)
+    receipt_uploaded_at = db.Column(db.DateTime, nullable=True)
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     items = db.relationship('OrderItem', backref='order', lazy='dynamic', cascade='all, delete-orphan')
+    payment_verifier = db.relationship('Admin', foreign_keys=[payment_verified_by], backref='verified_payments')
 
 class OrderItem(db.Model):
     __tablename__ = 'order_items'
@@ -148,3 +157,26 @@ class ChatLog(db.Model):
     language = db.Column(db.String(10), default="ur")  # ur for Urdu, en for English
     flagged = db.Column(db.Boolean, default=False)  # For medical escalation
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Admin(db.Model):
+    __tablename__ = 'admins'
+    
+    admin_id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(256), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class PaymentMethod(db.Model):
+    __tablename__ = 'payment_methods'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)  # Display name: "EasyPaisa", "JazzCash", etc.
+    slug = db.Column(db.String(50), unique=True, nullable=False)  # Internal key: "easypaisa", "jazzcash", etc.
+    logo_path = db.Column(db.String(255))  # Path to logo image
+    is_active = db.Column(db.Boolean, default=True)  # Admin can toggle on/off
+    requires_receipt = db.Column(db.Boolean, default=False)  # True for online payments
+    display_order = db.Column(db.Integer, default=0)  # Order in which to display
+    account_details = db.Column(db.Text, nullable=True)  # Account number/details to show customer
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
