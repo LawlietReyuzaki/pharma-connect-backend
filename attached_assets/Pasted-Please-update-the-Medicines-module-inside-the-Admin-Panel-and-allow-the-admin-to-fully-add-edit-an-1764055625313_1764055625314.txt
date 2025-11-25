@@ -1,0 +1,81 @@
+Please update the Medicines module inside the Admin Panel and allow the admin to fully add, edit, and manage medicine pictures along with all medicine details.
+
+Admin Requirements:
+1. Admin must be able to upload a picture for every medicine.
+2. Admin must be able to edit or replace the picture.
+3. Image should be stored properly (Replit file storage or cloud link).
+4. Image must appear correctly in:
+   - Medicines List (admin side)
+   - Medicine Cards (user side)
+   - Medicine Details Page
+
+Functional Requirements:
+- Add image upload input field in the Add Medicine and Edit Medicine forms.
+- Validate image type (jpg, png, jpeg).
+- Display uploaded image preview before saving.
+- Save image path/link in the database under each medicine.
+- Ensure no broken images appear.
+
+Now insert the following medicines into the database with all details and an empty placeholder for images (admin will upload them manually):
+
+1. Category: Pain Relief
+   Name: Panadol Extra
+   Price: 180
+   Stock: 250
+   Description: Fast-acting pain reliever used for headache, fever, muscle pain, and general body aches. Suitable for adults and children above 12 years.
+
+2. Category: Pain Relief
+   Name: Brufen 400mg
+   Price: 220
+   Stock: 150
+   Description: Ibuprofen-based anti-inflammatory tablet used for acute pain, swelling, and menstrual cramps. Not recommended for stomach ulcer patients.
+
+3. Category: General Medicine
+   Name: Relaxon
+   Price: 150
+   Stock: 180
+   Description: Muscle relaxant used for stress-related muscle tension and spasms. Causes mild drowsiness.
+
+4. Category: General Medicine
+   Name: Disprol Syrup
+   Price: 90
+   Stock: 300
+   Description: Paracetamol-based syrup for fever and mild pain relief in children. Strawberry flavor.
+
+5. Category: Antibiotic
+   Name: Augmentin 625mg
+   Price: 980
+   Stock: 90
+   Description: Broad-spectrum antibiotic for throat, respiratory infection, sinusitis, and ear infections. Use only on doctor’s advice.
+
+6. Category: Antibiotic
+   Name: Azomax 500mg (Azithromycin)
+   Price: 450
+   Stock: 130
+   Description: Once-daily antibiotic for chest infections, typhoid, and skin infections.
+
+7. Category: Cardiovascular
+   Name: Concor 5mg
+   Price: 390
+   Stock: 110
+   Description: Beta-blocker used to control blood pressure and heart rate.
+
+8. Category: Respiratory
+   Name: Ventolin Inhaler
+   Price: 560
+   Stock: 70
+   Description: Bronchodilator inhaler used for asthma, wheezing, and shortness of breath.
+
+9. Category: Digestive Health
+   Name: Entamizole DS
+   Price: 130
+   Stock: 140
+   Description: Used for stomach infections, amoebiasis, diarrhea, and abdominal cramps.
+
+10. Category: Diabetes Care
+    Name: Glucophage 500mg
+    Price: 220
+    Stock: 200
+    Description: Metformin tablet for Type-2 diabetes management and blood sugar control.
+
+Make sure all medicines are added and image upload works perfectly inside the admin panel.
