@@ -1947,6 +1947,8 @@ def get_admin_payment_methods():
                 "is_active": m.is_active,
                 "requires_receipt": m.requires_receipt,
                 "display_order": m.display_order,
+                "account_title": m.account_title,
+                "account_number": m.account_number,
                 "account_details": m.account_details
             } for m in methods]
         })
@@ -1998,6 +2000,10 @@ def update_payment_method(method_id):
         
         method = PaymentMethod.query.get_or_404(method_id)
         
+        if "account_title" in data:
+            method.account_title = data["account_title"]
+        if "account_number" in data:
+            method.account_number = data["account_number"]
         if "account_details" in data:
             method.account_details = data["account_details"]
         if "is_active" in data:
@@ -2016,6 +2022,8 @@ def update_payment_method(method_id):
                 "name": method.name,
                 "slug": method.slug,
                 "is_active": method.is_active,
+                "account_title": method.account_title,
+                "account_number": method.account_number,
                 "account_details": method.account_details
             }
         })

@@ -177,6 +177,8 @@ class PaymentMethod(db.Model):
     is_active = db.Column(db.Boolean, default=True)  # Admin can toggle on/off
     requires_receipt = db.Column(db.Boolean, default=False)  # True for online payments
     display_order = db.Column(db.Integer, default=0)  # Order in which to display
-    account_details = db.Column(db.Text, nullable=True)  # Account number/details to show customer
+    account_title = db.Column(db.String(200), nullable=True)  # Account holder name
+    account_number = db.Column(db.String(100), nullable=True)  # Account number/IBAN
+    account_details = db.Column(db.Text, nullable=True)  # Additional instructions for customer
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

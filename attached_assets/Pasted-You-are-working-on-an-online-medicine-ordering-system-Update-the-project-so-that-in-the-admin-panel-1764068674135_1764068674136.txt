@@ -1,0 +1,71 @@
+You are working on an online medicine ordering system. Update the project so that in the admin panel under the path: 
+/payments/admin/payments  
+the admin has full authority to manage and edit all online payment details including:
+
+1. EasyPaisa Account Number  
+2. JazzCash Account Number  
+3. Meezan Bank Account Number (IBAN or Account No.)  
+4. NayaPay Account Number  
+
+=== ADMIN REQUIREMENTS ===
+• Admin must be able to:
+  - Add payment details
+  - Edit payment details
+  - Update payment details
+  - Save changes permanently in the database
+  - Toggle any payment method ON/OFF (example: enable EasyPaisa, disable JazzCash)
+
+• Payment methods must be stored in the database with fields:
+  - paymentMethodName
+  - accountTitle
+  - accountNumber
+  - status (active/inactive)
+
+=== PATIENT / ORDER PAGE REQUIREMENTS ===
+• When a patient places an order and selects “Online Payment”,  
+  the system must automatically display ONLY the payment methods  
+  that the admin marked as “active”.
+
+• For each active payment method, show:
+  - Logo (provided already in project)
+  - Account Title
+  - Account Number
+
+• These payment details must be fetched live from the database so that  
+  whenever admin edits payment details, updated information appears instantly  
+  on patient's checkout page.
+
+=== ORDER CONFIRMATION PAGE REQUIREMENTS ===
+• After the patient selects “Online Payment”, the selected payment method and its account number  
+  must appear on the final "Order Confirmation" page.
+
+=== BACKEND REQUIREMENTS ===
+• Create/update a database model named: PaymentMethod  
+• Add controllers for:
+    - getPaymentMethods()
+    - updatePaymentMethod()
+    - activateOrDeactivateMethod()
+
+• Ensure API endpoints are secure and only accessible by admin.
+
+=== FRONTEND REQUIREMENTS ===
+• In admin panel:
+/payments/admin/payments — create a full management UI:
+    - Show list of all payment methods
+    - Edit button for each payment method
+    - Toggle switch (ON/OFF)
+    - Save changes button
+
+• In checkout page:
+    - Show only active payment methods
+    - Display their account numbers clearly
+
+Please generate:
+✔ Backend (models, routes, controllers)  
+✔ Frontend admin UI  
+✔ Checkout page UI  
+✔ Database schema  
+✔ API integration  
+✔ Proper validation  
+✔ Error handling  
+✔ Clean and maintainable code

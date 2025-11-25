@@ -33,6 +33,8 @@ def get_payment_methods():
                 "slug": m.slug,
                 "logo_path": m.logo_path,
                 "requires_receipt": m.requires_receipt,
+                "account_title": m.account_title,
+                "account_number": m.account_number,
                 "account_details": m.account_details
             } for m in methods]
         })
@@ -97,7 +99,9 @@ def init_payment_methods():
                 "is_active": True,
                 "requires_receipt": False,
                 "display_order": 1,
-                "account_details": None
+                "account_title": None,
+                "account_number": None,
+                "account_details": "Pay in cash when your order is delivered"
             },
             {
                 "name": "EasyPaisa",
@@ -106,7 +110,9 @@ def init_payment_methods():
                 "is_active": True,
                 "requires_receipt": True,
                 "display_order": 2,
-                "account_details": "Account: 0300-XXXXXXX"
+                "account_title": "Red Dot Pharmacy",
+                "account_number": "0300-XXXXXXX",
+                "account_details": "Send payment via EasyPaisa app and upload receipt"
             },
             {
                 "name": "JazzCash",
@@ -115,7 +121,9 @@ def init_payment_methods():
                 "is_active": True,
                 "requires_receipt": True,
                 "display_order": 3,
-                "account_details": "Account: 0300-XXXXXXX"
+                "account_title": "Red Dot Pharmacy",
+                "account_number": "0300-XXXXXXX",
+                "account_details": "Send payment via JazzCash app and upload receipt"
             },
             {
                 "name": "Meezan Bank",
@@ -124,7 +132,9 @@ def init_payment_methods():
                 "is_active": True,
                 "requires_receipt": True,
                 "display_order": 4,
-                "account_details": "Account: XXXXXXXXXX"
+                "account_title": "Red Dot Pharmacy",
+                "account_number": "PK00MEZN0000000000000000",
+                "account_details": "Transfer via bank app and upload receipt"
             },
             {
                 "name": "NayaPay",
@@ -133,7 +143,9 @@ def init_payment_methods():
                 "is_active": True,
                 "requires_receipt": True,
                 "display_order": 5,
-                "account_details": "Account: XXXXXXXXXX"
+                "account_title": "Red Dot Pharmacy",
+                "account_number": "0300-XXXXXXX",
+                "account_details": "Send payment via NayaPay and upload receipt"
             }
         ]
         
@@ -145,6 +157,8 @@ def init_payment_methods():
             method.is_active = method_data["is_active"]
             method.requires_receipt = method_data["requires_receipt"]
             method.display_order = method_data["display_order"]
+            method.account_title = method_data["account_title"]
+            method.account_number = method_data["account_number"]
             method.account_details = method_data["account_details"]
             db.session.add(method)
         
