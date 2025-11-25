@@ -1,0 +1,19 @@
+The service worker navigation preload request was cancelled before 'preloadResponse' settled. If you intend to use 'preloadResponse', use waitUntil() or respondWith() to wait for the promise to settle.Understand this error
+13The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.Understand this error
+13The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?Understand this error
+13The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.Understand this error
+UrduBotBooker:1 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.Understand this error
+UrduBotBooker:1 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?Understand this error
+UrduBotBooker:1 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.Understand this error
+ed1e693c96a75807.js:2 Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+z @ ed1e693c96a75807.js:2Understand this error
+ed1e693c96a75807.js:2 Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+z @ ed1e693c96a75807.js:2Understand this error
+workspace_iframe.html?initialPath=%2Fadmin%2Fpayments&id=%3Argq%3A:32 Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.Understand this error
+af8eb87e-3b6a-4703-b436-1a1f7b823920-00-28dp31yh8gjkh.riker.replit.dev/admin/api/payment-methods:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+af8eb87e-3b6a-4703-b436-1a1f7b823920-00-28dp31yh8gjkh.riker.replit.dev/admin/api/payment-methods:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+af8eb87e-3b6a-4703-b436-1a1f7b823920-00-28dp31yh8gjkh.riker.replit.dev/admin/api/payment-methods:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+workspace_iframe.html?initialPath=%2Fadmin%2Fpayments&id=%3Argq%3A:32 Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.Understand this error
+af8eb87e-3b6a-4703-b436-1a1f7b823920-00-28dp31yh8gjkh.riker.replit.dev/admin/api/payment-methods:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+injected.js:37 Error loading payment methods: Error: Failed to get payment methods
+    at loadPaymentMethods (payments:265:27)
