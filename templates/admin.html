@@ -753,6 +753,117 @@
         </div>
     </div>
 
+    <!-- Edit Medicine Modal -->
+    <div class="modal fade" id="editMedicineModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Edit Medicine</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editMedicineForm" enctype="multipart/form-data">
+                        <input type="hidden" id="editMedicineId" name="id">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Medicine Name *</label>
+                                    <input type="text" class="form-control" id="editMedicineName" name="name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Chemical/Generic Name</label>
+                                    <input type="text" class="form-control" id="editMedicineChemical" name="chemical">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Price (PKR) *</label>
+                                    <input type="number" class="form-control" id="editMedicinePrice" name="price" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Stock Quantity *</label>
+                                    <input type="number" class="form-control" id="editMedicineStock" name="stock_quantity" min="0" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Category *</label>
+                                    <select class="form-select" id="editMedicineCategory" name="category" required>
+                                        <option value="">Select Category</option>
+                                        <option value="General">General Medicine</option>
+                                        <option value="Pain Relief">Pain Relief</option>
+                                        <option value="Antibiotics">Antibiotics</option>
+                                        <option value="Antibiotic">Antibiotic</option>
+                                        <option value="Cardiovascular">Cardiovascular</option>
+                                        <option value="Respiratory">Respiratory</option>
+                                        <option value="Digestive">Digestive Health</option>
+                                        <option value="Digestive Health">Digestive Health</option>
+                                        <option value="Diabetes">Diabetes Care</option>
+                                        <option value="Diabetes Care">Diabetes Care</option>
+                                        <option value="Vitamins">Vitamins & Supplements</option>
+                                        <option value="Skin Care">Skin Care</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Status</label>
+                                    <select class="form-select" id="editMedicineStatus" name="status">
+                                        <option value="in_stock">In Stock</option>
+                                        <option value="out_of_stock">Out of Stock</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Current Image Display -->
+                        <div class="mb-3">
+                            <label class="form-label">Current Image:</label>
+                            <div class="border rounded p-2" id="currentImageContainer">
+                                <img id="editCurrentImage" src="" alt="Current" class="img-thumbnail" style="max-width: 150px; max-height: 150px;">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Upload New Image (optional)</label>
+                            <input type="file" class="form-control" id="editImageFile" name="image_file" 
+                                   accept="image/*" capture="environment" onchange="previewEditImage(this)">
+                            <small class="text-muted">Leave empty to keep current image. JPG, PNG (Max 2MB)</small>
+                        </div>
+                        
+                        <!-- New Image Preview -->
+                        <div class="mb-3" id="editImagePreviewContainer" style="display: none;">
+                            <label class="form-label">New Image Preview:</label>
+                            <div class="border rounded p-2">
+                                <img id="editImagePreview" src="" alt="Preview" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" id="editMedicineDescription" name="description" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveMedicineBtn" onclick="saveMedicineEdit()">
+                        <i class="fas fa-save me-1"></i>Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Add User Modal -->
     <div class="modal fade" id="addUserModal" tabindex="-1">
         <div class="modal-dialog">

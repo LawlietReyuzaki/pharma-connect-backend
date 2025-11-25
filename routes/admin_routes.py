@@ -594,35 +594,67 @@ def add_medicine():
 
 @bp.route("/api/medicines/<int:medicine_id>", methods=["PUT"])
 def update_medicine(medicine_id):
-    """Update medicine"""
+    """Update medicine with optional file upload"""
     try:
         current_admin = get_current_admin()
         if not current_admin:
             return jsonify({"error": "Admin access required"}), 403
         
-        data = request.get_json()
-        if not data:
-            return jsonify({"error": "No data provided"}), 400
-        
         medicine = Medicine.query.get_or_404(medicine_id)
         
-        # Update fields
-        if "name" in data:
+        # Check content type to determine if it's form data or JSON
+        if request.content_type and 'multipart/form-data' in request.content_type:
+            # Handle file upload
+            if 'image_file' in request.files:
+                file = request.files['image_file']
+                if file and file.filename:
+                    filename = secure_filename(file.filename)
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    filename = f"{timestamp}_{filename}"
+                    
+                    upload_dir = os.path.join("static", "uploads", "medicines")
+                    os.makedirs(upload_dir, exist_ok=True)
+                    
+                    file_path = os.path.join(upload_dir, filename)
+                    file.save(file_path)
+                    
+                    # Delete old image if exists
+                    if medicine.image_path and medicine.image_path.startswith("/static/uploads/"):
+                        old_file = medicine.image_path[1:]
+                        if os.path.exists(old_file):
+                            os.remove(old_file)
+                    
+                    medicine.image_path = f"/static/uploads/medicines/{filename}"
+            
+            data = request.form
+        else:
+            data = request.get_json() or {}
+        
+        if not data and 'image_file' not in request.files:
+            return jsonify({"error": "No data provided"}), 400
+        
+        # Update fields - check for key presence, not truthiness (to allow 0, empty string)
+        if "name" in data and data["name"]:
             medicine.name = data["name"]
         if "chemical" in data:
-            medicine.chemical = data["chemical"]
+            medicine.chemical = data["chemical"] if data["chemical"] else ""
         if "description" in data:
-            medicine.description = data["description"]
+            medicine.description = data["description"] if data["description"] else ""
         if "price" in data:
-            medicine.price = int(data["price"])
-        if "status" in data:
+            try:
+                medicine.price = int(data["price"]) if data["price"] else medicine.price
+            except (ValueError, TypeError):
+                pass
+        if "status" in data and data["status"]:
             medicine.status = data["status"]
         if "stock_quantity" in data:
-            medicine.stock_quantity = int(data["stock_quantity"])
-        if "category" in data:
+            try:
+                medicine.stock_quantity = int(data["stock_quantity"]) if data["stock_quantity"] != "" else 0
+            except (ValueError, TypeError):
+                medicine.stock_quantity = 0
+        if "category" in data and data["category"]:
             medicine.category = data["category"]
         
-        # Only set updated_at if the column exists
         if hasattr(medicine, 'updated_at'):
             medicine.updated_at = datetime.utcnow()
         db.session.commit()
@@ -635,7 +667,9 @@ def update_medicine(medicine_id):
                 "name": medicine.name,
                 "price": medicine.price,
                 "status": medicine.status,
-                "stock_quantity": medicine.stock_quantity
+                "stock_quantity": medicine.stock_quantity,
+                "image_path": medicine.image_path,
+                "category": medicine.category
             }
         })
         
@@ -643,6 +677,35 @@ def update_medicine(medicine_id):
         db.session.rollback()
         logging.error(f"Update medicine error: {e}")
         return jsonify({"error": f"Failed to update medicine: {str(e)}"}), 500
+
+@bp.route("/api/medicines/<int:medicine_id>", methods=["GET"])
+def get_medicine(medicine_id):
+    """Get single medicine details"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        medicine = Medicine.query.get_or_404(medicine_id)
+        
+        return jsonify({
+            "success": True,
+            "medicine": {
+                "id": medicine.id,
+                "name": medicine.name,
+                "chemical": medicine.chemical or "",
+                "description": medicine.description or "",
+                "price": medicine.price,
+                "image_path": medicine.image_path or "/static/images/default-medicine.png",
+                "status": medicine.status,
+                "stock_quantity": medicine.stock_quantity,
+                "category": medicine.category or "General"
+            }
+        })
+        
+    except Exception as e:
+        logging.error(f"Get medicine error: {e}")
+        return jsonify({"error": f"Failed to get medicine: {str(e)}"}), 500
 
 @bp.route("/api/medicines/<int:medicine_id>", methods=["DELETE"])
 def delete_medicine(medicine_id):

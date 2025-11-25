@@ -241,6 +241,32 @@ class AdminDashboard {
         }
     }
 
+    async loadMedicinesFiltered(search = '', status = '', category = '') {
+        try {
+            let url = '/admin/api/medicines?';
+            if (search) url += `search=${encodeURIComponent(search)}&`;
+            if (status) url += `status=${encodeURIComponent(status)}&`;
+            if (category) url += `category=${encodeURIComponent(category)}&`;
+            
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.renderMedicinesTable(data);
+            } else {
+                console.error('Failed to load medicines:', response.status);
+                this.showAlert('Failed to load medicines', 'danger');
+            }
+        } catch (error) {
+            console.error('Error loading medicines:', error);
+            this.showAlert('Error loading medicines', 'danger');
+        }
+    }
+
     renderMedicinesTable(data) {
         const tbody = document.getElementById('medicinesTableBody');
         if (!tbody) return;
@@ -1549,18 +1575,126 @@ async function deleteMedicine(medicineId) {
     }
 }
 
-function editMedicine(medicineId) {
-    // TODO: Implement edit medicine functionality
-    if (adminDashboard && adminDashboard.showAlert) {
-        adminDashboard.showAlert('Edit medicine functionality coming soon', 'info');
+async function editMedicine(medicineId) {
+    try {
+        const token = localStorage.getItem('admin_token');
+        const response = await fetch(`/admin/api/medicines/${medicineId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch medicine details');
+        }
+        
+        const data = await response.json();
+        const medicine = data.medicine;
+        
+        // Populate the edit form
+        document.getElementById('editMedicineId').value = medicine.id;
+        document.getElementById('editMedicineName').value = medicine.name;
+        document.getElementById('editMedicineChemical').value = medicine.chemical || '';
+        document.getElementById('editMedicinePrice').value = medicine.price;
+        document.getElementById('editMedicineStock').value = medicine.stock_quantity;
+        document.getElementById('editMedicineCategory').value = medicine.category || 'General';
+        document.getElementById('editMedicineStatus').value = medicine.status;
+        document.getElementById('editMedicineDescription').value = medicine.description || '';
+        
+        // Show current image
+        const currentImage = document.getElementById('editCurrentImage');
+        currentImage.src = medicine.image_path || '/static/images/default-medicine.png';
+        
+        // Reset file input and preview
+        document.getElementById('editImageFile').value = '';
+        document.getElementById('editImagePreviewContainer').style.display = 'none';
+        
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('editMedicineModal'));
+        modal.show();
+        
+    } catch (error) {
+        console.error('Error loading medicine:', error);
+        if (adminDashboard && adminDashboard.showAlert) {
+            adminDashboard.showAlert('Failed to load medicine details', 'danger');
+        } else {
+            alert('Failed to load medicine details');
+        }
+    }
+}
+
+function previewEditImage(input) {
+    const previewContainer = document.getElementById('editImagePreviewContainer');
+    const preview = document.getElementById('editImagePreview');
+    
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            previewContainer.style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
     } else {
-        alert('Edit medicine functionality coming soon');
+        previewContainer.style.display = 'none';
+    }
+}
+
+async function saveMedicineEdit() {
+    try {
+        const medicineId = document.getElementById('editMedicineId').value;
+        const form = document.getElementById('editMedicineForm');
+        const formData = new FormData(form);
+        
+        const token = localStorage.getItem('admin_token');
+        
+        const response = await fetch(`/admin/api/medicines/${medicineId}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editMedicineModal'));
+            modal.hide();
+            
+            // Show success message
+            if (adminDashboard && adminDashboard.showAlert) {
+                adminDashboard.showAlert('Medicine updated successfully!', 'success');
+            } else {
+                alert('Medicine updated successfully!');
+            }
+            
+            // Reload medicines list
+            if (adminDashboard) {
+                adminDashboard.loadMedicines();
+            }
+        } else {
+            throw new Error(data.error || 'Failed to update medicine');
+        }
+        
+    } catch (error) {
+        console.error('Error updating medicine:', error);
+        if (adminDashboard && adminDashboard.showAlert) {
+            adminDashboard.showAlert(error.message || 'Failed to update medicine', 'danger');
+        } else {
+            alert(error.message || 'Failed to update medicine');
+        }
     }
 }
 
 function filterMedicines() {
-    // TODO: Implement medicine filtering
-    console.log('Filter medicines functionality coming soon');
+    const search = document.getElementById('medicineSearchInput').value;
+    const status = document.getElementById('medicineStatusFilter').value;
+    const category = document.getElementById('medicineCategoryFilter').value;
+    
+    if (adminDashboard) {
+        adminDashboard.loadMedicinesFiltered(search, status, category);
+    }
 }
 
 // ============ OTHER CRUD OPERATIONS ============

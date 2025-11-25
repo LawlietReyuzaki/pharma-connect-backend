@@ -232,7 +232,8 @@ class RedDotPharmacy {
                         <img src="${medicine.image_path || '/static/images/default-medicine.png'}" 
                              class="card-img-top medicine-image" 
                              alt="${medicine.name}"
-                             onerror="this.src='https://pixabay.com/get/g7f4583c94af9a1854eb8b3aa95302ecc29bfb74ed9e4a49eda99a8d292810723fe0fa0624331e0b8a0976b75b535ad2cea69e85568e6e30d421d9e3ac8f3dfd1_1280.png'">
+                             onerror="this.src='/static/images/default-medicine.png'"
+                             style="height: 180px; object-fit: cover;">
                         <span class="badge stock-badge ${medicine.status === 'in_stock' ? 'bg-success' : 'bg-danger'}">
                             ${medicine.status === 'in_stock' ? 'In Stock' : 'Out of Stock'}
                         </span>
