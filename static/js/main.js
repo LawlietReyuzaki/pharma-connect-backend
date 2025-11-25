@@ -54,7 +54,11 @@ class RedDotPharmacy {
                 <input type="radio" name="paymentMethod" id="pm_${method.slug}" value="${method.slug}" 
                        ${index === 0 ? 'checked' : ''} 
                        data-requires-receipt="${method.requires_receipt}"
+                       data-account-title="${method.account_title || ''}"
+                       data-account-number="${method.account_number || ''}"
                        data-account-details="${method.account_details || ''}"
+                       data-method-name="${method.name}"
+                       data-logo-path="${method.logo_path}"
                        onchange="app.onPaymentMethodChange()">
                 <label for="pm_${method.slug}" class="d-flex align-items-center p-2 border rounded cursor-pointer w-100" style="cursor: pointer;">
                     <img src="${method.logo_path}" alt="${method.name}" class="me-2" 
@@ -69,22 +73,62 @@ class RedDotPharmacy {
     onPaymentMethodChange() {
         const selectedRadio = document.querySelector('input[name="paymentMethod"]:checked');
         const receiptSection = document.getElementById('receiptUploadSection');
-        const accountDetails = document.getElementById('paymentAccountDetails');
+        const accountDetailsDiv = document.getElementById('paymentAccountDetails');
         
         if (!selectedRadio || !receiptSection) return;
         
         const requiresReceipt = selectedRadio.dataset.requiresReceipt === 'true';
-        const details = selectedRadio.dataset.accountDetails;
+        const accountTitle = selectedRadio.dataset.accountTitle;
+        const accountNumber = selectedRadio.dataset.accountNumber;
+        const instructions = selectedRadio.dataset.accountDetails;
+        const methodName = selectedRadio.dataset.methodName;
+        const logoPath = selectedRadio.dataset.logoPath;
         
         if (requiresReceipt) {
             receiptSection.style.display = 'block';
-            if (accountDetails && details) {
-                accountDetails.innerHTML = `<div class="alert alert-info mb-2"><small><i class="fas fa-info-circle me-1"></i>${details}</small></div>`;
-                accountDetails.style.display = 'block';
+            if (accountDetailsDiv && (accountTitle || accountNumber)) {
+                accountDetailsDiv.innerHTML = `
+                    <div class="card border-primary mb-3">
+                        <div class="card-header bg-primary text-white py-2">
+                            <i class="fas fa-info-circle me-1"></i>Payment Details for ${methodName}
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <img src="${logoPath}" alt="${methodName}" style="height: 40px; width: 60px; object-fit: contain;" 
+                                     onerror="this.style.display='none'" class="me-2">
+                                <strong>${methodName}</strong>
+                            </div>
+                            ${accountTitle ? `
+                                <div class="mb-2">
+                                    <small class="text-muted">Account Title:</small>
+                                    <div class="fw-bold text-dark">${accountTitle}</div>
+                                </div>
+                            ` : ''}
+                            ${accountNumber ? `
+                                <div class="mb-2">
+                                    <small class="text-muted">Account Number:</small>
+                                    <div class="fw-bold text-primary" style="font-family: monospace; font-size: 1.1rem;">
+                                        ${accountNumber}
+                                        <button type="button" class="btn btn-sm btn-outline-primary ms-2" 
+                                                onclick="navigator.clipboard.writeText('${accountNumber}'); app.showSuccess('Account number copied!')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            ` : ''}
+                            ${instructions ? `
+                                <div class="mt-2 pt-2 border-top">
+                                    <small class="text-muted"><i class="fas fa-lightbulb me-1"></i>${instructions}</small>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                accountDetailsDiv.style.display = 'block';
             }
         } else {
             receiptSection.style.display = 'none';
-            if (accountDetails) accountDetails.style.display = 'none';
+            if (accountDetailsDiv) accountDetailsDiv.style.display = 'none';
             this.uploadedReceiptPath = null;
         }
     }

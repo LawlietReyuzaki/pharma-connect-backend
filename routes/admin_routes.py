@@ -2032,3 +2032,10 @@ def update_payment_method(method_id):
         db.session.rollback()
         logging.error(f"Update payment method error: {e}")
         return jsonify({"error": f"Failed to update payment method: {str(e)}"}), 500
+
+# ============ DEDICATED PAYMENT ADMIN PAGE ============
+
+@bp.route("/payments")
+def payment_admin_page():
+    """Dedicated payment admin management page"""
+    return render_template("payment_admin.html")
