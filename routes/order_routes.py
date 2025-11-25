@@ -215,7 +215,7 @@ def get_order(order_id):
                     "id": item.medicine.id,
                     "name": item.medicine.name,
                     "chemical": item.medicine.chemical,
-                    "image_url": item.medicine.image_url
+                    "image_path": item.medicine.image_path or '/static/images/default-medicine.png'
                 },
                 "quantity": item.qty,
                 "price_each": item.price_each,

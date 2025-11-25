@@ -321,8 +321,16 @@ class AdminDashboard {
             });
 
             if (response.ok) {
-                const orders = await response.json();
-                this.renderOrdersTable(orders);
+                const data = await response.json();
+                if (data.success && data.orders) {
+                    this.renderOrdersTable(data.orders);
+                    
+                    // Update order count if element exists
+                    const orderCountEl = document.getElementById('totalOrdersCount');
+                    if (orderCountEl) {
+                        orderCountEl.textContent = data.total_count || data.orders.length;
+                    }
+                }
             }
         } catch (error) {
             console.error('Error loading orders:', error);
@@ -673,6 +681,7 @@ class AdminDashboard {
     getStatusColor(status) {
         const colors = {
             'pending': 'warning',
+            'confirmed': 'info',
             'processing': 'info',
             'out_for_delivery': 'primary',
             'delivered': 'success',
@@ -1699,12 +1708,234 @@ function filterMedicines() {
 
 // ============ OTHER CRUD OPERATIONS ============
 
-function viewOrder(id) {
-    console.log('View order:', id);
+async function viewOrder(id) {
+    try {
+        const response = await fetch(`/admin/api/orders/${id}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const order = data.order;
+            
+            // Build items list HTML - use medicine_image from API
+            let itemsHtml = order.items.map(item => `
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <img src="${item.medicine_image || '/static/images/default-medicine.png'}" 
+                                 alt="${item.medicine_name}" class="rounded me-2" 
+                                 style="width: 40px; height: 40px; object-fit: cover;"
+                                 onerror="this.src='/static/images/default-medicine.png'">
+                            <span>${item.medicine_name}</span>
+                        </div>
+                    </td>
+                    <td>PKR ${item.price_each}</td>
+                    <td>${item.quantity}</td>
+                    <td>PKR ${item.total}</td>
+                </tr>
+            `).join('');
+            
+            const statusColor = adminDashboard.getStatusColor(order.status);
+            const orderDate = new Date(order.created_at).toLocaleString();
+            
+            // Get customer info - use customer object from API
+            const customerName = order.customer ? order.customer.name : 'Unknown';
+            const customerEmail = order.customer ? order.customer.email : 'N/A';
+            const customerPhone = order.customer ? order.customer.phone : order.phone || 'N/A';
+            
+            // Create modal HTML
+            const modalHtml = `
+                <div class="modal fade" id="orderDetailModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-shopping-cart text-danger me-2"></i>Order #${order.id} Details
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <div class="card">
+                                            <div class="card-header bg-light">
+                                                <h6 class="mb-0"><i class="fas fa-user text-danger me-2"></i>Customer Information</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <p class="mb-2"><strong>Name:</strong> ${customerName}</p>
+                                                <p class="mb-2"><strong>Email:</strong> ${customerEmail}</p>
+                                                <p class="mb-2"><strong>Phone:</strong> ${customerPhone}</p>
+                                                <p class="mb-0"><strong>Address:</strong> ${order.address}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card">
+                                            <div class="card-header bg-light">
+                                                <h6 class="mb-0"><i class="fas fa-info-circle text-danger me-2"></i>Order Information</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <p class="mb-2"><strong>Order Date:</strong> ${orderDate}</p>
+                                                <p class="mb-2"><strong>Status:</strong> <span class="badge bg-${statusColor}">${order.status}</span></p>
+                                                <p class="mb-2"><strong>Payment:</strong> ${order.payment_method}</p>
+                                                <p class="mb-0"><strong>Notes:</strong> ${order.notes || 'None'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <h6 class="mb-3"><i class="fas fa-pills text-danger me-2"></i>Order Items</h6>
+                                <table class="table table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Medicine</th>
+                                            <th>Price</th>
+                                            <th>Quantity</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${itemsHtml}
+                                    </tbody>
+                                    <tfoot class="table-light">
+                                        <tr>
+                                            <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
+                                            <td>PKR ${order.total_amount - order.delivery_fee}</td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="3" class="text-end"><strong>Delivery Fee:</strong></td>
+                                            <td>PKR ${order.delivery_fee}</td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                                            <td><strong>PKR ${order.total_amount}</strong></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-primary" onclick="updateOrderStatus(${order.id})">
+                                    <i class="fas fa-edit me-1"></i>Update Status
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal if any
+            const existingModal = document.getElementById('orderDetailModal');
+            if (existingModal) existingModal.remove();
+            
+            // Add and show modal
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const modal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
+            modal.show();
+        } else {
+            alert('Failed to load order details');
+        }
+    } catch (error) {
+        console.error('Error viewing order:', error);
+        alert('Failed to load order details');
+    }
 }
 
-function updateOrderStatus(id) {
-    console.log('Update order status:', id);
+async function updateOrderStatus(id) {
+    // Create status update modal
+    const modalHtml = `
+        <div class="modal fade" id="updateOrderStatusModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-edit text-primary me-2"></i>Update Order #${id} Status
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">New Status</label>
+                            <select class="form-select" id="newOrderStatus">
+                                <option value="pending">Pending</option>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="processing">Processing</option>
+                                <option value="out_for_delivery">Out for Delivery</option>
+                                <option value="delivered">Delivered</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notes (optional)</label>
+                            <textarea class="form-control" id="orderStatusNotes" rows="3" placeholder="Add notes about this status update..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="submitOrderStatusUpdate(${id})">
+                            <i class="fas fa-save me-1"></i>Update Status
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('updateOrderStatusModal');
+    if (existingModal) existingModal.remove();
+    
+    // Hide order detail modal if open
+    const detailModal = document.getElementById('orderDetailModal');
+    if (detailModal) {
+        const bsDetailModal = bootstrap.Modal.getInstance(detailModal);
+        if (bsDetailModal) bsDetailModal.hide();
+    }
+    
+    // Add and show modal
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('updateOrderStatusModal'));
+    modal.show();
+}
+
+async function submitOrderStatusUpdate(id) {
+    const status = document.getElementById('newOrderStatus').value;
+    const notes = document.getElementById('orderStatusNotes').value;
+    
+    try {
+        const response = await fetch(`/admin/api/orders/${id}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+            },
+            body: JSON.stringify({ status, notes })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('updateOrderStatusModal'));
+            if (modal) modal.hide();
+            
+            // Show success message
+            alert(`Order status updated to ${status}`);
+            
+            // Reload orders
+            if (adminDashboard) {
+                adminDashboard.loadOrders();
+            }
+        } else {
+            alert(data.error || 'Failed to update order status');
+        }
+    } catch (error) {
+        console.error('Error updating order status:', error);
+        alert('Failed to update order status');
+    }
 }
 
 function editUser(id) {

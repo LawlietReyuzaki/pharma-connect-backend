@@ -1174,6 +1174,121 @@ class RedDotPharmacy {
         modal.show();
     }
 
+    async viewOrderDetails(orderId) {
+        try {
+            this.showLoading();
+            
+            const response = await fetch(`/api/orders/${orderId}`, {
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const order = data.order;
+                
+                // Build items list HTML
+                let itemsHtml = order.items.map(item => `
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <img src="${item.medicine.image_path || '/static/images/default-medicine.png'}" 
+                                     alt="${item.medicine.name}" class="rounded me-2" 
+                                     style="width: 40px; height: 40px; object-fit: cover;">
+                                <span>${item.medicine.name}</span>
+                            </div>
+                        </td>
+                        <td>PKR ${item.price_each}</td>
+                        <td>${item.quantity}</td>
+                        <td>PKR ${item.total}</td>
+                    </tr>
+                `).join('');
+                
+                const statusColor = this.getOrderStatusColor(order.status);
+                const orderDate = new Date(order.created_at).toLocaleString();
+                
+                // Create modal HTML
+                const modalHtml = `
+                    <div class="modal fade" id="orderDetailModal" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        <i class="fas fa-shopping-bag text-danger me-2"></i>Order #${order.id} Details
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row mb-4">
+                                        <div class="col-md-6">
+                                            <h6><i class="fas fa-truck text-muted me-2"></i>Delivery Address</h6>
+                                            <p class="text-muted">${order.address}</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6><i class="fas fa-info-circle text-muted me-2"></i>Order Info</h6>
+                                            <p class="mb-1"><strong>Date:</strong> ${orderDate}</p>
+                                            <p class="mb-1"><strong>Status:</strong> <span class="badge bg-${statusColor}">${order.status.replace('_', ' ').toUpperCase()}</span></p>
+                                            <p class="mb-0"><strong>Payment:</strong> ${order.payment_method}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <h6 class="mb-3"><i class="fas fa-pills text-muted me-2"></i>Order Items</h6>
+                                    <table class="table table-bordered">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Medicine</th>
+                                                <th>Price</th>
+                                                <th>Qty</th>
+                                                <th>Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${itemsHtml}
+                                        </tbody>
+                                        <tfoot class="table-light">
+                                            <tr>
+                                                <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
+                                                <td>PKR ${order.total_amount - order.delivery_fee}</td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="3" class="text-end"><strong>Delivery Fee:</strong></td>
+                                                <td>PKR ${order.delivery_fee}</td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                                                <td><strong>PKR ${order.total_amount}</strong></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Remove existing modal if any
+                const existingModal = document.getElementById('orderDetailModal');
+                if (existingModal) existingModal.remove();
+                
+                // Add and show modal
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                const modal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
+                modal.show();
+            } else {
+                throw new Error('Failed to load order details');
+            }
+        } catch (error) {
+            console.error('Error viewing order details:', error);
+            this.showError('Failed to load order details');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
     async showAppointments() {
         if (!this.authToken) {
             this.showError('Please login to view appointments');
@@ -1265,6 +1380,7 @@ class RedDotPharmacy {
     getOrderStatusColor(status) {
         const colors = {
             'pending': 'warning',
+            'confirmed': 'info',
             'processing': 'info',
             'out_for_delivery': 'primary',
             'delivered': 'success',

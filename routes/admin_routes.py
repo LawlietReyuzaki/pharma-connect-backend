@@ -1642,3 +1642,190 @@ def cancel_appointment(appointment_id):
         db.session.rollback()
         logging.error(f"Cancel appointment error: {e}")
         return jsonify({"error": f"Failed to cancel appointment: {str(e)}"}), 500
+
+# ============ ORDERS MANAGEMENT ============
+
+@bp.route("/api/orders", methods=["GET"])
+def list_admin_orders():
+    """List all orders for admin"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        # Get query parameters
+        status = request.args.get('status')
+        limit = int(request.args.get('limit', 50))
+        offset = int(request.args.get('offset', 0))
+        
+        # Build query
+        query = Order.query
+        
+        # Apply status filter
+        if status:
+            query = query.filter_by(status=status)
+        
+        # Get total count
+        total_count = query.count()
+        
+        # Apply pagination and ordering
+        orders = query.order_by(Order.created_at.desc()).offset(offset).limit(limit).all()
+        
+        # Format response
+        order_list = []
+        for order in orders:
+            # Get customer info
+            customer = User.query.get(order.user_id)
+            
+            # Get order items
+            items = []
+            for item in order.items:
+                items.append({
+                    "medicine_id": item.medicine_id,
+                    "medicine_name": item.medicine.name if item.medicine else "Unknown",
+                    "quantity": item.qty,
+                    "price_each": item.price_each,
+                    "total": item.qty * item.price_each
+                })
+            
+            order_list.append({
+                "id": order.id,
+                "customer_name": customer.name if customer else "Unknown",
+                "customer_email": customer.email if customer else "N/A",
+                "customer_phone": order.phone,
+                "address": order.address,
+                "total_amount": order.total_amount,
+                "delivery_fee": order.delivery_fee,
+                "status": order.status,
+                "payment_method": order.payment_method,
+                "items": items,
+                "total_items": len(items),
+                "item_count": len(items),
+                "created_at": order.created_at.isoformat() if order.created_at else None,
+                "updated_at": order.updated_at.isoformat() if order.updated_at else None,
+                "notes": order.notes
+            })
+        
+        return jsonify({
+            "success": True,
+            "orders": order_list,
+            "total_count": total_count
+        })
+        
+    except Exception as e:
+        logging.error(f"List admin orders error: {e}")
+        return jsonify({"error": f"Failed to retrieve orders: {str(e)}"}), 500
+
+@bp.route("/api/orders/<int:order_id>", methods=["GET"])
+def get_admin_order(order_id):
+    """Get specific order details for admin"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        order = Order.query.get_or_404(order_id)
+        
+        # Get customer info
+        customer = User.query.get(order.user_id)
+        
+        # Get order items with medicine details
+        items = []
+        for item in order.items:
+            items.append({
+                "id": item.id,
+                "medicine_id": item.medicine_id,
+                "medicine_name": item.medicine.name if item.medicine else "Unknown",
+                "medicine_chemical": item.medicine.chemical if item.medicine else "",
+                "medicine_image": item.medicine.image_path if item.medicine else '/static/images/default-medicine.png',
+                "quantity": item.qty,
+                "price_each": item.price_each,
+                "total": item.qty * item.price_each
+            })
+        
+        return jsonify({
+            "success": True,
+            "order": {
+                "id": order.id,
+                "customer": {
+                    "id": customer.id if customer else None,
+                    "name": customer.name if customer else "Unknown",
+                    "email": customer.email if customer else "N/A",
+                    "phone": order.phone
+                },
+                "address": order.address,
+                "total_amount": order.total_amount,
+                "delivery_fee": order.delivery_fee,
+                "status": order.status,
+                "payment_method": order.payment_method,
+                "notes": order.notes,
+                "items": items,
+                "item_count": len(items),
+                "created_at": order.created_at.isoformat() if order.created_at else None,
+                "updated_at": order.updated_at.isoformat() if order.updated_at else None
+            }
+        })
+        
+    except Exception as e:
+        logging.error(f"Get admin order error: {e}")
+        return jsonify({"error": f"Failed to retrieve order: {str(e)}"}), 500
+
+@bp.route("/api/orders/<int:order_id>/status", methods=["PUT"])
+def update_admin_order_status(order_id):
+    """Update order status (admin only)"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        data = request.get_json()
+        if not data or "status" not in data:
+            return jsonify({"error": "Status is required"}), 400
+        
+        order = Order.query.get_or_404(order_id)
+        
+        # Validate status
+        valid_statuses = ["pending", "confirmed", "processing", "out_for_delivery", "delivered", "cancelled"]
+        if data["status"] not in valid_statuses:
+            return jsonify({"error": f"Invalid status. Valid options: {', '.join(valid_statuses)}"}), 400
+        
+        old_status = order.status
+        order.status = data["status"]
+        order.updated_at = datetime.utcnow()
+        
+        # Add notes if provided
+        if "notes" in data and data["notes"]:
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M')
+            note_entry = f"[{timestamp}] Status: {old_status} -> {data['status']}"
+            if data["notes"]:
+                note_entry += f" - {data['notes']}"
+            if order.notes:
+                order.notes += f"\n{note_entry}"
+            else:
+                order.notes = note_entry
+        
+        # Handle cancellation - restore stock
+        if data["status"] == "cancelled" and old_status != "cancelled":
+            for item in order.items:
+                medicine = Medicine.query.get(item.medicine_id)
+                if medicine:
+                    medicine.stock_quantity += item.qty
+                    if medicine.status == "out_of_stock" and medicine.stock_quantity > 0:
+                        medicine.status = "in_stock"
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": f"Order status updated to {data['status']}",
+            "order": {
+                "id": order.id,
+                "status": order.status,
+                "updated_at": order.updated_at.isoformat() if order.updated_at else None
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Update admin order status error: {e}")
+        return jsonify({"error": f"Failed to update order status: {str(e)}"}), 500
