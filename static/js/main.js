@@ -10,9 +10,135 @@ class RedDotPharmacy {
         this.doctors = [];
         this.selectedTimeSlot = null;
         this.pendingAppointments = 0;
+        this.paymentMethods = [];
+        this.uploadedReceiptPath = null;
         
         this.initializeEventListeners();
         this.updateCartDisplay();
+        this.loadPaymentMethods();
+    }
+
+    async loadPaymentMethods() {
+        try {
+            const response = await fetch('/api/payments/methods');
+            if (response.ok) {
+                const data = await response.json();
+                this.paymentMethods = data.payment_methods || [];
+            }
+        } catch (error) {
+            console.error('Error loading payment methods:', error);
+            this.paymentMethods = [{
+                slug: 'cash_on_delivery',
+                name: 'Cash on Delivery',
+                logo_path: '/static/images/payment-logos/cash-on-delivery.svg',
+                requires_receipt: false
+            }];
+        }
+    }
+
+    getPaymentMethodsHtml() {
+        if (this.paymentMethods.length === 0) {
+            return `
+                <div class="payment-method-option">
+                    <input type="radio" name="paymentMethod" id="pm_cod" value="cash_on_delivery" checked>
+                    <label for="pm_cod" class="d-flex align-items-center p-2 border rounded mb-2 cursor-pointer">
+                        <img src="/static/images/payment-logos/cash-on-delivery.svg" alt="Cash on Delivery" class="me-2" style="height: 30px;">
+                        <span>Cash on Delivery</span>
+                    </label>
+                </div>
+            `;
+        }
+
+        return this.paymentMethods.map((method, index) => `
+            <div class="payment-method-option mb-2">
+                <input type="radio" name="paymentMethod" id="pm_${method.slug}" value="${method.slug}" 
+                       ${index === 0 ? 'checked' : ''} 
+                       data-requires-receipt="${method.requires_receipt}"
+                       data-account-details="${method.account_details || ''}"
+                       onchange="app.onPaymentMethodChange()">
+                <label for="pm_${method.slug}" class="d-flex align-items-center p-2 border rounded cursor-pointer w-100" style="cursor: pointer;">
+                    <img src="${method.logo_path}" alt="${method.name}" class="me-2" 
+                         style="height: 35px; width: 50px; object-fit: contain;"
+                         onerror="this.src='/static/images/payment-logos/cash-on-delivery.svg'">
+                    <span>${method.name}</span>
+                </label>
+            </div>
+        `).join('');
+    }
+
+    onPaymentMethodChange() {
+        const selectedRadio = document.querySelector('input[name="paymentMethod"]:checked');
+        const receiptSection = document.getElementById('receiptUploadSection');
+        const accountDetails = document.getElementById('paymentAccountDetails');
+        
+        if (!selectedRadio || !receiptSection) return;
+        
+        const requiresReceipt = selectedRadio.dataset.requiresReceipt === 'true';
+        const details = selectedRadio.dataset.accountDetails;
+        
+        if (requiresReceipt) {
+            receiptSection.style.display = 'block';
+            if (accountDetails && details) {
+                accountDetails.innerHTML = `<div class="alert alert-info mb-2"><small><i class="fas fa-info-circle me-1"></i>${details}</small></div>`;
+                accountDetails.style.display = 'block';
+            }
+        } else {
+            receiptSection.style.display = 'none';
+            if (accountDetails) accountDetails.style.display = 'none';
+            this.uploadedReceiptPath = null;
+        }
+    }
+
+    async uploadReceipt(inputElement) {
+        const file = inputElement.files[0];
+        if (!file) return;
+
+        const validTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+        if (!validTypes.includes(file.type)) {
+            this.showError('Invalid file type. Please upload PNG, JPG, or JPEG only.');
+            inputElement.value = '';
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('receipt', file);
+
+        try {
+            this.showLoading();
+            
+            const response = await fetch('/api/payments/upload-receipt', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                this.uploadedReceiptPath = data.receipt_path;
+                const preview = document.getElementById('receiptPreview');
+                if (preview) {
+                    preview.innerHTML = `
+                        <div class="mt-2">
+                            <img src="${data.receipt_path}" alt="Receipt" class="img-thumbnail" style="max-height: 150px;">
+                            <p class="text-success mb-0"><i class="fas fa-check-circle me-1"></i>Receipt uploaded successfully</p>
+                        </div>
+                    `;
+                }
+                this.showSuccess('Receipt uploaded successfully');
+            } else {
+                this.showError(data.error || 'Failed to upload receipt');
+                inputElement.value = '';
+            }
+        } catch (error) {
+            console.error('Error uploading receipt:', error);
+            this.showError('Failed to upload receipt. Please try again.');
+            inputElement.value = '';
+        } finally {
+            this.hideLoading();
+        }
     }
 
     // ============ AUTHENTICATION METHODS ============
@@ -418,9 +544,11 @@ class RedDotPharmacy {
     }
 
     showQuickCheckoutModal(medicine) {
+        this.uploadedReceiptPath = null;
+        
         const modalHtml = `
             <div class="modal fade" id="quickCheckoutModal" tabindex="-1">
-                <div class="modal-dialog">
+                <div class="modal-dialog modal-lg">
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title">
@@ -429,62 +557,88 @@ class RedDotPharmacy {
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
-                            <!-- Order Summary -->
-                            <div class="mb-4">
-                                <h6>Order Summary</h6>
-                                <div class="card">
-                                    <div class="card-body">
-                                        <div class="row align-items-center">
-                                            <div class="col-3">
-                                                <img src="${medicine.image_path || '/static/images/default-medicine.png'}" 
-                                                     alt="${medicine.name}" class="img-fluid rounded">
-                                            </div>
-                                            <div class="col-6">
-                                                <h6 class="mb-1">${medicine.name}</h6>
-                                                <small class="text-muted">${medicine.chemical || 'Generic Medicine'}</small>
-                                                <br><small class="text-muted">Quantity: 1</small>
-                                            </div>
-                                            <div class="col-3 text-end">
-                                                <strong class="text-danger">PKR ${medicine.price}</strong>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <!-- Order Summary -->
+                                    <div class="mb-4">
+                                        <h6><i class="fas fa-shopping-bag text-danger me-2"></i>Order Summary</h6>
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <div class="row align-items-center">
+                                                    <div class="col-3">
+                                                        <img src="${medicine.image_path || '/static/images/default-medicine.png'}" 
+                                                             alt="${medicine.name}" class="img-fluid rounded">
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <h6 class="mb-1">${medicine.name}</h6>
+                                                        <small class="text-muted">${medicine.chemical || 'Generic Medicine'}</small>
+                                                        <br><small class="text-muted">Quantity: 1</small>
+                                                    </div>
+                                                    <div class="col-3 text-end">
+                                                        <strong class="text-danger">PKR ${medicine.price}</strong>
+                                                    </div>
+                                                </div>
+                                                <hr>
+                                                <div class="d-flex justify-content-between">
+                                                    <span>Subtotal:</span>
+                                                    <span>PKR ${medicine.price}</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between">
+                                                    <span>Delivery:</span>
+                                                    <span>PKR 100</span>
+                                                </div>
+                                                <hr>
+                                                <div class="d-flex justify-content-between">
+                                                    <strong>Total:</strong>
+                                                    <strong class="text-danger">PKR ${medicine.price + 100}</strong>
+                                                </div>
                                             </div>
                                         </div>
-                                        <hr>
-                                        <div class="d-flex justify-content-between">
-                                            <span>Subtotal:</span>
-                                            <span>PKR ${medicine.price}</span>
+                                    </div>
+                                    
+                                    <!-- Delivery Details -->
+                                    <form id="quickCheckoutForm">
+                                        <div class="mb-3">
+                                            <label class="form-label"><i class="fas fa-map-marker-alt me-1"></i>Delivery Address *</label>
+                                            <textarea class="form-control" id="quickDeliveryAddress" rows="2" 
+                                                      placeholder="Enter your complete delivery address..." required></textarea>
                                         </div>
-                                        <div class="d-flex justify-content-between">
-                                            <span>Delivery:</span>
-                                            <span>PKR 100</span>
+                                        <div class="mb-3">
+                                            <label class="form-label"><i class="fas fa-phone me-1"></i>Contact Number *</label>
+                                            <input type="tel" class="form-control" id="quickDeliveryPhone" 
+                                                   placeholder="Enter your contact number" required>
                                         </div>
-                                        <hr>
-                                        <div class="d-flex justify-content-between">
-                                            <strong>Total:</strong>
-                                            <strong class="text-danger">PKR ${medicine.price + 100}</strong>
+                                    </form>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <!-- Payment Method Selection -->
+                                    <div class="mb-3">
+                                        <h6><i class="fas fa-credit-card text-danger me-2"></i>Payment Method</h6>
+                                        <div id="paymentMethodsContainer">
+                                            ${this.getPaymentMethodsHtml()}
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Account Details for online payment -->
+                                    <div id="paymentAccountDetails" style="display: none;"></div>
+                                    
+                                    <!-- Receipt Upload Section -->
+                                    <div id="receiptUploadSection" style="display: none;">
+                                        <div class="card border-warning">
+                                            <div class="card-body">
+                                                <h6 class="card-title"><i class="fas fa-upload text-warning me-2"></i>Upload Payment Receipt *</h6>
+                                                <p class="small text-muted mb-2">Please upload your payment screenshot/receipt to confirm your order.</p>
+                                                <input type="file" class="form-control" id="receiptUpload" 
+                                                       accept="image/png,image/jpeg,image/jpg"
+                                                       onchange="app.uploadReceipt(this)">
+                                                <small class="text-muted">Accepted: PNG, JPG, JPEG only</small>
+                                                <div id="receiptPreview"></div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            
-                            <!-- Delivery Details -->
-                            <form id="quickCheckoutForm">
-                                <div class="mb-3">
-                                    <label class="form-label">Delivery Address *</label>
-                                    <textarea class="form-control" id="quickDeliveryAddress" rows="3" 
-                                              placeholder="Enter your complete delivery address..." required></textarea>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Contact Number *</label>
-                                    <input type="tel" class="form-control" id="quickDeliveryPhone" 
-                                           placeholder="Enter your contact number" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Payment Method</label>
-                                    <select class="form-select" id="quickPaymentMethod">
-                                        <option value="cash_on_delivery">Cash on Delivery</option>
-                                    </select>
-                                </div>
-                            </form>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -509,6 +663,9 @@ class RedDotPharmacy {
         // Show modal
         const modal = new bootstrap.Modal(document.getElementById('quickCheckoutModal'));
         modal.show();
+        
+        // Trigger payment method change to set initial state
+        setTimeout(() => this.onPaymentMethodChange(), 100);
     }
 
     async processQuickOrder(medicineId) {
@@ -520,7 +677,10 @@ class RedDotPharmacy {
 
         const address = document.getElementById('quickDeliveryAddress')?.value?.trim();
         const phone = document.getElementById('quickDeliveryPhone')?.value?.trim();
-        const paymentMethod = document.getElementById('quickPaymentMethod')?.value || 'cash_on_delivery';
+        
+        const selectedRadio = document.querySelector('input[name="paymentMethod"]:checked');
+        const paymentMethod = selectedRadio?.value || 'cash_on_delivery';
+        const requiresReceipt = selectedRadio?.dataset.requiresReceipt === 'true';
 
         if (!address) {
             this.showError('Please enter your delivery address');
@@ -532,6 +692,11 @@ class RedDotPharmacy {
             return;
         }
 
+        if (requiresReceipt && !this.uploadedReceiptPath) {
+            this.showError('Please upload your payment receipt before placing the order');
+            return;
+        }
+
         try {
             this.showLoading();
 
@@ -539,6 +704,7 @@ class RedDotPharmacy {
                 address: address,
                 phone: phone,
                 payment_method: paymentMethod,
+                payment_receipt_path: this.uploadedReceiptPath,
                 items: [{
                     medicine_id: medicineId,
                     quantity: 1,
@@ -563,6 +729,9 @@ class RedDotPharmacy {
                 if (modal) {
                     modal.hide();
                 }
+                
+                // Clear the receipt path
+                this.uploadedReceiptPath = null;
                 
                 this.showSuccess(`Order placed successfully! Order ID: #${data.order.id}. Expected delivery: ${data.order.estimated_delivery}`);
                 

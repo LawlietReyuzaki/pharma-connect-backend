@@ -140,6 +140,10 @@ class AdminDashboard {
             case 'chats':
                 this.loadChatLogs();
                 break;
+            case 'payments':
+                loadPayments();
+                loadPaymentMethods();
+                break;
         }
     }
 
@@ -1956,6 +1960,246 @@ function filterOrders() {
 
 function filterChatLogs() {
     console.log('Filter chat logs');
+}
+
+// ============ PAYMENT MANAGEMENT ============
+
+let allPayments = [];
+
+async function loadPayments() {
+    try {
+        const response = await fetch('/admin/api/payments', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            allPayments = data.payments || [];
+            renderPaymentsTable(allPayments);
+        }
+    } catch (error) {
+        console.error('Error loading payments:', error);
+    }
+}
+
+function renderPaymentsTable(payments) {
+    const tbody = document.getElementById('paymentsTableBody');
+    if (!tbody) return;
+
+    if (payments.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No payments found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = payments.map(payment => {
+        const paymentDate = new Date(payment.created_at).toLocaleDateString();
+        const statusColor = getPaymentStatusColor(payment.payment_status);
+        const methodDisplay = formatPaymentMethod(payment.payment_method);
+        
+        return `
+            <tr>
+                <td><strong>#${payment.order_id}</strong></td>
+                <td>
+                    <div>${payment.customer_name}</div>
+                    <small class="text-muted">${payment.customer_email}</small>
+                </td>
+                <td><strong>PKR ${payment.amount}</strong></td>
+                <td>
+                    <span class="badge bg-secondary">${methodDisplay}</span>
+                </td>
+                <td>
+                    <span class="badge bg-${statusColor}">${payment.payment_status.toUpperCase()}</span>
+                </td>
+                <td>
+                    ${payment.receipt_path ? 
+                        `<a href="${payment.receipt_path}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-image me-1"></i>View
+                        </a>` : 
+                        '<span class="text-muted">N/A</span>'}
+                </td>
+                <td>${paymentDate}</td>
+                <td>
+                    ${payment.payment_method !== 'cash_on_delivery' ? `
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-success" onclick="updatePaymentStatus(${payment.order_id}, 'accepted')" 
+                                    title="Accept" ${payment.payment_status === 'accepted' ? 'disabled' : ''}>
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button class="btn btn-danger" onclick="updatePaymentStatus(${payment.order_id}, 'declined')" 
+                                    title="Decline" ${payment.payment_status === 'declined' ? 'disabled' : ''}>
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    ` : '<span class="text-muted">COD</span>'}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function getPaymentStatusColor(status) {
+    switch(status) {
+        case 'accepted': return 'success';
+        case 'declined': return 'danger';
+        case 'pending': return 'warning';
+        default: return 'secondary';
+    }
+}
+
+function formatPaymentMethod(method) {
+    const methods = {
+        'cash_on_delivery': 'Cash on Delivery',
+        'easypaisa': 'EasyPaisa',
+        'jazzcash': 'JazzCash',
+        'meezan_bank': 'Meezan Bank',
+        'nayapay': 'NayaPay'
+    };
+    return methods[method] || method;
+}
+
+async function updatePaymentStatus(orderId, status) {
+    const confirmMsg = status === 'accepted' ? 
+        'Accept this payment? This will confirm the order.' : 
+        'Decline this payment?';
+    
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        const response = await fetch(`/admin/api/payments/${orderId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+            },
+            body: JSON.stringify({ payment_status: status })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert(`Payment ${status} successfully`);
+            loadPayments();
+            if (adminDashboard) {
+                adminDashboard.loadOrders();
+            }
+        } else {
+            alert(data.error || 'Failed to update payment status');
+        }
+    } catch (error) {
+        console.error('Error updating payment status:', error);
+        alert('Failed to update payment status');
+    }
+}
+
+function filterPayments() {
+    const statusFilter = document.getElementById('paymentStatusFilter')?.value;
+    
+    let filtered = allPayments;
+    if (statusFilter) {
+        filtered = allPayments.filter(p => p.payment_status === statusFilter);
+    }
+    
+    renderPaymentsTable(filtered);
+}
+
+async function loadPaymentMethods() {
+    try {
+        const response = await fetch('/admin/api/payment-methods', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            renderPaymentMethodsControls(data.payment_methods || []);
+        }
+    } catch (error) {
+        console.error('Error loading payment methods:', error);
+    }
+}
+
+function renderPaymentMethodsControls(methods) {
+    const container = document.getElementById('paymentMethodsControls');
+    if (!container) return;
+
+    if (methods.length === 0) {
+        container.innerHTML = `
+            <div class="col-12 text-center py-3">
+                <p class="text-muted">No payment methods configured.</p>
+                <button class="btn btn-primary" onclick="initPaymentMethods()">
+                    <i class="fas fa-plus me-1"></i>Initialize Payment Methods
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = methods.map(method => `
+        <div class="col-md-4 col-lg-2 mb-3">
+            <div class="card h-100 ${method.is_active ? 'border-success' : 'border-secondary'}">
+                <div class="card-body text-center">
+                    <img src="${method.logo_path}" alt="${method.name}" class="mb-2" 
+                         style="height: 40px; width: auto; max-width: 80px; object-fit: contain;"
+                         onerror="this.src='/static/images/payment-logos/cash-on-delivery.svg'">
+                    <h6 class="card-title mb-2">${method.name}</h6>
+                    <div class="form-check form-switch d-flex justify-content-center">
+                        <input class="form-check-input" type="checkbox" id="pm_toggle_${method.id}" 
+                               ${method.is_active ? 'checked' : ''} 
+                               onchange="togglePaymentMethod(${method.id})">
+                        <label class="form-check-label ms-2" for="pm_toggle_${method.id}">
+                            ${method.is_active ? 'Active' : 'Inactive'}
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function togglePaymentMethod(methodId) {
+    try {
+        const response = await fetch(`/admin/api/payment-methods/${methodId}/toggle`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            loadPaymentMethods();
+        } else {
+            alert(data.error || 'Failed to toggle payment method');
+            loadPaymentMethods();
+        }
+    } catch (error) {
+        console.error('Error toggling payment method:', error);
+        alert('Failed to toggle payment method');
+    }
+}
+
+async function initPaymentMethods() {
+    try {
+        const response = await fetch('/api/payments/init-methods', {
+            method: 'POST'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert('Payment methods initialized successfully');
+            loadPaymentMethods();
+        } else {
+            alert(data.message || data.error || 'Failed to initialize payment methods');
+        }
+    } catch (error) {
+        console.error('Error initializing payment methods:', error);
+        alert('Failed to initialize payment methods');
+    }
 }
 
 // Initialize admin dashboard on page load
