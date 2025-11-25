@@ -185,6 +185,116 @@ class RedDotPharmacy {
         }
     }
 
+    showOrderConfirmationModal(order, paymentMethod, medicine) {
+        const formatPaymentMethod = (method) => {
+            const methods = {
+                'cash_on_delivery': 'Cash on Delivery',
+                'easypaisa': 'EasyPaisa',
+                'jazzcash': 'JazzCash',
+                'meezan_bank': 'Meezan Bank',
+                'nayapay': 'NayaPay'
+            };
+            return methods[method] || method;
+        };
+
+        const modalHtml = `
+            <div class="modal fade" id="orderConfirmationModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title">
+                                <i class="fas fa-check-circle me-2"></i>Order Placed Successfully!
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="text-center mb-4">
+                                <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
+                                <h4 class="mt-3">Thank You for Your Order!</h4>
+                                <p class="text-muted">Order ID: <strong>#${order.id}</strong></p>
+                            </div>
+                            
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <i class="fas fa-shopping-bag me-1"></i>Order Details
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-8">
+                                            <strong>${medicine ? medicine.name : 'Order Items'}</strong>
+                                            ${medicine ? `<br><small class="text-muted">${medicine.chemical || ''}</small>` : ''}
+                                        </div>
+                                        <div class="col-4 text-end">
+                                            <strong class="text-danger">PKR ${order.total_amount}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <i class="fas fa-credit-card me-1"></i>Payment Method
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        ${paymentMethod.logo_path ? `
+                                            <img src="${paymentMethod.logo_path}" alt="${paymentMethod.name}" 
+                                                 style="height: 35px; width: 50px; object-fit: contain;" class="me-2"
+                                                 onerror="this.style.display='none'">
+                                        ` : ''}
+                                        <div>
+                                            <strong>${paymentMethod.name || formatPaymentMethod(order.payment_method)}</strong>
+                                            ${paymentMethod.account_title ? `<br><small class="text-muted">Account: ${paymentMethod.account_title}</small>` : ''}
+                                            ${paymentMethod.account_number ? `<br><small class="text-primary fw-bold">${paymentMethod.account_number}</small>` : ''}
+                                        </div>
+                                    </div>
+                                    ${order.payment_method !== 'cash_on_delivery' ? `
+                                        <div class="mt-2">
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-clock me-1"></i>Payment Verification Pending
+                                            </span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <i class="fas fa-truck me-1"></i>Delivery Information
+                                </div>
+                                <div class="card-body">
+                                    <p class="mb-1"><i class="fas fa-calendar-alt text-primary me-2"></i>Expected Delivery: <strong>${order.estimated_delivery || '2-3 Days'}</strong></p>
+                                    <p class="mb-0"><i class="fas fa-info-circle text-muted me-2"></i>Status: <span class="badge bg-info">Pending</span></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="app.showOrders()">
+                                <i class="fas fa-list me-1"></i>View My Orders
+                            </button>
+                            <button type="button" class="btn btn-success" data-bs-dismiss="modal">
+                                <i class="fas fa-shopping-cart me-1"></i>Continue Shopping
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if any
+        const existingModal = document.getElementById('orderConfirmationModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Add modal to body
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('orderConfirmationModal'));
+        modal.show();
+    }
+
     // ============ AUTHENTICATION METHODS ============
     
     async checkAuthStatus() {
@@ -774,10 +884,14 @@ class RedDotPharmacy {
                     modal.hide();
                 }
                 
+                // Get the selected payment method info for confirmation
+                const selectedMethod = this.paymentMethods.find(m => m.slug === paymentMethod) || {};
+                
                 // Clear the receipt path
                 this.uploadedReceiptPath = null;
                 
-                this.showSuccess(`Order placed successfully! Order ID: #${data.order.id}. Expected delivery: ${data.order.estimated_delivery}`);
+                // Show order confirmation modal
+                this.showOrderConfirmationModal(data.order, selectedMethod, medicine);
                 
                 // Reload medicines to update stock display
                 this.loadMedicines();
