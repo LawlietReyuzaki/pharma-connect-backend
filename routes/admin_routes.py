@@ -1444,7 +1444,7 @@ def get_appointment_details(appointment_id):
         # Get patient and doctor details
         patient = User.query.get(appointment.user_id)
         doctor = User.query.get(appointment.doctor_id)
-        time_slot = TimeSlot.query.get(appointment.slot_id) if appointment.slot_id else None
+        time_slot = TimeSlot.query.get(appointment.time_slot_id) if appointment.time_slot_id else None
         
         appointment_details = {
             "id": appointment.id,
@@ -1466,10 +1466,10 @@ def get_appointment_details(appointment_id):
             "starts_at": appointment.starts_at.isoformat() if appointment.starts_at else None,
             "ends_at": appointment.ends_at.isoformat() if appointment.ends_at else None,
             "symptoms": appointment.symptoms,
+            "note": appointment.note,
             "status": appointment.status,
             "approval_status": appointment.approval_status,
-            "decline_reason": appointment.decline_reason,
-            "meet_link": appointment.meet_link,
+            "meet_link": appointment.google_meet_link,
             "created_at": appointment.created_at.isoformat() if appointment.created_at else None,
             "updated_at": appointment.updated_at.isoformat() if appointment.updated_at else None,
             "time_slot": {

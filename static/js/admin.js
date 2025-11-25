@@ -1194,12 +1194,16 @@ async function viewAppointment(id) {
             </div>
             ` : ''}
             
-            ${appt.decline_reason ? `
+            ${appt.note ? `
             <div class="row">
                 <div class="col-12 mb-3">
-                    <div class="alert alert-warning">
-                        <h6 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Decline Reason</h6>
-                        <p class="mb-0">${appt.decline_reason}</p>
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-sticky-note text-danger me-2"></i>Notes</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">${appt.note}</p>
+                        </div>
                     </div>
                 </div>
             </div>
