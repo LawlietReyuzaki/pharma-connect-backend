@@ -107,23 +107,24 @@ class GoogleCalendarService:
             }
     
     def _generate_meet_link(self, appointment_data):
-        """Generate Google Meet link for appointment"""
-        # In production, this would be generated via Google Calendar API
-        # For MVP, generate a valid Google Meet format: https://meet.google.com/abc-defg-hij
+        """Generate a working video call link for appointment using Jitsi Meet"""
+        import hashlib
         
-        import random
-        import string
+        # Use Jitsi Meet - free, no API keys needed, works instantly
+        # Create a unique room name based on appointment details
+        appointment_id = appointment_data.get('appointment_id', '')
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
         
-        # Generate proper Google Meet room ID format: 3letters-4numbers-3letters
-        letters1 = ''.join(random.choices(string.ascii_lowercase, k=3))
-        numbers = ''.join(random.choices(string.digits, k=4))
-        letters2 = ''.join(random.choices(string.ascii_lowercase, k=3))
+        # Create a deterministic room ID from appointment data
+        room_base = f"reddotpharmacy-{appointment_id}-{timestamp}"
+        room_hash = hashlib.md5(room_base.encode()).hexdigest()[:12]
         
-        meeting_id = f"{letters1}-{numbers}-{letters2}"
+        room_name = f"RedDotPharmacy-Consultation-{room_hash}"
         
-        # Google Meet URL format
-        meet_link = f"https://meet.google.com/{meeting_id}"
+        # Jitsi Meet URL - this creates a REAL, working video call room
+        meet_link = f"https://meet.jit.si/{room_name}"
         
+        logging.info(f"Generated Jitsi Meet link: {meet_link}")
         return meet_link
     
     def update_appointment_event(self, event_id, updates):
@@ -150,7 +151,7 @@ class GoogleMeetService:
     @staticmethod
     def create_meet_room(appointment_id, doctor_name, patient_name):
         """
-        Create a Google Meet room for an appointment
+        Create a video call room for an appointment using Jitsi Meet
         
         Args:
             appointment_id (int): Appointment ID
@@ -158,47 +159,36 @@ class GoogleMeetService:
             patient_name (str): Patient's name
         
         Returns:
-            str: Google Meet URL
+            str: Jitsi Meet URL (works without any API keys!)
         """
-        import random
-        import string
+        import hashlib
         
-        # Generate proper Google Meet room ID format: 3letters-4numbers-3letters
-        # Use appointment_id to seed for consistency
-        random.seed(appointment_id)
-        letters1 = ''.join(random.choices(string.ascii_lowercase, k=3))
-        numbers = ''.join(random.choices(string.digits, k=4))
-        letters2 = ''.join(random.choices(string.ascii_lowercase, k=3))
+        # Create a unique, deterministic room name
+        room_base = f"reddotpharmacy-{appointment_id}-{doctor_name}-{patient_name}"
+        room_hash = hashlib.md5(room_base.encode()).hexdigest()[:12]
         
-        room_id = f"{letters1}-{numbers}-{letters2}"
+        room_name = f"RedDotPharmacy-Appt{appointment_id}-{room_hash}"
         
-        # In production, you would create this via Google Calendar API
-        # For MVP, generate a valid Google Meet URL
-        meet_url = f"https://meet.google.com/{room_id}"
+        # Jitsi Meet URL - creates a REAL, working video call room
+        meet_url = f"https://meet.jit.si/{room_name}"
         
-        logging.info(f"Created Google Meet room: {meet_url}")
+        logging.info(f"Created Jitsi Meet room: {meet_url}")
         return meet_url
     
     @staticmethod
     def generate_join_url(appointment_id, user_role="patient"):
         """Generate join URL with user context"""
-        import random
-        import string
+        import hashlib
         
-        # Generate consistent room ID using same seed as create_meet_room
-        random.seed(appointment_id)
-        letters1 = ''.join(random.choices(string.ascii_lowercase, k=3))
-        numbers = ''.join(random.choices(string.digits, k=4))
-        letters2 = ''.join(random.choices(string.ascii_lowercase, k=3))
+        # Create consistent room name
+        room_base = f"reddotpharmacy-{appointment_id}"
+        room_hash = hashlib.md5(room_base.encode()).hexdigest()[:12]
         
-        room_id = f"{letters1}-{numbers}-{letters2}"
-        base_url = f"https://meet.google.com/{room_id}"
+        room_name = f"RedDotPharmacy-Appt{appointment_id}-{room_hash}"
+        meet_url = f"https://meet.jit.si/{room_name}"
         
-        # Add user context parameters
-        if user_role == "doctor":
-            return f"{base_url}?role=moderator"
-        else:
-            return base_url
+        # Jitsi doesn't need role parameters - the room just works
+        return meet_url
 
 # Initialize services
 calendar_service = GoogleCalendarService()

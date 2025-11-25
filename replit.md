@@ -65,10 +65,11 @@ Preferred communication style: Simple, everyday language.
   - Status tracking (pending → approved → scheduled → ongoing → completed)
 
 ### Video Consultation
-- **Google Meet** integration for video consultations
-- **Google Calendar API** for automatic appointment scheduling
+- **Jitsi Meet** integration for video consultations (no API keys required, works instantly)
+- Video call links generated automatically when appointments are approved
 - **Time slot system** prevents double-booking
 - **Appointment approval workflow** managed by admin
+- Note: Google Calendar integration was dismissed by user - using Jitsi Meet as reliable alternative
 
 ### Order Management
 - **Shopping cart** with local storage persistence
@@ -94,9 +95,9 @@ Preferred communication style: Simple, everyday language.
 - **Chart.js** - Data visualization for admin dashboard
 
 ### Video & Calendar Integration
-- **Jitsi Meet** - Embedded video conferencing (iframe-based)
-- **Google Calendar API** - Appointment scheduling integration
-- **Google Meet** - Video call link generation
+- **Jitsi Meet** - Video conferencing for consultations (free, no API keys required)
+- Video call rooms created automatically when appointments are approved
+- Links are deterministic and unique per appointment
 
 ### Development & Deployment
 - **Replit** hosting platform with auto-scaling

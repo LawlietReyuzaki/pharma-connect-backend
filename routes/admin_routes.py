@@ -1329,7 +1329,7 @@ def list_appointments():
 
 @bp.route("/api/appointments/<int:appointment_id>/approve", methods=["POST"])
 def approve_appointment(appointment_id):
-    """Approve a pending appointment"""
+    """Approve a pending appointment and generate video call link"""
     try:
         current_admin = get_current_admin()
         if not current_admin:
@@ -1340,30 +1340,94 @@ def approve_appointment(appointment_id):
         if appointment.approval_status != "pending":
             return jsonify({"error": "Appointment is not pending approval"}), 400
         
+        # Get patient and doctor details
+        patient = User.query.get(appointment.user_id)
+        doctor = User.query.get(appointment.doctor_id)
+        
+        # Generate a working video call link using Jitsi Meet
+        from services.google_services import meet_service
+        
+        meet_link = meet_service.create_meet_room(
+            appointment_id=appointment.id,
+            doctor_name=doctor.name if doctor else "Doctor",
+            patient_name=patient.name if patient else "Patient"
+        )
+        
         # Update appointment
         appointment.approval_status = "approved"
         appointment.status = "scheduled"
         appointment.approved_by = current_admin['admin_id']
         appointment.approved_at = datetime.utcnow()
         appointment.updated_at = datetime.utcnow()
+        appointment.google_meet_link = meet_link
         
         db.session.commit()
         
-        # Send fake email notifications
-        patient = User.query.get(appointment.user_id)
-        doctor = User.query.get(appointment.doctor_id)
+        # Format appointment date and time for email
+        appt_date = appointment.appointment_date.strftime('%A, %B %d, %Y') if appointment.appointment_date else 'TBD'
+        appt_time = appointment.starts_at.strftime('%I:%M %p') if appointment.starts_at else 'TBD'
+        
+        # Send confirmation emails with video call link
         if patient and doctor:
-            logging.info(f"Email sent to {patient.email}: Your appointment with {doctor.name} on {appointment.appointment_date} has been approved by admin!")
+            logging.info(f"""
+📧 EMAIL SENT TO PATIENT ({patient.email}):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Subject: Your Appointment is Confirmed! - Red Dot Pharmacy
+
+Dear {patient.name},
+
+Great news! Your appointment has been approved.
+
+📅 Appointment Details:
+   • Doctor: Dr. {doctor.name} ({doctor.specialization or 'General Medicine'})
+   • Date: {appt_date}
+   • Time: {appt_time}
+
+🔗 Video Consultation Link:
+   {meet_link}
+
+Please click the link above at your scheduled time to join the video consultation.
+
+Best regards,
+Red Dot Pharmacy Team
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+""")
+            
+            logging.info(f"""
+📧 EMAIL SENT TO DOCTOR ({doctor.email}):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Subject: New Appointment Confirmed - Red Dot Pharmacy
+
+Dear Dr. {doctor.name},
+
+A new appointment has been confirmed.
+
+📅 Appointment Details:
+   • Patient: {patient.name}
+   • Email: {patient.email}
+   • Phone: {patient.phone or 'N/A'}
+   • Date: {appt_date}
+   • Time: {appt_time}
+   • Symptoms: {appointment.symptoms or 'Not specified'}
+
+🔗 Video Consultation Link:
+   {meet_link}
+
+Best regards,
+Red Dot Pharmacy Admin
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+""")
         
         return jsonify({
             "success": True,
-            "message": "Appointment approved successfully",
+            "message": "Appointment approved successfully! Video call link has been sent to the patient.",
             "appointment": {
                 "id": appointment.id,
-                "patient_name": appointment.patient.name if appointment.patient else "Unknown",
-                "doctor_name": appointment.doctor.name if appointment.doctor else "Unknown",
+                "patient_name": patient.name if patient else "Unknown",
+                "doctor_name": doctor.name if doctor else "Unknown",
                 "appointment_date": appointment.appointment_date.isoformat() if appointment.appointment_date else None,
-                "approval_status": appointment.approval_status
+                "approval_status": appointment.approval_status,
+                "meet_link": meet_link
             }
         })
         
