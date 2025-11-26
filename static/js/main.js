@@ -1463,28 +1463,62 @@ class RedDotPharmacy {
         }
     }
 
+    getPaymentStatusBadge(paymentStatus, paymentMethod) {
+        if (paymentMethod === 'cash_on_delivery') {
+            return '<span class="badge bg-success">Cash on Delivery</span>';
+        }
+        const statusColors = {
+            'pending': 'warning',
+            'accepted': 'success',
+            'declined': 'danger'
+        };
+        const statusLabels = {
+            'pending': 'Payment Pending',
+            'accepted': 'Payment Verified',
+            'declined': 'Payment Rejected'
+        };
+        const color = statusColors[paymentStatus] || 'secondary';
+        const label = statusLabels[paymentStatus] || paymentStatus;
+        return `<span class="badge bg-${color}">${label}</span>`;
+    }
+
     displayOrdersModal(orders) {
         const ordersHtml = orders.length === 0 ? 
             '<p class="text-muted text-center py-4">No orders found</p>' :
-            orders.map(order => `
-                <div class="card mb-3">
+            orders.map(order => {
+                const paymentBadge = this.getPaymentStatusBadge(order.payment_status, order.payment_method);
+                const showReupload = order.payment_status === 'declined' && order.payment_method !== 'cash_on_delivery';
+                const rejectionNote = order.payment_rejection_reason ? 
+                    `<div class="alert alert-danger py-2 mb-2 small"><i class="fas fa-exclamation-circle me-1"></i>Rejection reason: ${order.payment_rejection_reason}</div>` : '';
+                
+                return `
+                <div class="card mb-3 ${order.payment_status === 'declined' ? 'border-danger' : ''}">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-8">
                                 <h6>Order #${order.id}</h6>
                                 <p class="text-muted mb-1">${order.item_count} items • PKR ${order.total_amount}</p>
                                 <p class="text-muted mb-1">${new Date(order.created_at).toLocaleString()}</p>
-                                <span class="badge bg-${this.getOrderStatusColor(order.status)}">${order.status.replace('_', ' ').toUpperCase()}</span>
+                                <div class="mb-2">
+                                    <span class="badge bg-${this.getOrderStatusColor(order.status)} me-1">${order.status.replace('_', ' ').toUpperCase()}</span>
+                                    ${paymentBadge}
+                                </div>
+                                ${rejectionNote}
                             </div>
                             <div class="col-md-4 text-end">
-                                <button class="btn btn-outline-danger btn-sm" onclick="app.viewOrderDetails(${order.id})">
-                                    View Details
+                                <button class="btn btn-outline-danger btn-sm mb-1" onclick="app.viewOrderDetails(${order.id})">
+                                    <i class="fas fa-eye me-1"></i>View Details
                                 </button>
+                                ${showReupload ? `
+                                    <br><button class="btn btn-warning btn-sm mt-1" onclick="app.showReuploadReceiptModal(${order.id})">
+                                        <i class="fas fa-upload me-1"></i>Re-upload Receipt
+                                    </button>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
 
         const modalHtml = `
             <div class="modal fade" id="ordersModal" tabindex="-1">
@@ -1570,8 +1604,17 @@ class RedDotPharmacy {
                                         <div class="col-md-6">
                                             <h6><i class="fas fa-info-circle text-muted me-2"></i>Order Info</h6>
                                             <p class="mb-1"><strong>Date:</strong> ${orderDate}</p>
-                                            <p class="mb-1"><strong>Status:</strong> <span class="badge bg-${statusColor}">${order.status.replace('_', ' ').toUpperCase()}</span></p>
-                                            <p class="mb-0"><strong>Payment:</strong> ${order.payment_method}</p>
+                                            <p class="mb-1"><strong>Order Status:</strong> <span class="badge bg-${statusColor}">${order.status.replace('_', ' ').toUpperCase()}</span></p>
+                                            <p class="mb-1"><strong>Payment Method:</strong> ${order.payment_method.replace('_', ' ')}</p>
+                                            <p class="mb-0"><strong>Payment Status:</strong> ${this.getPaymentStatusBadge(order.payment_status, order.payment_method)}</p>
+                                            ${order.payment_rejection_reason ? `
+                                                <div class="alert alert-danger py-2 mt-2 small">
+                                                    <i class="fas fa-exclamation-circle me-1"></i>Rejection: ${order.payment_rejection_reason}
+                                                </div>
+                                            ` : ''}
+                                            ${order.receipt_uploaded_at ? `
+                                                <p class="mb-0 mt-2 text-muted small"><i class="fas fa-upload me-1"></i>Receipt uploaded: ${new Date(order.receipt_uploaded_at).toLocaleString()}</p>
+                                            ` : ''}
                                         </div>
                                     </div>
                                     
@@ -1626,6 +1669,129 @@ class RedDotPharmacy {
         } catch (error) {
             console.error('Error viewing order details:', error);
             this.showError('Failed to load order details');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    showReuploadReceiptModal(orderId) {
+        const modalHtml = `
+            <div class="modal fade" id="reuploadReceiptModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-warning text-dark">
+                            <h5 class="modal-title">
+                                <i class="fas fa-upload me-2"></i>Re-upload Payment Receipt
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Your previous payment receipt was rejected. Please upload a new, clearer receipt.
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label"><i class="fas fa-file-image me-1"></i>Select Receipt File</label>
+                                <input type="file" class="form-control" id="reuploadReceiptFile" 
+                                       accept="image/png,image/jpeg,image/jpg,application/pdf">
+                                <small class="text-muted">Accepted formats: PNG, JPG, JPEG, PDF (Max 5MB)</small>
+                            </div>
+                            
+                            <div id="reuploadPreview" class="mb-3"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-warning" onclick="app.submitReuploadReceipt(${orderId})">
+                                <i class="fas fa-upload me-1"></i>Upload Receipt
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const existingModal = document.getElementById('reuploadReceiptModal');
+        if (existingModal) existingModal.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        const fileInput = document.getElementById('reuploadReceiptFile');
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const preview = document.getElementById('reuploadPreview');
+                if (file.type === 'application/pdf') {
+                    preview.innerHTML = `
+                        <div class="p-3 bg-light rounded border">
+                            <i class="fas fa-file-pdf text-danger fa-2x me-2"></i>
+                            <span>${file.name}</span>
+                        </div>
+                    `;
+                } else {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        preview.innerHTML = `<img src="${e.target.result}" class="img-thumbnail" style="max-height: 150px;">`;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        });
+        
+        const modal = new bootstrap.Modal(document.getElementById('reuploadReceiptModal'));
+        modal.show();
+    }
+
+    async submitReuploadReceipt(orderId) {
+        const fileInput = document.getElementById('reuploadReceiptFile');
+        const file = fileInput.files[0];
+        
+        if (!file) {
+            this.showError('Please select a receipt file');
+            return;
+        }
+        
+        const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
+        if (!validTypes.includes(file.type)) {
+            this.showError('Invalid file type. Please upload PNG, JPG, JPEG, or PDF only.');
+            return;
+        }
+        
+        if (file.size > 5 * 1024 * 1024) {
+            this.showError('File too large. Maximum size is 5MB.');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('receipt', file);
+        
+        try {
+            this.showLoading();
+            
+            const response = await fetch(`/api/payments/reupload-receipt/${orderId}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                },
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('reuploadReceiptModal'));
+                if (modal) modal.hide();
+                
+                this.showSuccess('Receipt uploaded successfully! Your payment will be reviewed.');
+                
+                // Refresh orders modal
+                this.showOrders();
+            } else {
+                this.showError(data.error || 'Failed to upload receipt');
+            }
+        } catch (error) {
+            console.error('Error re-uploading receipt:', error);
+            this.showError('Failed to upload receipt. Please try again.');
         } finally {
             this.hideLoading();
         }
