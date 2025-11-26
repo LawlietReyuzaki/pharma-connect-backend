@@ -1858,6 +1858,7 @@ def list_admin_payments():
                 "payment_status": order.payment_status or "pending",
                 "receipt_path": order.payment_receipt_path,
                 "receipt_uploaded_at": order.receipt_uploaded_at.isoformat() if order.receipt_uploaded_at else None,
+                "rejection_reason": order.payment_rejection_reason,
                 "order_status": order.status,
                 "verified_at": order.payment_verified_at.isoformat() if order.payment_verified_at else None,
                 "created_at": order.created_at.isoformat() if order.created_at else None
@@ -1899,11 +1900,14 @@ def update_payment_status(order_id):
         if data["payment_status"] == "accepted" and order.status == "pending":
             order.status = "confirmed"
         
-        # If payment is declined, add note
+        # If payment is declined, save rejection reason
         if data["payment_status"] == "declined":
-            note = data.get("note", "Payment declined by admin")
+            rejection_reason = data.get("rejection_reason", data.get("note", "Payment rejected - Please re-upload a clearer receipt"))
+            order.payment_rejection_reason = rejection_reason
+            
+            # Also add to notes for admin tracking
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M')
-            note_entry = f"[{timestamp}] Payment declined: {note}"
+            note_entry = f"[{timestamp}] Payment declined: {rejection_reason}"
             if order.notes:
                 order.notes += f"\n{note_entry}"
             else:

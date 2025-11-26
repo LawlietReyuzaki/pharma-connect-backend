@@ -1997,38 +1997,52 @@ function renderPaymentsTable(payments) {
         const paymentDate = new Date(payment.created_at).toLocaleDateString();
         const statusColor = getPaymentStatusColor(payment.payment_status);
         const methodDisplay = formatPaymentMethod(payment.payment_method);
+        const rejectionReason = payment.rejection_reason ? 
+            `<br><small class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>${payment.rejection_reason}</small>` : '';
+        const receiptUploaded = payment.receipt_uploaded_at ? 
+            `<br><small class="text-muted"><i class="fas fa-clock me-1"></i>${new Date(payment.receipt_uploaded_at).toLocaleString()}</small>` : '';
+        
+        const isPDF = payment.receipt_path && payment.receipt_path.toLowerCase().endsWith('.pdf');
+        const receiptIcon = isPDF ? 'fa-file-pdf' : 'fa-image';
+        const receiptText = isPDF ? 'PDF' : 'View';
         
         return `
-            <tr>
+            <tr class="${payment.payment_status === 'pending' ? 'table-warning' : ''}">
                 <td><strong>#${payment.order_id}</strong></td>
                 <td>
                     <div>${payment.customer_name}</div>
                     <small class="text-muted">${payment.customer_email}</small>
+                    <br><small class="text-muted">${payment.customer_phone || 'N/A'}</small>
                 </td>
-                <td><strong>PKR ${payment.amount}</strong></td>
+                <td><strong>PKR ${payment.amount.toLocaleString()}</strong></td>
                 <td>
                     <span class="badge bg-secondary">${methodDisplay}</span>
                 </td>
                 <td>
                     <span class="badge bg-${statusColor}">${payment.payment_status.toUpperCase()}</span>
+                    ${rejectionReason}
                 </td>
                 <td>
                     ${payment.receipt_path ? 
-                        `<a href="${payment.receipt_path}" target="_blank" class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-image me-1"></i>View
-                        </a>` : 
+                        `<button class="btn btn-sm btn-outline-primary" onclick="viewReceipt('${payment.receipt_path}', ${payment.order_id})">
+                            <i class="fas ${receiptIcon} me-1"></i>${receiptText}
+                        </button>
+                        <a href="${payment.receipt_path}" download class="btn btn-sm btn-outline-secondary ms-1" title="Download">
+                            <i class="fas fa-download"></i>
+                        </a>
+                        ${receiptUploaded}` : 
                         '<span class="text-muted">N/A</span>'}
                 </td>
                 <td>${paymentDate}</td>
                 <td>
                     ${payment.payment_method !== 'cash_on_delivery' ? `
                         <div class="btn-group btn-group-sm">
-                            <button class="btn btn-success" onclick="updatePaymentStatus(${payment.order_id}, 'accepted')" 
-                                    title="Accept" ${payment.payment_status === 'accepted' ? 'disabled' : ''}>
+                            <button class="btn btn-success" onclick="acceptPayment(${payment.order_id})" 
+                                    title="Accept Payment" ${payment.payment_status === 'accepted' ? 'disabled' : ''}>
                                 <i class="fas fa-check"></i>
                             </button>
-                            <button class="btn btn-danger" onclick="updatePaymentStatus(${payment.order_id}, 'declined')" 
-                                    title="Decline" ${payment.payment_status === 'declined' ? 'disabled' : ''}>
+                            <button class="btn btn-danger" onclick="showRejectPaymentModal(${payment.order_id})" 
+                                    title="Reject Payment" ${payment.payment_status === 'declined' ? 'disabled' : ''}>
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
@@ -2037,6 +2051,123 @@ function renderPaymentsTable(payments) {
             </tr>
         `;
     }).join('');
+}
+
+function viewReceipt(receiptPath, orderId) {
+    const isPDF = receiptPath.toLowerCase().endsWith('.pdf');
+    
+    const modalHtml = `
+        <div class="modal fade" id="receiptViewModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-receipt me-2"></i>Payment Receipt - Order #${orderId}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center" style="min-height: 400px;">
+                        ${isPDF ? 
+                            `<embed src="${receiptPath}" type="application/pdf" width="100%" height="500px" />` :
+                            `<img src="${receiptPath}" alt="Payment Receipt" class="img-fluid" style="max-height: 500px;" />`
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <a href="${receiptPath}" target="_blank" class="btn btn-primary">
+                            <i class="fas fa-external-link-alt me-1"></i>Open in New Tab
+                        </a>
+                        <a href="${receiptPath}" download class="btn btn-success">
+                            <i class="fas fa-download me-1"></i>Download
+                        </a>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const existingModal = document.getElementById('receiptViewModal');
+    if (existingModal) existingModal.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('receiptViewModal'));
+    modal.show();
+}
+
+function showRejectPaymentModal(orderId) {
+    const modalHtml = `
+        <div class="modal fade" id="rejectPaymentModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-times-circle me-2"></i>Reject Payment - Order #${orderId}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to reject this payment? The customer will be notified and can re-upload a new receipt.</p>
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Rejection Reason</strong></label>
+                            <select class="form-select mb-2" id="rejectionReasonSelect" onchange="toggleCustomReason()">
+                                <option value="Receipt is unclear or unreadable">Receipt is unclear or unreadable</option>
+                                <option value="Amount does not match order total">Amount does not match order total</option>
+                                <option value="Transaction ID not visible">Transaction ID not visible</option>
+                                <option value="Receipt appears to be fake or edited">Receipt appears to be fake or edited</option>
+                                <option value="Wrong account number used">Wrong account number used</option>
+                                <option value="custom">Other (specify below)</option>
+                            </select>
+                            <textarea class="form-control" id="customRejectionReason" rows="2" 
+                                      placeholder="Enter custom rejection reason..." style="display:none;"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" onclick="confirmRejectPayment(${orderId})">
+                            <i class="fas fa-times me-1"></i>Reject Payment
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const existingModal = document.getElementById('rejectPaymentModal');
+    if (existingModal) existingModal.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('rejectPaymentModal'));
+    modal.show();
+}
+
+function toggleCustomReason() {
+    const select = document.getElementById('rejectionReasonSelect');
+    const customInput = document.getElementById('customRejectionReason');
+    customInput.style.display = select.value === 'custom' ? 'block' : 'none';
+}
+
+async function confirmRejectPayment(orderId) {
+    const select = document.getElementById('rejectionReasonSelect');
+    const customInput = document.getElementById('customRejectionReason');
+    
+    let reason = select.value;
+    if (reason === 'custom') {
+        reason = customInput.value.trim();
+        if (!reason) {
+            alert('Please enter a rejection reason');
+            return;
+        }
+    }
+    
+    await updatePaymentStatus(orderId, 'declined', reason);
+    
+    const modal = bootstrap.Modal.getInstance(document.getElementById('rejectPaymentModal'));
+    if (modal) modal.hide();
+}
+
+async function acceptPayment(orderId) {
+    if (!confirm('Accept this payment? This will confirm the order.')) return;
+    await updatePaymentStatus(orderId, 'accepted');
 }
 
 function getPaymentStatusColor(status) {
@@ -2059,30 +2190,30 @@ function formatPaymentMethod(method) {
     return methods[method] || method;
 }
 
-async function updatePaymentStatus(orderId, status) {
-    const confirmMsg = status === 'accepted' ? 
-        'Accept this payment? This will confirm the order.' : 
-        'Decline this payment?';
-    
-    if (!confirm(confirmMsg)) return;
-
+async function updatePaymentStatus(orderId, status, rejectionReason = null) {
     try {
+        const payload = { payment_status: status };
+        if (rejectionReason) {
+            payload.rejection_reason = rejectionReason;
+        }
+        
         const response = await fetch(`/admin/api/payments/${orderId}/status`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
             },
-            body: JSON.stringify({ payment_status: status })
+            body: JSON.stringify(payload)
         });
 
         const data = await response.json();
 
         if (response.ok) {
-            alert(`Payment ${status} successfully`);
+            const statusLabel = status === 'accepted' ? 'accepted' : 'rejected';
+            alert(`Payment ${statusLabel} successfully`);
             loadPayments();
-            if (adminDashboard) {
-                adminDashboard.loadOrders();
+            if (window.adminDashboard) {
+                window.adminDashboard.loadOrders();
             }
         } else {
             alert(data.error || 'Failed to update payment status');
