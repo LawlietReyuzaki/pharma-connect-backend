@@ -1,0 +1,101 @@
+1. Admin Panel - Payment Methods Management
+
+Create an admin section where admins can add and manage banking details
+Support for multiple payment methods:
+EasyPaisa (account number and account holder name)
+JazzCash (account number and account holder name)
+Meezan Bank (account number, account holder name, and branch)
+NayaPay (account number and account holder name)
+
+Each payment method should have:
+Account number/phone number field
+Account holder name
+Toggle to enable/disable the method
+Optional note/instructions field
+
+
+2. Admin Payment Methods CRUD Operations
+
+Admin can CREATE new payment methods
+Admin can EDIT existing payment method details
+Admin can DELETE payment methods
+Admin can ENABLE/DISABLE payment methods without deleting
+Display all configured payment methods in a clean admin dashboard
+
+3. Customer Checkout - Payment Options
+
+Show all active payment methods on the checkout page
+Display each method with:
+Payment provider name and logo/icon
+Account details clearly visible
+Instructions for payment
+
+Include "Cash on Delivery" option alongside bank transfer options
+Customer must select one payment method to proceed
+
+4. Customer - Payment Receipt Upload
+
+If customer selects bank transfer, show a file upload field
+Customer can upload payment receipt/screenshot (image files: jpg, png, pdf)
+Store the uploaded receipt securely with the order
+Show which payment method was used for the payment
+
+5. Order Status Management
+
+All orders with bank transfer start with status: "Payment Pending"
+Cash on Delivery orders start with status: "Confirmed" or "Processing"
+Create a clear status indicator visible to both admin and customer
+
+6. Admin - Payment Approval System
+
+Admin dashboard to view all orders with "Payment Pending" status
+For each pending order, show:
+Order details
+Customer information
+Payment method used
+Uploaded receipt (viewable/downloadable)
+Approve/Reject buttons
+
+When admin clicks "Approve":
+Change order status from "Payment Pending" to "Confirmed"
+Send notification to customer (if notifications exist)
+
+When admin clicks "Reject":
+Change status to "Payment Rejected"
+Allow admin to add rejection reason
+Notify customer to re-upload receipt
+
+
+7. Customer Order Tracking
+
+Customer can view their order status
+Show clear status labels:
+"Payment Pending" - waiting for admin approval
+"Payment Rejected" - needs to resubmit receipt
+"Confirmed" - payment approved, order processing
+Other statuses as needed
+
+Display payment method used and receipt upload date
+
+Database Schema Needed:
+
+PaymentMethods table (id, method_name, account_number, account_holder_name, is_active, instructions, created_at)
+Orders table should include: payment_method_id, payment_receipt_url, payment_status, payment_approved_at, payment_rejection_reason
+Ensure proper relationships between tables
+
+Security & Validation:
+
+Only authenticated admins can access admin panel
+Validate file uploads (max size 5MB, allowed formats)
+Secure file storage for receipts
+Proper authorization checks on all admin endpoints
+
+UI/UX Requirements:
+
+Clean, intuitive admin interface for managing payment methods
+Clear visual distinction between payment options on checkout
+Easy-to-use receipt upload with preview
+Responsive design for mobile and desktop
+Loading states and success/error messages
+
+Please implement this complete feature with proper error handling, validation, and a clean user interface. Maintain consistency with our existing app's design and code structure.

@@ -126,6 +126,7 @@ class Order(db.Model):
     payment_verified_at = db.Column(db.DateTime, nullable=True)
     payment_verified_by = db.Column(db.Integer, db.ForeignKey('admins.admin_id'), nullable=True)
     receipt_uploaded_at = db.Column(db.DateTime, nullable=True)
+    payment_rejection_reason = db.Column(db.Text, nullable=True)  # Reason for payment rejection
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
