@@ -74,17 +74,22 @@ def create_order():
         order.delivery_fee = delivery_fee
         order.payment_method = data.get("payment_method", "cash_on_delivery")
         order.notes = data.get("notes", "")
-        order.status = "pending"
         
         # Handle payment receipt for online payments
         payment_receipt = data.get("payment_receipt_path")
-        if payment_receipt:
+        if order.payment_method == "cash_on_delivery":
+            # COD orders are confirmed immediately
+            order.status = "confirmed"
+            order.payment_status = "accepted"  # No payment needed upfront
+        elif payment_receipt:
+            # Online payment with receipt - pending admin approval
             order.payment_receipt_path = payment_receipt
             order.receipt_uploaded_at = datetime.utcnow()
-            order.payment_status = "pending"
-        elif order.payment_method == "cash_on_delivery":
-            order.payment_status = "pending"
+            order.status = "pending"  # Pending until payment approved
+            order.payment_status = "pending"  # Waiting for admin review
         else:
+            # Online payment without receipt (shouldn't happen normally)
+            order.status = "pending"
             order.payment_status = "pending"
         
         db.session.add(order)

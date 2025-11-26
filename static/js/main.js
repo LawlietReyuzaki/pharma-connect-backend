@@ -137,9 +137,16 @@ class RedDotPharmacy {
         const file = inputElement.files[0];
         if (!file) return;
 
-        const validTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+        const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
         if (!validTypes.includes(file.type)) {
-            this.showError('Invalid file type. Please upload PNG, JPG, or JPEG only.');
+            this.showError('Invalid file type. Please upload PNG, JPG, JPEG, or PDF only.');
+            inputElement.value = '';
+            return;
+        }
+        
+        // Check file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+            this.showError('File too large. Maximum size is 5MB.');
             inputElement.value = '';
             return;
         }
@@ -164,10 +171,18 @@ class RedDotPharmacy {
                 this.uploadedReceiptPath = data.receipt_path;
                 const preview = document.getElementById('receiptPreview');
                 if (preview) {
+                    const isPdf = file.type === 'application/pdf';
                     preview.innerHTML = `
                         <div class="mt-2">
-                            <img src="${data.receipt_path}" alt="Receipt" class="img-thumbnail" style="max-height: 150px;">
-                            <p class="text-success mb-0"><i class="fas fa-check-circle me-1"></i>Receipt uploaded successfully</p>
+                            ${isPdf ? `
+                                <div class="p-3 bg-light rounded border">
+                                    <i class="fas fa-file-pdf text-danger fa-2x me-2"></i>
+                                    <span>${file.name}</span>
+                                </div>
+                            ` : `
+                                <img src="${data.receipt_path}" alt="Receipt" class="img-thumbnail" style="max-height: 150px;">
+                            `}
+                            <p class="text-success mb-0 mt-2"><i class="fas fa-check-circle me-1"></i>Receipt uploaded successfully</p>
                         </div>
                     `;
                 }
@@ -784,9 +799,9 @@ class RedDotPharmacy {
                                                 <h6 class="card-title"><i class="fas fa-upload text-warning me-2"></i>Upload Payment Receipt *</h6>
                                                 <p class="small text-muted mb-2">Please upload your payment screenshot/receipt to confirm your order.</p>
                                                 <input type="file" class="form-control" id="receiptUpload" 
-                                                       accept="image/png,image/jpeg,image/jpg"
+                                                       accept="image/png,image/jpeg,image/jpg,application/pdf"
                                                        onchange="app.uploadReceipt(this)">
-                                                <small class="text-muted">Accepted: PNG, JPG, JPEG only</small>
+                                                <small class="text-muted">Accepted: PNG, JPG, JPEG, PDF (Max 5MB)</small>
                                                 <div id="receiptPreview"></div>
                                             </div>
                                         </div>
