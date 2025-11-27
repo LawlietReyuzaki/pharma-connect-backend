@@ -248,7 +248,67 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof app !== 'undefined') {
         loadShopMedicines();
     }
+    
+    // Handle search on Enter key
+    const searchInput = document.getElementById('shopMedicineSearch');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchShopMedicines();
+            }
+        });
+    }
 });
+
+// Add empty state styles
+const emptyStateStyles = document.createElement('style');
+emptyStateStyles.textContent = `
+    .empty-category-state {
+        animation: fadeIn 0.3s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .empty-illustration svg {
+        animation: float 3s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+    
+    .empty-state-container {
+        padding: 2rem;
+    }
+    
+    .empty-tips {
+        border-left: 3px solid #ffc107;
+    }
+    
+    @media (max-width: 576px) {
+        .empty-state-container {
+            padding: 1rem;
+        }
+        
+        .empty-illustration svg {
+            width: 120px !important;
+            height: 120px !important;
+        }
+        
+        .empty-message h4 {
+            font-size: 1.25rem;
+        }
+        
+        .empty-actions .btn {
+            width: 100%;
+        }
+    }
+`;
+document.head.appendChild(emptyStateStyles);
 
 // Shop medicine search function
 function searchShopMedicines(query = null) {
@@ -261,8 +321,13 @@ function searchShopMedicines(query = null) {
     }
 }
 
+// Track current category for empty state message
+let currentShopCategory = '';
+
 // Shop category filter function
 function filterShopByCategory(category) {
+    currentShopCategory = category;
+    
     // Update active category button
     document.querySelectorAll('.category-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -270,8 +335,22 @@ function filterShopByCategory(category) {
     event.target.classList.add('active');
     
     if (typeof app !== 'undefined') {
-        app.filterByCategory(category);
-        updateShopGrid();
+        // Show loading state
+        const grid = document.getElementById('shopMedicineGrid');
+        if (grid) {
+            grid.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <div class="spinner-border text-danger" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted mt-3">Loading products...</p>
+                </div>
+            `;
+        }
+        
+        app.filterByCategory(category).then(() => {
+            updateShopGrid();
+        });
     }
 }
 
@@ -306,20 +385,98 @@ function loadMoreShopMedicines() {
 // Display medicines in shop grid
 function displayShopMedicines(medicines) {
     const grid = document.getElementById('shopMedicineGrid');
+    const loadMoreBtn = document.getElementById('shopLoadMoreBtn');
     if (!grid) return;
 
     if (medicines.length === 0) {
+        // Hide load more button when no products
+        if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+        
+        // Show clean empty state with illustration
+        const categoryName = currentShopCategory || 'this category';
         grid.innerHTML = `
-            <div class="col-12 text-center py-5">
-                <i class="fas fa-pills fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted">No medicines found</h5>
-                <p class="text-muted">Try adjusting your search criteria or browse all categories</p>
+            <div class="col-12">
+                <div class="empty-category-state text-center py-5">
+                    <div class="empty-state-container mx-auto" style="max-width: 400px;">
+                        <!-- Empty State Illustration -->
+                        <div class="empty-illustration mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" style="width: 150px; height: 150px;">
+                                <circle cx="100" cy="100" r="90" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+                                <rect x="60" y="70" width="80" height="60" rx="8" fill="#fff" stroke="#dc3545" stroke-width="2"/>
+                                <line x1="75" y1="85" x2="125" y2="85" stroke="#e9ecef" stroke-width="3" stroke-linecap="round"/>
+                                <line x1="75" y1="100" x2="110" y2="100" stroke="#e9ecef" stroke-width="3" stroke-linecap="round"/>
+                                <line x1="75" y1="115" x2="95" y2="115" stroke="#e9ecef" stroke-width="3" stroke-linecap="round"/>
+                                <circle cx="145" cy="135" r="25" fill="#dc3545" opacity="0.1"/>
+                                <text x="145" y="142" text-anchor="middle" font-size="24" fill="#dc3545">0</text>
+                                <path d="M40 140 Q50 120 60 140" fill="none" stroke="#28a745" stroke-width="2"/>
+                                <circle cx="50" cy="145" r="5" fill="#28a745" opacity="0.5"/>
+                            </svg>
+                        </div>
+                        
+                        <!-- Empty State Message -->
+                        <div class="empty-message mb-4">
+                            <h4 class="fw-bold text-dark mb-3">
+                                <i class="fas fa-box-open text-danger me-2"></i>
+                                No Products Found
+                            </h4>
+                            <p class="text-muted fs-5 mb-2">
+                                ${currentShopCategory 
+                                    ? `No products found in <strong class="text-danger">"${currentShopCategory}"</strong> category yet.`
+                                    : 'No products match your search criteria.'}
+                            </p>
+                            <p class="text-muted small">
+                                We're constantly adding new products. Check back soon or explore other categories!
+                            </p>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="empty-actions d-flex flex-column flex-sm-row gap-3 justify-content-center">
+                            <button class="btn btn-danger btn-lg px-4" onclick="goBackToAllProducts()">
+                                <i class="fas fa-th-large me-2"></i>View All Products
+                            </button>
+                            <a href="/" class="btn btn-outline-secondary btn-lg px-4">
+                                <i class="fas fa-home me-2"></i>Go to Home
+                            </a>
+                        </div>
+                        
+                        <!-- Helpful Tips -->
+                        <div class="empty-tips mt-5 p-3 bg-light rounded">
+                            <small class="text-muted">
+                                <i class="fas fa-lightbulb text-warning me-1"></i>
+                                <strong>Tip:</strong> Try browsing other categories or use the search bar to find specific medicines.
+                            </small>
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
         return;
     }
 
+    // Show load more button when products exist
+    if (loadMoreBtn) loadMoreBtn.style.display = 'inline-block';
+    
     grid.innerHTML = medicines.map(medicine => createShopMedicineCard(medicine)).join('');
+}
+
+// Go back to all products (reset category filter)
+function goBackToAllProducts() {
+    currentShopCategory = '';
+    
+    // Reset active state on category buttons
+    document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.category === '') {
+            btn.classList.add('active');
+        }
+    });
+    
+    // Load all medicines
+    if (typeof app !== 'undefined') {
+        app.filterByCategory('').then(() => {
+            updateShopGrid();
+        });
+    }
 }
 
 // Append medicines to shop grid (for load more)
