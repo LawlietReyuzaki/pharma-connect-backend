@@ -1894,7 +1894,7 @@ def update_payment_status(order_id):
         
         order.payment_status = data["payment_status"]
         order.payment_verified_at = datetime.utcnow()
-        order.payment_verified_by = current_admin.id
+        order.payment_verified_by = current_admin['admin_id']
         
         # If payment is accepted and order is pending, update order status to confirmed
         if data["payment_status"] == "accepted" and order.status == "pending":
