@@ -124,30 +124,38 @@
     </div>
 </section>
 
-<!-- Enhanced Category Filter -->
-<section class="category-section py-4">
+<!-- Shop by Category Section -->
+<section class="category-section py-5">
     <div class="container">
-        <div class="row">
-            <div class="col-12">
-                <h5 class="text-center mb-4">Shop by Category</h5>
-                <div class="category-grid d-flex flex-wrap gap-3 justify-content-center">
-                    <button class="btn btn-outline-danger category-btn active" data-category="" onclick="filterShopByCategory('')">
-                        <i class="fas fa-th-large me-2"></i>All Products
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <h2 class="fw-bold text-dark mb-2">
+                    <i class="fas fa-th-large text-danger me-2"></i>Shop by Category
+                </h2>
+                <p class="text-muted">Browse our medicines organized by category for easy navigation</p>
+            </div>
+        </div>
+        
+        <!-- Category Cards Grid -->
+        <div class="row" id="categoryCardsGrid">
+            <!-- Categories will be dynamically loaded here -->
+            <div class="col-12 text-center py-4">
+                <div class="spinner-border text-danger" role="status">
+                    <span class="visually-hidden">Loading categories...</span>
+                </div>
+                <p class="text-muted mt-2">Loading categories...</p>
+            </div>
+        </div>
+        
+        <!-- View Toggle -->
+        <div class="row mt-4">
+            <div class="col-12 text-center">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-danger active" id="viewAllBtn" onclick="showAllCategoriesView()">
+                        <i class="fas fa-th-large me-2"></i>All Categories
                     </button>
-                    <button class="btn btn-outline-danger category-btn" data-category="Pain Relief" onclick="filterShopByCategory('Pain Relief')">
-                        <i class="fas fa-tablets me-2"></i>Pain Relief
-                    </button>
-                    <button class="btn btn-outline-danger category-btn" data-category="Antibiotics" onclick="filterShopByCategory('Antibiotics')">
-                        <i class="fas fa-pills me-2"></i>Antibiotics
-                    </button>
-                    <button class="btn btn-outline-danger category-btn" data-category="Cold & Flu" onclick="filterShopByCategory('Cold & Flu')">
-                        <i class="fas fa-thermometer me-2"></i>Cold & Flu
-                    </button>
-                    <button class="btn btn-outline-danger category-btn" data-category="Gastric" onclick="filterShopByCategory('Gastric')">
-                        <i class="fas fa-prescription-bottle me-2"></i>Gastric
-                    </button>
-                    <button class="btn btn-outline-danger category-btn" data-category="Vitamins" onclick="filterShopByCategory('Vitamins')">
-                        <i class="fas fa-leaf me-2"></i>Vitamins
+                    <button type="button" class="btn btn-outline-danger" id="viewGridBtn" onclick="showGridView()">
+                        <i class="fas fa-grip-horizontal me-2"></i>All Products
                     </button>
                 </div>
             </div>
@@ -155,27 +163,44 @@
     </div>
 </section>
 
-<!-- Products Section -->
-<section class="products-section py-5">
+<!-- Products Section (For filtered/single category view) -->
+<section class="products-section py-5" id="productsSection" style="display: none;">
     <div class="container">
-        <!-- Loading State -->
-        <div id="shopLoading" class="text-center py-5" style="display: none;">
-            <div class="spinner-border text-danger" role="status">
-                <span class="visually-hidden">Loading medicines...</span>
+        <!-- Back Button & Category Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <button class="btn btn-outline-secondary mb-3" onclick="showAllCategoriesView()">
+                    <i class="fas fa-arrow-left me-2"></i>Back to All Categories
+                </button>
+                <h3 class="fw-bold" id="currentCategoryTitle">
+                    <i class="fas fa-pills text-danger me-2"></i>All Products
+                </h3>
             </div>
-            <p class="text-muted mt-3">Loading medicines...</p>
         </div>
-
+        
         <!-- Products Grid -->
         <div class="row" id="shopMedicineGrid">
             <!-- Medicines will be loaded here -->
         </div>
 
         <!-- Load More Section -->
-        <div class="text-center mt-5">
+        <div class="text-center mt-5" id="loadMoreSection">
             <button class="btn btn-outline-danger btn-lg px-5" id="shopLoadMoreBtn" onclick="loadMoreShopMedicines()">
                 <i class="fas fa-plus me-2"></i>Load More Products
             </button>
+        </div>
+    </div>
+</section>
+
+<!-- Category Sections (For all categories view) -->
+<section class="all-categories-section py-5" id="allCategoriesSection">
+    <div class="container" id="categorySectionsContainer">
+        <!-- Category sections will be dynamically loaded here -->
+        <div class="text-center py-5">
+            <div class="spinner-border text-danger" role="status">
+                <span class="visually-hidden">Loading medicines...</span>
+            </div>
+            <p class="text-muted mt-2">Organizing medicines by category...</p>
         </div>
     </div>
 </section>
@@ -242,12 +267,55 @@
 </section>
 
 <script>
-// Shop-specific JavaScript functionality
+// Shop State Management
+let allMedicines = [];
+let allCategories = [];
+let currentShopCategory = '';
+let currentView = 'categories'; // 'categories' or 'grid'
+
+// Category icons mapping
+const categoryIcons = {
+    'Pain Relief': 'fas fa-tablets',
+    'Antibiotics': 'fas fa-pills',
+    'Cold & Flu': 'fas fa-thermometer',
+    'Gastric': 'fas fa-prescription-bottle',
+    'Vitamins': 'fas fa-leaf',
+    'Heart': 'fas fa-heartbeat',
+    'Diabetes': 'fas fa-syringe',
+    'Skin Care': 'fas fa-hand-sparkles',
+    'Supplements': 'fas fa-capsules',
+    'General': 'fas fa-medkit',
+    'Eye Care': 'fas fa-eye',
+    'Allergy': 'fas fa-allergies',
+    'First Aid': 'fas fa-first-aid',
+    'Baby Care': 'fas fa-baby',
+    'Women Health': 'fas fa-female',
+    'Men Health': 'fas fa-male'
+};
+
+// Category colors mapping
+const categoryColors = {
+    'Pain Relief': '#dc3545',
+    'Antibiotics': '#28a745',
+    'Cold & Flu': '#17a2b8',
+    'Gastric': '#6f42c1',
+    'Vitamins': '#fd7e14',
+    'Heart': '#e83e8c',
+    'Diabetes': '#007bff',
+    'Skin Care': '#20c997',
+    'Supplements': '#6610f2',
+    'General': '#6c757d',
+    'Eye Care': '#0dcaf0',
+    'Allergy': '#ffc107',
+    'First Aid': '#dc3545',
+    'Baby Care': '#ff6b9d',
+    'Women Health': '#e83e8c',
+    'Men Health': '#0d6efd'
+};
+
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    // Load medicines when page loads
-    if (typeof app !== 'undefined') {
-        loadShopMedicines();
-    }
+    initializeShop();
     
     // Handle search on Enter key
     const searchInput = document.getElementById('shopMedicineSearch');
@@ -260,11 +328,82 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Add empty state styles
-const emptyStateStyles = document.createElement('style');
-emptyStateStyles.textContent = `
-    .empty-category-state {
-        animation: fadeIn 0.3s ease-in-out;
+// Add shop styles
+const shopStyles = document.createElement('style');
+shopStyles.textContent = `
+    .category-card {
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border: 2px solid transparent;
+        overflow: hidden;
+    }
+    
+    .category-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+    }
+    
+    .category-card .category-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        font-size: 1.5rem;
+    }
+    
+    .category-card .product-count {
+        background: rgba(0,0,0,0.05);
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+    }
+    
+    .category-section-block {
+        background: #fff;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        overflow: hidden;
+    }
+    
+    .category-section-header {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .category-section-body {
+        padding: 1.5rem;
+    }
+    
+    .empty-category-message {
+        text-align: center;
+        padding: 2rem;
+        color: #6c757d;
+    }
+    
+    .medicine-mini-card {
+        border: 1px solid #eee;
+        border-radius: 8px;
+        padding: 1rem;
+        transition: all 0.2s ease;
+        height: 100%;
+    }
+    
+    .medicine-mini-card:hover {
+        border-color: #dc3545;
+        box-shadow: 0 4px 12px rgba(220,53,69,0.15);
+    }
+    
+    .view-toggle .btn.active {
+        background-color: #dc3545 !important;
+        border-color: #dc3545 !important;
+        color: white !important;
     }
     
     @keyframes fadeIn {
@@ -272,211 +411,331 @@ emptyStateStyles.textContent = `
         to { opacity: 1; transform: translateY(0); }
     }
     
-    .empty-illustration svg {
-        animation: float 3s ease-in-out infinite;
+    .fade-in {
+        animation: fadeIn 0.3s ease-in-out;
     }
     
-    @keyframes float {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
-    }
-    
-    .empty-state-container {
-        padding: 2rem;
-    }
-    
-    .empty-tips {
-        border-left: 3px solid #ffc107;
-    }
-    
-    @media (max-width: 576px) {
-        .empty-state-container {
-            padding: 1rem;
-        }
-        
-        .empty-illustration svg {
-            width: 120px !important;
-            height: 120px !important;
-        }
-        
-        .empty-message h4 {
-            font-size: 1.25rem;
-        }
-        
-        .empty-actions .btn {
-            width: 100%;
+    @media (max-width: 768px) {
+        .category-card .category-icon {
+            width: 50px;
+            height: 50px;
+            font-size: 1.2rem;
         }
     }
 `;
-document.head.appendChild(emptyStateStyles);
+document.head.appendChild(shopStyles);
 
-// Shop medicine search function
-function searchShopMedicines(query = null) {
-    const searchInput = document.getElementById('shopMedicineSearch');
-    const searchQuery = query || (searchInput ? searchInput.value : '');
-    
-    if (typeof app !== 'undefined') {
-        app.searchMedicines(searchQuery);
-        updateShopGrid();
+// Initialize shop
+async function initializeShop() {
+    try {
+        // Load all medicines
+        const medicinesResponse = await fetch('/api/store/medicines?limit=500');
+        const medicinesData = await medicinesResponse.json();
+        allMedicines = medicinesData.medicines || [];
+        
+        // Update medicine count
+        const countElement = document.getElementById('shopMedicineCount');
+        if (countElement) {
+            countElement.textContent = `${allMedicines.length}+`;
+        }
+        
+        // Load categories
+        const categoriesResponse = await fetch('/api/store/categories');
+        const categoriesData = await categoriesResponse.json();
+        allCategories = categoriesData.categories || [];
+        
+        // Render category cards
+        renderCategoryCards();
+        
+        // Render all categories view
+        renderAllCategoriesView();
+        
+    } catch (error) {
+        console.error('Error initializing shop:', error);
+        document.getElementById('categoryCardsGrid').innerHTML = `
+            <div class="col-12 text-center py-4">
+                <i class="fas fa-exclamation-circle text-danger fa-3x mb-3"></i>
+                <p class="text-muted">Failed to load shop data. Please refresh the page.</p>
+            </div>
+        `;
     }
 }
 
-// Track current category for empty state message
-let currentShopCategory = '';
+// Render category cards at the top
+function renderCategoryCards() {
+    const container = document.getElementById('categoryCardsGrid');
+    if (!container) return;
+    
+    // Count medicines per category
+    const categoryCounts = {};
+    allMedicines.forEach(med => {
+        const cat = med.category || 'General';
+        categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+    });
+    
+    // Generate category cards HTML
+    let cardsHtml = allCategories.map(category => {
+        const count = categoryCounts[category] || 0;
+        const icon = categoryIcons[category] || 'fas fa-pills';
+        const color = categoryColors[category] || '#6c757d';
+        
+        return `
+            <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-3">
+                <div class="category-card card h-100 text-center shadow-sm" 
+                     onclick="filterShopByCategory('${category}')"
+                     style="border-color: ${color}20;">
+                    <div class="card-body py-4">
+                        <div class="category-icon" style="background: ${color}15; color: ${color};">
+                            <i class="${icon}"></i>
+                        </div>
+                        <h6 class="card-title mb-2 fw-bold">${category}</h6>
+                        <span class="product-count ${count > 0 ? 'text-success' : 'text-muted'}">
+                            ${count} ${count === 1 ? 'product' : 'products'}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = cardsHtml;
+}
 
-// Shop category filter function
+// Render all categories view with medicines grouped
+function renderAllCategoriesView() {
+    const container = document.getElementById('categorySectionsContainer');
+    if (!container) return;
+    
+    // Group medicines by category
+    const groupedMedicines = {};
+    allCategories.forEach(cat => {
+        groupedMedicines[cat] = [];
+    });
+    
+    allMedicines.forEach(med => {
+        const cat = med.category || 'General';
+        if (!groupedMedicines[cat]) {
+            groupedMedicines[cat] = [];
+        }
+        groupedMedicines[cat].push(med);
+    });
+    
+    // Generate sections HTML
+    let sectionsHtml = '';
+    
+    allCategories.forEach(category => {
+        const medicines = groupedMedicines[category] || [];
+        const icon = categoryIcons[category] || 'fas fa-pills';
+        const color = categoryColors[category] || '#6c757d';
+        
+        sectionsHtml += `
+            <div class="category-section-block fade-in" id="category-${category.replace(/\s+/g, '-')}">
+                <div class="category-section-header" style="background: linear-gradient(135deg, ${color}10, ${color}05);">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3" style="width: 45px; height: 45px; border-radius: 50%; background: ${color}; color: white; display: flex; align-items: center; justify-content: center;">
+                            <i class="${icon}"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0 fw-bold">${category}</h5>
+                            <small class="text-muted">${medicines.length} ${medicines.length === 1 ? 'product' : 'products'} available</small>
+                        </div>
+                    </div>
+                    ${medicines.length > 4 ? `
+                        <button class="btn btn-sm btn-outline-danger" onclick="filterShopByCategory('${category}')">
+                            View All <i class="fas fa-arrow-right ms-1"></i>
+                        </button>
+                    ` : ''}
+                </div>
+                <div class="category-section-body">
+                    ${medicines.length > 0 ? `
+                        <div class="row">
+                            ${medicines.slice(0, 4).map(med => createMiniMedicineCard(med)).join('')}
+                        </div>
+                    ` : `
+                        <div class="empty-category-message">
+                            <i class="fas fa-box-open fa-2x mb-3 text-muted"></i>
+                            <p class="mb-0">No medicines available in this category yet.</p>
+                            <small class="text-muted">Check back soon for new products!</small>
+                        </div>
+                    `}
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = sectionsHtml;
+}
+
+// Create mini medicine card for category sections
+function createMiniMedicineCard(medicine) {
+    const imagePath = medicine.image_path || medicine.image_url || '/static/images/default-medicine.png';
+    return `
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+            <div class="medicine-mini-card">
+                <div class="d-flex align-items-center mb-2">
+                    <img src="${imagePath}" alt="${medicine.name}" 
+                         class="rounded me-2" style="width: 50px; height: 50px; object-fit: cover;"
+                         onerror="this.src='/static/images/default-medicine.png'">
+                    <div class="flex-grow-1 overflow-hidden">
+                        <h6 class="mb-0 text-truncate fw-bold" title="${medicine.name}">${medicine.name}</h6>
+                        <small class="text-muted">${medicine.chemical || 'Generic'}</small>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-danger fw-bold">PKR ${medicine.price}</span>
+                    <span class="badge ${medicine.status === 'in_stock' ? 'bg-success' : 'bg-secondary'} small">
+                        ${medicine.status === 'in_stock' ? 'In Stock' : 'Out'}
+                    </span>
+                </div>
+                <div class="mt-2 d-flex gap-1">
+                    <button class="btn btn-outline-danger btn-sm flex-fill" onclick="app.viewMedicine(${medicine.id})">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-danger btn-sm flex-fill ${medicine.status !== 'in_stock' ? 'disabled' : ''}" 
+                            onclick="app.buyNow(${medicine.id})" ${medicine.status !== 'in_stock' ? 'disabled' : ''}>
+                        <i class="fas fa-bolt"></i> Buy
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Filter by category and show single category view
 function filterShopByCategory(category) {
     currentShopCategory = category;
     
-    // Update active category button
-    document.querySelectorAll('.category-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    event.target.classList.add('active');
+    // Switch to products section
+    document.getElementById('allCategoriesSection').style.display = 'none';
+    document.getElementById('productsSection').style.display = 'block';
     
-    if (typeof app !== 'undefined') {
-        // Show loading state
-        const grid = document.getElementById('shopMedicineGrid');
-        if (grid) {
-            grid.innerHTML = `
-                <div class="col-12 text-center py-5">
-                    <div class="spinner-border text-danger" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="text-muted mt-3">Loading products...</p>
-                </div>
-            `;
-        }
-        
-        app.filterByCategory(category).then(() => {
-            updateShopGrid();
-        });
+    // Update toggle buttons
+    document.getElementById('viewAllBtn').classList.remove('active');
+    document.getElementById('viewGridBtn').classList.remove('active');
+    
+    // Update category title
+    const titleEl = document.getElementById('currentCategoryTitle');
+    if (titleEl) {
+        const icon = categoryIcons[category] || 'fas fa-pills';
+        titleEl.innerHTML = `<i class="${icon} text-danger me-2"></i>${category}`;
     }
+    
+    // Filter and display medicines
+    const filteredMedicines = allMedicines.filter(med => (med.category || 'General') === category);
+    displayShopMedicines(filteredMedicines);
+    
+    // Scroll to products section
+    document.getElementById('productsSection').scrollIntoView({ behavior: 'smooth' });
 }
 
-// Load shop medicines
-function loadShopMedicines() {
-    if (typeof app !== 'undefined') {
-        app.loadMedicines().then(data => {
-            if (data) {
-                displayShopMedicines(data.medicines);
-                // Update medicine count
-                const countElement = document.getElementById('shopMedicineCount');
-                if (countElement) {
-                    countElement.textContent = `${data.total_count}+`;
-                }
-            }
-        });
-    }
+// Show all categories view
+function showAllCategoriesView() {
+    currentShopCategory = '';
+    currentView = 'categories';
+    
+    document.getElementById('productsSection').style.display = 'none';
+    document.getElementById('allCategoriesSection').style.display = 'block';
+    
+    // Update toggle buttons
+    document.getElementById('viewAllBtn').classList.add('active');
+    document.getElementById('viewGridBtn').classList.remove('active');
 }
 
-// Load more medicines
-function loadMoreShopMedicines() {
-    if (typeof app !== 'undefined') {
-        const currentCount = document.querySelectorAll('#shopMedicineGrid .col-lg-3').length;
-        app.loadMedicines({ offset: currentCount }).then(data => {
-            if (data && data.medicines.length > 0) {
-                appendShopMedicines(data.medicines);
-            }
-        });
+// Show grid view (all products)
+function showGridView() {
+    currentShopCategory = '';
+    currentView = 'grid';
+    
+    document.getElementById('allCategoriesSection').style.display = 'none';
+    document.getElementById('productsSection').style.display = 'block';
+    
+    // Update toggle buttons
+    document.getElementById('viewAllBtn').classList.remove('active');
+    document.getElementById('viewGridBtn').classList.add('active');
+    
+    // Update title
+    const titleEl = document.getElementById('currentCategoryTitle');
+    if (titleEl) {
+        titleEl.innerHTML = '<i class="fas fa-th-large text-danger me-2"></i>All Products';
     }
+    
+    // Display all medicines
+    displayShopMedicines(allMedicines);
 }
 
-// Display medicines in shop grid
+// Search medicines
+function searchShopMedicines(query = null) {
+    const searchInput = document.getElementById('shopMedicineSearch');
+    const searchQuery = (query || (searchInput ? searchInput.value : '')).toLowerCase().trim();
+    
+    if (!searchQuery) {
+        showAllCategoriesView();
+        return;
+    }
+    
+    // Filter medicines by search
+    const filteredMedicines = allMedicines.filter(med => 
+        med.name.toLowerCase().includes(searchQuery) ||
+        (med.chemical && med.chemical.toLowerCase().includes(searchQuery)) ||
+        (med.description && med.description.toLowerCase().includes(searchQuery)) ||
+        (med.category && med.category.toLowerCase().includes(searchQuery))
+    );
+    
+    // Switch to products view
+    currentShopCategory = '';
+    document.getElementById('allCategoriesSection').style.display = 'none';
+    document.getElementById('productsSection').style.display = 'block';
+    
+    // Update title
+    const titleEl = document.getElementById('currentCategoryTitle');
+    if (titleEl) {
+        titleEl.innerHTML = `<i class="fas fa-search text-danger me-2"></i>Search Results for "${searchQuery}"`;
+    }
+    
+    displayShopMedicines(filteredMedicines);
+}
+
+// Display medicines in grid
 function displayShopMedicines(medicines) {
     const grid = document.getElementById('shopMedicineGrid');
     const loadMoreBtn = document.getElementById('shopLoadMoreBtn');
     if (!grid) return;
-
+    
+    // Hide load more button (we load all at once now)
+    if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+    
     if (medicines.length === 0) {
-        // Hide load more button when no products
-        if (loadMoreBtn) loadMoreBtn.style.display = 'none';
-        
-        // Show clean empty state with illustration
-        const categoryName = currentShopCategory || 'this category';
         grid.innerHTML = `
             <div class="col-12">
-                <div class="empty-category-state text-center py-5">
-                    <div class="empty-state-container mx-auto" style="max-width: 400px;">
-                        <!-- Empty State Illustration -->
-                        <div class="empty-illustration mb-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" style="width: 150px; height: 150px;">
-                                <circle cx="100" cy="100" r="90" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
-                                <rect x="60" y="70" width="80" height="60" rx="8" fill="#fff" stroke="#dc3545" stroke-width="2"/>
-                                <line x1="75" y1="85" x2="125" y2="85" stroke="#e9ecef" stroke-width="3" stroke-linecap="round"/>
-                                <line x1="75" y1="100" x2="110" y2="100" stroke="#e9ecef" stroke-width="3" stroke-linecap="round"/>
-                                <line x1="75" y1="115" x2="95" y2="115" stroke="#e9ecef" stroke-width="3" stroke-linecap="round"/>
-                                <circle cx="145" cy="135" r="25" fill="#dc3545" opacity="0.1"/>
-                                <text x="145" y="142" text-anchor="middle" font-size="24" fill="#dc3545">0</text>
-                                <path d="M40 140 Q50 120 60 140" fill="none" stroke="#28a745" stroke-width="2"/>
-                                <circle cx="50" cy="145" r="5" fill="#28a745" opacity="0.5"/>
-                            </svg>
-                        </div>
-                        
-                        <!-- Empty State Message -->
-                        <div class="empty-message mb-4">
-                            <h4 class="fw-bold text-dark mb-3">
-                                <i class="fas fa-box-open text-danger me-2"></i>
-                                No Products Found
-                            </h4>
-                            <p class="text-muted fs-5 mb-2">
-                                ${currentShopCategory 
-                                    ? `No products found in <strong class="text-danger">"${currentShopCategory}"</strong> category yet.`
-                                    : 'No products match your search criteria.'}
-                            </p>
-                            <p class="text-muted small">
-                                We're constantly adding new products. Check back soon or explore other categories!
-                            </p>
-                        </div>
-                        
-                        <!-- Action Buttons -->
-                        <div class="empty-actions d-flex flex-column flex-sm-row gap-3 justify-content-center">
-                            <button class="btn btn-danger btn-lg px-4" onclick="goBackToAllProducts()">
-                                <i class="fas fa-th-large me-2"></i>View All Products
-                            </button>
-                            <a href="/" class="btn btn-outline-secondary btn-lg px-4">
-                                <i class="fas fa-home me-2"></i>Go to Home
-                            </a>
-                        </div>
-                        
-                        <!-- Helpful Tips -->
-                        <div class="empty-tips mt-5 p-3 bg-light rounded">
-                            <small class="text-muted">
-                                <i class="fas fa-lightbulb text-warning me-1"></i>
-                                <strong>Tip:</strong> Try browsing other categories or use the search bar to find specific medicines.
-                            </small>
-                        </div>
+                <div class="text-center py-5 fade-in">
+                    <div style="max-width: 400px; margin: 0 auto;">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" style="width: 120px; height: 120px;">
+                            <circle cx="100" cy="100" r="90" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>
+                            <rect x="60" y="70" width="80" height="60" rx="8" fill="#fff" stroke="#dc3545" stroke-width="2"/>
+                            <line x1="75" y1="85" x2="125" y2="85" stroke="#e9ecef" stroke-width="3" stroke-linecap="round"/>
+                            <line x1="75" y1="100" x2="110" y2="100" stroke="#e9ecef" stroke-width="3" stroke-linecap="round"/>
+                            <circle cx="145" cy="135" r="25" fill="#dc3545" opacity="0.1"/>
+                            <text x="145" y="142" text-anchor="middle" font-size="24" fill="#dc3545">0</text>
+                        </svg>
+                        <h4 class="fw-bold text-dark mt-4 mb-3">
+                            <i class="fas fa-box-open text-danger me-2"></i>No Medicines Found
+                        </h4>
+                        <p class="text-muted mb-4">
+                            ${currentShopCategory 
+                                ? `No medicines available in <strong class="text-danger">"${currentShopCategory}"</strong> category yet.`
+                                : 'No medicines match your search criteria.'}
+                        </p>
+                        <button class="btn btn-danger btn-lg" onclick="showAllCategoriesView()">
+                            <i class="fas fa-th-large me-2"></i>Browse All Categories
+                        </button>
                     </div>
                 </div>
             </div>
         `;
         return;
     }
-
-    // Show load more button when products exist
-    if (loadMoreBtn) loadMoreBtn.style.display = 'inline-block';
     
     grid.innerHTML = medicines.map(medicine => createShopMedicineCard(medicine)).join('');
-}
-
-// Go back to all products (reset category filter)
-function goBackToAllProducts() {
-    currentShopCategory = '';
-    
-    // Reset active state on category buttons
-    document.querySelectorAll('.category-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.dataset.category === '') {
-            btn.classList.add('active');
-        }
-    });
-    
-    // Load all medicines
-    if (typeof app !== 'undefined') {
-        app.filterByCategory('').then(() => {
-            updateShopGrid();
-        });
-    }
 }
 
 // Append medicines to shop grid (for load more)
