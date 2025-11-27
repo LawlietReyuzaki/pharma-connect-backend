@@ -236,29 +236,34 @@ def delete_medicine(medicine_id):
 
 @bp.route("/categories", methods=["GET"])
 def get_categories():
-    """Get list of medicine categories"""
+    """Get list of medicine categories - only returns categories with products"""
     try:
-        # Get distinct categories from medicines
-        categories = db.session.query(Medicine.category).distinct().filter(
+        # Get categories with product counts (only categories that have products)
+        from sqlalchemy import func
+        categories_with_counts = db.session.query(
+            Medicine.category,
+            func.count(Medicine.id).label('count')
+        ).filter(
             Medicine.category.isnot(None),
-            Medicine.category != ""
-        ).all()
+            Medicine.category != "",
+            Medicine.status == 'in_stock'
+        ).group_by(Medicine.category).all()
         
-        category_list = [cat[0] for cat in categories if cat[0]]
+        # Only include categories that have at least 1 product
+        category_list = [cat[0] for cat in categories_with_counts if cat[0] and cat[1] > 0]
         
-        # Add default categories if they don't exist
-        default_categories = [
-            "Pain Relief", "Antibiotics", "Cold & Flu", "Gastric", 
-            "Vitamins", "Heart", "Diabetes", "General"
-        ]
-        
-        for cat in default_categories:
-            if cat not in category_list:
-                category_list.append(cat)
+        # Remove duplicates (case-insensitive) - keep the first occurrence
+        seen = set()
+        unique_categories = []
+        for cat in category_list:
+            cat_lower = cat.lower().strip()
+            if cat_lower not in seen:
+                seen.add(cat_lower)
+                unique_categories.append(cat)
         
         return jsonify({
             "success": True,
-            "categories": sorted(category_list)
+            "categories": sorted(unique_categories)
         })
         
     except Exception as e:
