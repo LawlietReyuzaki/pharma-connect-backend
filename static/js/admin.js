@@ -143,6 +143,7 @@ class AdminDashboard {
             case 'payments':
                 loadPayments();
                 loadPaymentMethods();
+                loadBankingDetails();
                 break;
         }
     }
@@ -2330,6 +2331,89 @@ async function initPaymentMethods() {
     } catch (error) {
         console.error('Error initializing payment methods:', error);
         alert('Failed to initialize payment methods');
+    }
+}
+
+// ============ BANKING DETAILS MANAGEMENT ============
+
+async function loadBankingDetails() {
+    try {
+        const response = await fetch('/admin/api/banking-details', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            populateBankingDetailsForm(data.banking_details);
+        }
+    } catch (error) {
+        console.error('Error loading banking details:', error);
+    }
+}
+
+function populateBankingDetailsForm(details) {
+    if (!details) return;
+    
+    const fields = ['bank_name', 'account_title', 'account_number', 'iban', 'easypaisa_number', 'jazzcash_number', 'additional_instructions'];
+    fields.forEach(field => {
+        const input = document.getElementById(`banking_${field}`);
+        if (input && details[field]) {
+            input.value = details[field];
+        }
+    });
+}
+
+async function saveBankingDetails() {
+    const saveBtn = document.getElementById('saveBankingBtn');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+    saveBtn.disabled = true;
+
+    try {
+        const data = {
+            bank_name: document.getElementById('banking_bank_name')?.value || '',
+            account_title: document.getElementById('banking_account_title')?.value || '',
+            account_number: document.getElementById('banking_account_number')?.value || '',
+            iban: document.getElementById('banking_iban')?.value || '',
+            easypaisa_number: document.getElementById('banking_easypaisa_number')?.value || '',
+            jazzcash_number: document.getElementById('banking_jazzcash_number')?.value || '',
+            additional_instructions: document.getElementById('banking_additional_instructions')?.value || ''
+        };
+
+        const response = await fetch('/admin/api/banking-details', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            showBankingAlert('Banking details saved successfully!', 'success');
+        } else {
+            showBankingAlert(result.error || 'Failed to save banking details', 'danger');
+        }
+    } catch (error) {
+        console.error('Error saving banking details:', error);
+        showBankingAlert('Failed to save banking details', 'danger');
+    } finally {
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+    }
+}
+
+function showBankingAlert(message, type) {
+    const alertDiv = document.getElementById('bankingAlert');
+    if (alertDiv) {
+        alertDiv.className = `alert alert-${type}`;
+        alertDiv.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>${message}`;
+        alertDiv.classList.remove('d-none');
+        setTimeout(() => alertDiv.classList.add('d-none'), 5000);
     }
 }
 
