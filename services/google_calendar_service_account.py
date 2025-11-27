@@ -58,10 +58,21 @@ class GoogleCalendarServiceAccount:
                 logging.warning("GOOGLE_SERVICE_ACCOUNT_KEY not found in environment")
                 return
             
+            logging.info(f"Service account key length: {len(service_account_key)}")
+            logging.info(f"Service account key starts with: {service_account_key[:50] if len(service_account_key) > 50 else service_account_key}...")
+            
             try:
                 key_data = json.loads(service_account_key)
-            except json.JSONDecodeError:
-                logging.error("Invalid JSON in GOOGLE_SERVICE_ACCOUNT_KEY")
+                logging.info(f"Parsed JSON successfully. Keys: {list(key_data.keys())}")
+            except json.JSONDecodeError as e:
+                logging.error(f"Invalid JSON in GOOGLE_SERVICE_ACCOUNT_KEY: {e}")
+                logging.error(f"First 100 chars: {service_account_key[:100]}")
+                return
+            
+            required_fields = ['type', 'project_id', 'private_key_id', 'private_key', 'client_email']
+            missing = [f for f in required_fields if f not in key_data]
+            if missing:
+                logging.error(f"Missing required fields in service account key: {missing}")
                 return
             
             self.credentials = service_account.Credentials.from_service_account_info(
@@ -76,6 +87,8 @@ class GoogleCalendarServiceAccount:
             
         except Exception as e:
             logging.error(f"Failed to initialize service account: {e}")
+            import traceback
+            logging.error(f"Traceback: {traceback.format_exc()}")
             self.has_credentials = False
     
     def _get_delegated_credentials(self, user_email):

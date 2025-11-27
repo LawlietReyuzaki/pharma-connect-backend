@@ -8,6 +8,66 @@ import logging
 
 bp = Blueprint("appointments", __name__)
 
+
+@bp.route("/check-calendar-setup", methods=["GET"])
+def check_calendar_setup():
+    """Diagnostic endpoint to check Google Calendar Service Account setup"""
+    try:
+        from services.google_calendar_service_account import calendar_service_account
+        
+        status = calendar_service_account.check_service_account_setup()
+        
+        test_result = None
+        if status['has_credentials']:
+            try:
+                service = calendar_service_account._get_service()
+                if service:
+                    calendar_list = service.calendarList().list().execute()
+                    test_result = {
+                        'calendar_access': True,
+                        'calendars_count': len(calendar_list.get('items', []))
+                    }
+                else:
+                    test_result = {'calendar_access': False, 'error': 'Could not build service'}
+            except Exception as e:
+                test_result = {'calendar_access': False, 'error': str(e)}
+        
+        return jsonify({
+            "success": True,
+            "service_account_status": status,
+            "calendar_test": test_result,
+            "recommendation": _get_setup_recommendation(status, test_result)
+        })
+        
+    except Exception as e:
+        logging.error(f"Calendar setup check error: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+def _get_setup_recommendation(status, test_result):
+    """Get setup recommendations based on current status"""
+    if not status.get('has_credentials'):
+        return ("GOOGLE_SERVICE_ACCOUNT_KEY secret is not properly configured. "
+                "Make sure the JSON key is stored correctly.")
+    
+    if test_result and not test_result.get('calendar_access'):
+        error = test_result.get('error', '')
+        if 'forbidden' in error.lower():
+            return ("Service account needs domain-wide delegation enabled in Google Workspace Admin Console. "
+                    f"Go to Admin Console > Security > API Controls > Domain-wide delegation and add: "
+                    f"{status.get('service_account_email')} with scopes: "
+                    "https://www.googleapis.com/auth/calendar, https://www.googleapis.com/auth/calendar.events")
+        return f"Calendar API error: {error}"
+    
+    if test_result and test_result.get('calendar_access'):
+        return "Service account is properly configured and can access calendars!"
+    
+    return "Unknown status - please check the logs"
+
+
 @bp.route("/", methods=["POST"])
 def create_appointment():
     """Create a new appointment with Google Calendar + Meet integration"""
