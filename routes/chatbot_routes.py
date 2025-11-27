@@ -1,15 +1,100 @@
 from flask import Blueprint, request, jsonify, send_file
-from services.chatbot import generate_response, log_chat_interaction
+from services.chatbot import generate_response, log_chat_interaction, detect_language, get_chat_history as get_history
 import speech_recognition as sr
 import uuid
 import logging
 import os
 import time
+from datetime import datetime
 from gtts import gTTS
 import io
 from werkzeug.utils import secure_filename
 
 bp = Blueprint("chatbot", __name__)
+
+
+@bp.route("/medical-chat", methods=["POST"])
+def medical_chat():
+    """
+    POST /medical-chat - Medical assistant chatbot with safety guardrails
+    
+    Request body:
+    {
+        "message": "user text here",
+        "lang": "auto"   // auto-detect Urdu/English, or "en"/"ur"
+    }
+    
+    Response:
+    {
+        "success": true,
+        "message": "AI response",
+        "language": "detected language",
+        "flagged": false,
+        "needs_doctor": false,
+        "timestamp": "ISO timestamp",
+        "session_id": "uuid",
+        "disclaimer": "safety notice"
+    }
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "No data provided"
+            }), 400
+        
+        message = data.get("message", "").strip()
+        if not message:
+            return jsonify({
+                "success": False,
+                "error": "Message is required"
+            }), 400
+        
+        lang = data.get("lang", "auto")
+        session_id = data.get("session_id", str(uuid.uuid4()))
+        user_id = data.get("user_id")
+        
+        detected_lang = detect_language(message) if lang == "auto" else lang
+        
+        response_data = generate_response(
+            text=message,
+            session_id=session_id,
+            lang=lang
+        )
+        
+        log_chat_interaction(
+            session_id=session_id,
+            user_message=message,
+            bot_response=response_data['message'],
+            user_id=user_id,
+            flagged=response_data.get('flagged', False),
+            language=response_data.get('language', detected_lang)
+        )
+        
+        disclaimer = (
+            "This AI does not provide medical diagnosis. Consult a doctor for accurate guidance."
+            if detected_lang == "en" else
+            "یہ AI طبی تشخیص فراہم نہیں کرتا۔ درست رہنمائی کے لیے ڈاکٹر سے مشورہ کریں۔"
+        )
+        
+        return jsonify({
+            "success": True,
+            "message": response_data['message'],
+            "language": response_data.get('language', detected_lang),
+            "flagged": response_data.get('flagged', False),
+            "needs_doctor": response_data.get('needs_doctor', False),
+            "timestamp": response_data.get('timestamp', datetime.now().isoformat()),
+            "session_id": session_id,
+            "disclaimer": disclaimer
+        })
+        
+    except Exception as e:
+        logging.error(f"Medical chat error: {e}")
+        return jsonify({
+            "success": False,
+            "error": "Sorry, I'm having trouble right now. Please try again later."
+        }), 500
 
 # TTS Configuration
 TTS_API_KEY = "8f1e5568-0d81-477a-a023-259fff2346d0"

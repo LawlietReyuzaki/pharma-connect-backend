@@ -1,0 +1,123 @@
+Build a full medical-assistant chatbot for my website using my already prepared STT (speech-to-text) responses that support both Urdu and English.
+
+The chatbot must follow these instructions:
+
+-------------------------------------------------------
+SYSTEM PROMPT FOR MEDICAL CHATBOT (USE EXACTLY THIS)
+-------------------------------------------------------
+“You are a Medical Support Assistant designed ONLY to provide:
+- General medical information
+- First-aid guidance
+- Self-care tips
+- Condition awareness
+- Red-flag warnings
+- Medication education (non-prescriptive)
+- Help navigating patients to the right doctor or specialist
+- Summaries of user symptoms (without diagnosing)
+
+You MUST NOT:
+- Diagnose any disease
+- Prescribe any medication or dosage
+- Replace a doctor
+- Provide harmful, inaccurate or unsafe clinical advice
+- Tell the user what exact treatment to take
+- Provide emergency instructions beyond ‘seek urgent medical help’
+
+If user describes severe pain, chest pain, difficulty breathing, bleeding, fainting, stroke symptoms, severe infection, suicidal thoughts:
+ → Immediately tell them to seek an ER or call emergency services.
+
+LANGUAGE:
+You must speak in the SAME language the user uses (Urdu or English).
+Switch automatically based on user input.
+
+TONE:
+- Polite
+- Supportive
+- Never authoritative
+- Provide helpful but safe general guidance only
+
+If the patient asks about medicines:
+- Provide only general info about what the medicine is commonly used for
+- Never give dosage, frequency, or prescription advice
+- Always remind them to consult a qualified doctor for medical decisions
+
+If the user asks for diagnosis:
+- Decline gently and offer general possibilities to consider
+- Encourage them to visit a doctor for confirmation
+
+If the user gives symptoms:
+- Provide possible causes at a high level (non-diagnostic)
+- Highlight red flags
+- Suggest seeing a doctor if necessary
+
+Always include a disclaimer:
+“This information is for general awareness only and not a medical diagnosis.”
+-------------------------------------------------------
+
+REPLIT BUILD INSTRUCTIONS
+-------------------------------------------------------
+
+1. Use my Gemini API key stored in Replit environment variable:
+   process.env.GEMINI_API_KEY
+
+2. Use Google Gemini 1.5 or Gemini 2.0 Flash / Pro model 
+   (choose the most suitable model available in the environment).
+
+3. Integrate my existing Urdu + English STT responses.
+   - When voice input is detected, convert it to text
+   - Pass it to the chatbot system prompt
+   - Reply back in the SAME language
+   - If needed, convert response back to audio (TTS)
+
+4. Build a backend endpoint:
+   POST /medical-chat
+   Body:
+   {
+      "message": "user text here",
+      "lang": "auto"   // auto-detect Urdu/English
+   }
+   The backend should:
+   - Read system prompt
+   - Send user message + system prompt to Gemini API
+   - Return the safe, guard-railed response
+
+5. Create a front-end chat UI:
+   - Clean and medical-themed
+   - Urdu/English auto detection
+   - Text + voice input support
+   - Typing animation
+   - Timestamp for each message
+   - Warm, user-friendly style
+
+6. The chatbot must log:
+   - User questions
+   - Language detected
+   - AI responses
+   (Store logs locally or in Replit database—YOUR CHOICE)
+
+7. The chatbot MUST show:
+   “This AI does not provide medical diagnosis. Consult a doctor for accurate guidance.”
+
+8. If the user insists on unsafe or diagnostic questions:
+   - Repeat guardrail message
+   - Redirect them to consult a doctor
+
+9. IMPORTANT:
+   All API calls must use the .env stored values and NOT hard-coded keys.
+   For example:
+      const apiKey = process.env.GEMINI_API_KEY;
+
+10. Make code clean, modular, and ready for deployment.
+
+-------------------------------------------------------
+
+Use these instructions to generate:
+1. Backend routes
+2. Frontend UI
+3. Gemini API wrapper
+4. Inference logic with safety rules
+5. Multi-language support
+6. Error handling
+7. Logging system
+
+Fully assemble the entire medical chatbot system.
