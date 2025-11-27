@@ -121,9 +121,26 @@ Preferred communication style: Simple, everyday language.
 - **Chart.js** - Data visualization for admin dashboard
 
 ### Video & Calendar Integration
-- **Jitsi Meet** - Video conferencing for consultations (free, no API keys required)
-- Video call rooms created automatically when appointments are approved
+- **Google Calendar Service Account Integration** for automatic calendar event creation
+  - Creates events in BOTH doctor's and patient's Google Calendars
+  - Auto-generates Google Meet video conference links
+  - Sends automatic email notifications to both parties
+  - Requires `GOOGLE_SERVICE_ACCOUNT_KEY` secret (JSON key file contents)
+  - Requires domain-wide delegation enabled in Google Workspace Admin Console
+  - Service account needs "Make changes and manage sharing" permission
+- **Jitsi Meet** - Fallback video conferencing when Google Calendar is unavailable
+- Video call links generated automatically when appointments are created
 - Links are deterministic and unique per appointment
+
+### Google Calendar Setup Requirements
+1. Create a Service Account in Google Cloud Console
+2. Enable Google Calendar API
+3. Download JSON key file
+4. Enable domain-wide delegation
+5. In Google Workspace Admin Console, add the service account client ID with scopes:
+   - `https://www.googleapis.com/auth/calendar`
+   - `https://www.googleapis.com/auth/calendar.events`
+6. Add the JSON key contents to `GOOGLE_SERVICE_ACCOUNT_KEY` secret in Replit
 
 ### Development & Deployment
 - **Replit** hosting platform with auto-scaling

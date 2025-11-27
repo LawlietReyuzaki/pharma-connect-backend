@@ -2137,3 +2137,92 @@ def save_banking_details():
         db.session.rollback()
         logging.error(f"Save banking details error: {e}")
         return jsonify({"error": f"Failed to save banking details: {str(e)}"}), 500
+
+
+@bp.route("/api/google-calendar/status", methods=["GET"])
+def get_google_calendar_status():
+    """Check Google Calendar Service Account integration status"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        from services.google_calendar_service_account import calendar_service_account
+        
+        status = calendar_service_account.check_service_account_setup()
+        
+        return jsonify({
+            "success": True,
+            "google_calendar": {
+                "configured": status['has_credentials'],
+                "service_account_email": status['service_account_email'],
+                "libraries_available": status['libraries_available'],
+                "issues": status['issues'],
+                "message": "Google Calendar Service Account is configured and ready" if status['has_credentials'] 
+                          else "Google Calendar Service Account not configured. Add GOOGLE_SERVICE_ACCOUNT_KEY secret."
+            }
+        })
+        
+    except Exception as e:
+        logging.error(f"Check Google Calendar status error: {e}")
+        return jsonify({"error": f"Failed to check status: {str(e)}"}), 500
+
+
+@bp.route("/api/google-calendar/test", methods=["POST"])
+def test_google_calendar_integration():
+    """Test Google Calendar integration by creating a test event"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        from services.google_calendar_service_account import calendar_service_account
+        
+        if not calendar_service_account.has_credentials:
+            return jsonify({
+                "success": False,
+                "error": "Google Calendar Service Account not configured"
+            }), 400
+        
+        data = request.get_json() or {}
+        test_email = data.get('email')
+        
+        if not test_email:
+            return jsonify({
+                "success": False,
+                "error": "Please provide an email address to test with"
+            }), 400
+        
+        from datetime import datetime, timedelta
+        
+        test_event = {
+            'summary': 'Test Event - Red Dot Pharmacy',
+            'description': 'This is a test event to verify Google Calendar integration.',
+            'start_time': datetime.now() + timedelta(hours=1),
+            'end_time': datetime.now() + timedelta(hours=2),
+            'attendees': [test_email]
+        }
+        
+        result = calendar_service_account.create_event_with_meet(test_event, test_email)
+        
+        if result and result.get('success'):
+            return jsonify({
+                "success": True,
+                "message": "Test event created successfully!",
+                "event": {
+                    "event_id": result.get('event_id'),
+                    "meet_link": result.get('meet_link'),
+                    "html_link": result.get('html_link')
+                }
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Event created with fallback (Jitsi Meet)",
+                "event": result,
+                "note": "Domain-wide delegation may not be properly configured for this email"
+            })
+        
+    except Exception as e:
+        logging.error(f"Test Google Calendar error: {e}")
+        return jsonify({"error": f"Test failed: {str(e)}"}), 500
