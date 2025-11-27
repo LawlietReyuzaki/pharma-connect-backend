@@ -2,21 +2,24 @@ import os
 import re
 import logging
 from datetime import datetime
-from openai import OpenAI
 
-# Initialize OpenAI client
-client = None
-# if os.getenv("OPENAI_API_KEY"):
-#     try:
-#         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-#     except Exception as e:
-#         logging.error(f"Failed to initialize OpenAI client: {e}")
-# else:
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=
-    "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"
-)
+# Initialize Gemini client
+gemini_model = None
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini")
+GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-pro")
+GEMINI_TEMPERATURE = float(os.getenv("GEMINI_TEMPERATURE", "0.7"))
+
+if GEMINI_API_KEY:
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=GEMINI_API_KEY)
+        gemini_model = genai.GenerativeModel(GEMINI_MODEL)
+        logging.info(f"Gemini model initialized: {GEMINI_MODEL}")
+    except Exception as e:
+        logging.error(f"Failed to initialize Gemini client: {e}")
+else:
+    logging.warning("GOOGLE_API_KEY not set - chatbot will use offline mode")
 # Medical red flags in both English and Urdu
 RED_FLAGS = [
     # English patterns
@@ -99,9 +102,9 @@ def generate_response(text: str, prefer_urdu=True, session_id=None) -> dict:
             'suggested_medicines': []
         }
 
-    # Try to generate AI response if OpenAI is available
-    if client:
-        print("OpenAI client is available")
+    # Try to generate AI response if Gemini is available
+    if gemini_model:
+        print(f"Gemini model is available: {GEMINI_MODEL}")
         try:
             # System prompt with Red Dot Pharmacy context
             system_prompt = (
@@ -111,57 +114,45 @@ def generate_response(text: str, prefer_urdu=True, session_id=None) -> dict:
                 "Suggest they visit Red Dot Pharmacy for proper consultation. "
                 "Keep responses concise and helpful. "
                 "If asked about medicines, suggest common over-the-counter options available in Pakistan. "
-                "Make sure your responses are easy for a simple TTS to read."
+                "Make sure your responses are easy for a simple TTS to read. "
                 "Keep the responses limited to one to three sentences.")
 
             if prefer_urdu:
                 system_prompt += (
-                    "Respond in Urdu. Use respectful language. "
-                    "Keep the names of the medicine in URDU as well. NO ENGLISH. NO NAMES in ENGLISH unless user asks"
+                    " Respond in Urdu. Use respectful language. "
+                    "Keep the names of the medicine in URDU as well. NO ENGLISH. NO NAMES in ENGLISH unless user asks."
                 )
 
-            # response = client.chat.completions.create(
-            #     model="gpt-5",  # the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-            #     messages=[
-            #         {"role": "system", "content": system_prompt},
-            #         {"role": "user", "content": text}
-            #     ],
-            #     temperature=0.3,
-            #     max_tokens=300
-            # )
+            # Combine system prompt and user message for Gemini
+            full_prompt = f"{system_prompt}\n\nUser: {text}\n\nAssistant:"
 
-            response = client.chat.completions.create(
-                model="google/gemini-2.5-flash-image-preview:free",
-                messages=[{
-                    "role": "system",
-                    "content": system_prompt
-                }, {
-                    "role": "user",
-                    "content": text
-                }],
-                temperature=0.3,
-                max_tokens=300)
+            # Generate response using Gemini
+            generation_config = {
+                "temperature": GEMINI_TEMPERATURE,
+                "max_output_tokens": 300,
+            }
+            
+            response = gemini_model.generate_content(
+                full_prompt,
+                generation_config=generation_config
+            )
 
-            ai_message = response.choices[0].message.content
+            ai_message = response.text
             if ai_message:
                 ai_message = ai_message.strip()
             else:
                 ai_message = "I apologize, but I couldn't process your request. Please try again."
 
-            # Add Red Dot Pharmacy disclaimer
-            disclaimer = DISCLAIMER_UR if prefer_urdu else DISCLAIMER_EN
-            final_message = f"{ai_message}"
-
             return {
-                'message': final_message,
+                'message': ai_message,
                 'flagged': False,
                 'needs_doctor': False,
                 'suggested_medicines': []
             }
 
         except Exception as e:
-            logging.error(f"OpenAI API error: {e}")
-            print(f"OpenAI API error: {e}")
+            logging.error(f"Gemini API error: {e}")
+            print(f"Gemini API error: {e}")
             # Fall through to offline response
 
     # Offline fallback response
