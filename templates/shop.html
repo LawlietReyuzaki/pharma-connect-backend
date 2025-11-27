@@ -433,6 +433,11 @@ async function initializeShop() {
         const medicinesData = await medicinesResponse.json();
         allMedicines = medicinesData.medicines || [];
         
+        // Sync with main app object so View/Buy buttons work
+        if (typeof app !== 'undefined') {
+            app.medicines = allMedicines;
+        }
+        
         // Update medicine count
         const countElement = document.getElementById('shopMedicineCount');
         if (countElement) {
