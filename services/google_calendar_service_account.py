@@ -46,28 +46,40 @@ class GoogleCalendarServiceAccount:
         self._initialize_credentials()
     
     def _initialize_credentials(self):
-        """Initialize service account credentials from environment"""
+        """Initialize service account credentials from environment or file"""
         try:
             if not GOOGLE_LIBS_AVAILABLE:
                 logging.error("Google API libraries not installed")
                 return
             
-            service_account_key = os.environ.get('GOOGLE_SERVICE_ACCOUNT_KEY')
+            key_data = None
             
-            if not service_account_key:
-                logging.warning("GOOGLE_SERVICE_ACCOUNT_KEY not found in environment")
-                return
+            key_file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'service_account_key.json')
+            if os.path.exists(key_file_path):
+                logging.info(f"Loading service account from file: {key_file_path}")
+                try:
+                    with open(key_file_path, 'r') as f:
+                        key_data = json.load(f)
+                    logging.info(f"✅ Loaded service account key from file. Keys: {list(key_data.keys())}")
+                except Exception as e:
+                    logging.error(f"Failed to load key file: {e}")
             
-            logging.info(f"Service account key length: {len(service_account_key)}")
-            logging.info(f"Service account key starts with: {service_account_key[:50] if len(service_account_key) > 50 else service_account_key}...")
-            
-            try:
-                key_data = json.loads(service_account_key)
-                logging.info(f"Parsed JSON successfully. Keys: {list(key_data.keys())}")
-            except json.JSONDecodeError as e:
-                logging.error(f"Invalid JSON in GOOGLE_SERVICE_ACCOUNT_KEY: {e}")
-                logging.error(f"First 100 chars: {service_account_key[:100]}")
-                return
+            if not key_data:
+                service_account_key = os.environ.get('GOOGLE_SERVICE_ACCOUNT_KEY')
+                
+                if not service_account_key:
+                    logging.warning("GOOGLE_SERVICE_ACCOUNT_KEY not found in environment or file")
+                    return
+                
+                logging.info(f"Service account key length: {len(service_account_key)}")
+                
+                try:
+                    key_data = json.loads(service_account_key)
+                    logging.info(f"Parsed JSON successfully. Keys: {list(key_data.keys())}")
+                except json.JSONDecodeError as e:
+                    logging.error(f"Invalid JSON in GOOGLE_SERVICE_ACCOUNT_KEY: {e}")
+                    logging.error(f"First 100 chars: {service_account_key[:100]}")
+                    return
             
             required_fields = ['type', 'project_id', 'private_key_id', 'private_key', 'client_email']
             missing = [f for f in required_fields if f not in key_data]

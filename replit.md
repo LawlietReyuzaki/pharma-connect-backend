@@ -125,22 +125,29 @@ Preferred communication style: Simple, everyday language.
   - Creates events in BOTH doctor's and patient's Google Calendars
   - Auto-generates Google Meet video conference links
   - Sends automatic email notifications to both parties
-  - Requires `GOOGLE_SERVICE_ACCOUNT_KEY` secret (JSON key file contents)
+  - Service account: `red-dot-pharmacy@stable-balancer-479507-j8.iam.gserviceaccount.com`
+  - **Key stored in**: `service_account_key.json` file (preferred) or `GOOGLE_SERVICE_ACCOUNT_KEY` secret
   - Requires domain-wide delegation enabled in Google Workspace Admin Console
   - Service account needs "Make changes and manage sharing" permission
 - **Jitsi Meet** - Fallback video conferencing when Google Calendar is unavailable
 - Video call links generated automatically when appointments are created
 - Links are deterministic and unique per appointment
+- **Diagnostic endpoint**: `GET /api/appointments/check-calendar-setup` to verify configuration
 
 ### Google Calendar Setup Requirements
 1. Create a Service Account in Google Cloud Console
 2. Enable Google Calendar API
-3. Download JSON key file
+3. Download JSON key file and save as `service_account_key.json` in project root
 4. Enable domain-wide delegation
 5. In Google Workspace Admin Console, add the service account client ID with scopes:
    - `https://www.googleapis.com/auth/calendar`
    - `https://www.googleapis.com/auth/calendar.events`
-6. Add the JSON key contents to `GOOGLE_SERVICE_ACCOUNT_KEY` secret in Replit
+6. Alternative: Add the JSON key contents to `GOOGLE_SERVICE_ACCOUNT_KEY` secret in Replit
+
+### Current Service Account Status
+- **Active**: `red-dot-pharmacy@stable-balancer-479507-j8.iam.gserviceaccount.com`
+- **Project**: `stable-balancer-479507-j8`
+- **Calendar Access**: Verified working
 
 ### Development & Deployment
 - **Replit** hosting platform with auto-scaling
