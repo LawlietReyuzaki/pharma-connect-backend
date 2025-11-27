@@ -70,7 +70,7 @@ class RedDotPharmacy {
         `).join('');
     }
 
-    onPaymentMethodChange() {
+    async onPaymentMethodChange() {
         const selectedRadio = document.querySelector('input[name="paymentMethod"]:checked');
         const receiptSection = document.getElementById('receiptUploadSection');
         const accountDetailsDiv = document.getElementById('paymentAccountDetails');
@@ -78,53 +78,126 @@ class RedDotPharmacy {
         if (!selectedRadio || !receiptSection) return;
         
         const requiresReceipt = selectedRadio.dataset.requiresReceipt === 'true';
-        const accountTitle = selectedRadio.dataset.accountTitle;
-        const accountNumber = selectedRadio.dataset.accountNumber;
-        const instructions = selectedRadio.dataset.accountDetails;
+        const methodSlug = selectedRadio.value;
         const methodName = selectedRadio.dataset.methodName;
-        const logoPath = selectedRadio.dataset.logoPath;
         
         if (requiresReceipt) {
             receiptSection.style.display = 'block';
-            if (accountDetailsDiv && (accountTitle || accountNumber)) {
-                accountDetailsDiv.innerHTML = `
-                    <div class="card border-primary mb-3">
-                        <div class="card-header bg-primary text-white py-2">
-                            <i class="fas fa-info-circle me-1"></i>Payment Details for ${methodName}
-                        </div>
-                        <div class="card-body">
-                            <div class="d-flex align-items-center mb-3">
-                                <img src="${logoPath}" alt="${methodName}" style="height: 40px; width: 60px; object-fit: contain;" 
-                                     onerror="this.style.display='none'" class="me-2">
-                                <strong>${methodName}</strong>
-                            </div>
-                            ${accountTitle ? `
-                                <div class="mb-2">
-                                    <small class="text-muted">Account Title:</small>
-                                    <div class="fw-bold text-dark">${accountTitle}</div>
+            
+            if (accountDetailsDiv) {
+                accountDetailsDiv.innerHTML = '<div class="text-center py-2"><i class="fas fa-spinner fa-spin"></i> Loading payment details...</div>';
+                accountDetailsDiv.style.display = 'block';
+                
+                try {
+                    const response = await fetch('/api/payments/banking-details');
+                    const data = await response.json();
+                    const banking = data.banking_details;
+                    
+                    if (banking) {
+                        let detailsHtml = `
+                            <div class="card border-success mb-3">
+                                <div class="card-header bg-success text-white py-2">
+                                    <i class="fas fa-university me-1"></i>Payment Details - Send Payment To
                                 </div>
-                            ` : ''}
-                            ${accountNumber ? `
-                                <div class="mb-2">
-                                    <small class="text-muted">Account Number:</small>
-                                    <div class="fw-bold text-primary" style="font-family: monospace; font-size: 1.1rem;">
-                                        ${accountNumber}
-                                        <button type="button" class="btn btn-sm btn-outline-primary ms-2" 
-                                                onclick="navigator.clipboard.writeText('${accountNumber}'); app.showSuccess('Account number copied!')">
+                                <div class="card-body">
+                        `;
+                        
+                        if (methodSlug === 'easypaisa' && banking.easypaisa_number) {
+                            detailsHtml += `
+                                <div class="mb-3 p-3 bg-light rounded border-start border-success border-4">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas fa-mobile-alt text-success me-2 fa-lg"></i>
+                                        <strong class="text-success">EasyPaisa</strong>
+                                    </div>
+                                    ${banking.account_title ? `<div class="mb-1"><small class="text-muted">Account Title:</small> <strong>${banking.account_title}</strong></div>` : ''}
+                                    <div>
+                                        <small class="text-muted">Number:</small>
+                                        <span class="fw-bold text-primary" style="font-family: monospace; font-size: 1.2rem;">${banking.easypaisa_number}</span>
+                                        <button type="button" class="btn btn-sm btn-outline-success ms-2" 
+                                                onclick="navigator.clipboard.writeText('${banking.easypaisa_number}'); app.showSuccess('Number copied!')">
                                             <i class="fas fa-copy"></i>
                                         </button>
                                     </div>
                                 </div>
-                            ` : ''}
-                            ${instructions ? `
-                                <div class="mt-2 pt-2 border-top">
-                                    <small class="text-muted"><i class="fas fa-lightbulb me-1"></i>${instructions}</small>
+                            `;
+                        } else if (methodSlug === 'jazzcash' && banking.jazzcash_number) {
+                            detailsHtml += `
+                                <div class="mb-3 p-3 bg-light rounded border-start border-danger border-4">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas fa-mobile-alt text-danger me-2 fa-lg"></i>
+                                        <strong class="text-danger">JazzCash</strong>
+                                    </div>
+                                    ${banking.account_title ? `<div class="mb-1"><small class="text-muted">Account Title:</small> <strong>${banking.account_title}</strong></div>` : ''}
+                                    <div>
+                                        <small class="text-muted">Number:</small>
+                                        <span class="fw-bold text-primary" style="font-family: monospace; font-size: 1.2rem;">${banking.jazzcash_number}</span>
+                                        <button type="button" class="btn btn-sm btn-outline-danger ms-2" 
+                                                onclick="navigator.clipboard.writeText('${banking.jazzcash_number}'); app.showSuccess('Number copied!')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
                                 </div>
-                            ` : ''}
+                            `;
+                        } else if (banking.bank_name || banking.account_number) {
+                            detailsHtml += `
+                                <div class="mb-3 p-3 bg-light rounded border-start border-primary border-4">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas fa-university text-primary me-2 fa-lg"></i>
+                                        <strong class="text-primary">${banking.bank_name || 'Bank Transfer'}</strong>
+                                    </div>
+                                    ${banking.account_title ? `<div class="mb-1"><small class="text-muted">Account Title:</small> <strong>${banking.account_title}</strong></div>` : ''}
+                                    ${banking.account_number ? `
+                                        <div class="mb-1">
+                                            <small class="text-muted">Account Number:</small>
+                                            <span class="fw-bold text-primary" style="font-family: monospace;">${banking.account_number}</span>
+                                            <button type="button" class="btn btn-sm btn-outline-primary ms-1" 
+                                                    onclick="navigator.clipboard.writeText('${banking.account_number}'); app.showSuccess('Account number copied!')">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                    ` : ''}
+                                    ${banking.iban ? `
+                                        <div>
+                                            <small class="text-muted">IBAN:</small>
+                                            <span class="fw-bold" style="font-family: monospace; font-size: 0.9rem;">${banking.iban}</span>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary ms-1" 
+                                                    onclick="navigator.clipboard.writeText('${banking.iban}'); app.showSuccess('IBAN copied!')">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+                        }
+                        
+                        if (banking.additional_instructions) {
+                            detailsHtml += `
+                                <div class="alert alert-info py-2 mb-0">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    <small>${banking.additional_instructions}</small>
+                                </div>
+                            `;
+                        }
+                        
+                        detailsHtml += '</div></div>';
+                        accountDetailsDiv.innerHTML = detailsHtml;
+                    } else {
+                        accountDetailsDiv.innerHTML = `
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                Payment details not configured. Please contact the pharmacy.
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('Error loading banking details:', error);
+                    accountDetailsDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-1"></i>
+                            Failed to load payment details. Please try again.
                         </div>
-                    </div>
-                `;
-                accountDetailsDiv.style.display = 'block';
+                    `;
+                }
             }
         } else {
             receiptSection.style.display = 'none';
