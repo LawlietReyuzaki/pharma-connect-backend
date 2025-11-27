@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
 from services.auth import require_auth, get_current_user
-from models import PaymentMethod, Order
+from models import PaymentMethod, Order, BankingDetails
 from app import db
 import logging
 import os
@@ -245,3 +245,32 @@ def init_payment_methods():
         db.session.rollback()
         logging.error(f"Init payment methods error: {e}")
         return jsonify({"error": f"Failed to initialize payment methods: {str(e)}"}), 500
+
+@bp.route("/banking-details", methods=["GET"])
+def get_public_banking_details():
+    """Get banking details for customers during checkout"""
+    try:
+        details = BankingDetails.query.first()
+        
+        if not details:
+            return jsonify({
+                "success": True,
+                "banking_details": None
+            })
+        
+        return jsonify({
+            "success": True,
+            "banking_details": {
+                "bank_name": details.bank_name,
+                "account_title": details.account_title,
+                "account_number": details.account_number,
+                "iban": details.iban,
+                "easypaisa_number": details.easypaisa_number,
+                "jazzcash_number": details.jazzcash_number,
+                "additional_instructions": details.additional_instructions
+            }
+        })
+        
+    except Exception as e:
+        logging.error(f"Get public banking details error: {e}")
+        return jsonify({"error": "Failed to get banking details"}), 500

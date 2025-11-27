@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, render_template
 from datetime import datetime, timedelta, date, time as dt_time
 from services.auth import require_auth, get_current_user, require_role
 from routes.admin_auth_routes import get_current_admin, require_admin
-from models import User, Medicine, Appointment, Order, OrderItem, ChatLog, TimeSlot, DoctorAvailability, PaymentMethod, Admin
+from models import User, Medicine, Appointment, Order, OrderItem, ChatLog, TimeSlot, DoctorAvailability, PaymentMethod, Admin, BankingDetails
 from app import db
 import logging
 import hashlib
@@ -2043,3 +2043,97 @@ def update_payment_method(method_id):
 def payment_admin_page():
     """Dedicated payment admin management page"""
     return render_template("payment_admin.html")
+
+# ============ BANKING DETAILS MANAGEMENT ============
+
+@bp.route("/api/banking-details", methods=["GET"])
+def get_banking_details():
+    """Get the pharmacy's banking details"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        details = BankingDetails.query.first()
+        
+        if not details:
+            return jsonify({
+                "success": True,
+                "banking_details": None
+            })
+        
+        return jsonify({
+            "success": True,
+            "banking_details": {
+                "id": details.id,
+                "bank_name": details.bank_name,
+                "account_title": details.account_title,
+                "account_number": details.account_number,
+                "iban": details.iban,
+                "easypaisa_number": details.easypaisa_number,
+                "jazzcash_number": details.jazzcash_number,
+                "additional_instructions": details.additional_instructions,
+                "updated_at": details.updated_at.isoformat() if details.updated_at else None
+            }
+        })
+        
+    except Exception as e:
+        logging.error(f"Get banking details error: {e}")
+        return jsonify({"error": f"Failed to retrieve banking details: {str(e)}"}), 500
+
+@bp.route("/api/banking-details", methods=["POST", "PUT"])
+def save_banking_details():
+    """Save or update banking details"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        details = BankingDetails.query.first()
+        
+        if not details:
+            details = BankingDetails()
+            db.session.add(details)
+        
+        if "bank_name" in data:
+            details.bank_name = data["bank_name"]
+        if "account_title" in data:
+            details.account_title = data["account_title"]
+        if "account_number" in data:
+            details.account_number = data["account_number"]
+        if "iban" in data:
+            details.iban = data["iban"]
+        if "easypaisa_number" in data:
+            details.easypaisa_number = data["easypaisa_number"]
+        if "jazzcash_number" in data:
+            details.jazzcash_number = data["jazzcash_number"]
+        if "additional_instructions" in data:
+            details.additional_instructions = data["additional_instructions"]
+        
+        details.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Banking details saved successfully",
+            "banking_details": {
+                "id": details.id,
+                "bank_name": details.bank_name,
+                "account_title": details.account_title,
+                "account_number": details.account_number,
+                "iban": details.iban,
+                "easypaisa_number": details.easypaisa_number,
+                "jazzcash_number": details.jazzcash_number,
+                "additional_instructions": details.additional_instructions,
+                "updated_at": details.updated_at.isoformat()
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Save banking details error: {e}")
+        return jsonify({"error": f"Failed to save banking details: {str(e)}"}), 500

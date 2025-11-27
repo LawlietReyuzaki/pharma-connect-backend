@@ -183,3 +183,17 @@ class PaymentMethod(db.Model):
     account_details = db.Column(db.Text, nullable=True)  # Additional instructions for customer
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class BankingDetails(db.Model):
+    __tablename__ = 'banking_details'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    bank_name = db.Column(db.String(200), nullable=True)
+    account_title = db.Column(db.String(200), nullable=True)
+    account_number = db.Column(db.String(100), nullable=True)
+    iban = db.Column(db.String(50), nullable=True)
+    easypaisa_number = db.Column(db.String(20), nullable=True)
+    jazzcash_number = db.Column(db.String(20), nullable=True)
+    additional_instructions = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
