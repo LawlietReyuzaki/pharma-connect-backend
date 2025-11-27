@@ -10,11 +10,11 @@ bp = Blueprint("appointments", __name__)
 
 @bp.route("/", methods=["POST"])
 def create_appointment():
-    """Create a new appointment"""
+    """Create a new appointment with Google Calendar + Meet integration"""
     try:
         from services.auth import get_current_user
+        from services.google_calendar_service_account import calendar_service_account
         
-        # Get authenticated user
         current_user = get_current_user()
         if not current_user:
             return jsonify({"error": "Authentication required"}), 401
@@ -23,111 +23,108 @@ def create_appointment():
         if not data:
             return jsonify({"error": "No data provided"}), 400
         
-        # Validate required fields - now using slot_id instead of start_time
         required_fields = ["doctor_id", "slot_id", "symptoms"]
         for field in required_fields:
             if not data.get(field):
                 return jsonify({"error": f"{field} is required"}), 400
         
-        # Get the selected time slot
         slot = TimeSlot.query.get(data["slot_id"])
         if not slot:
             return jsonify({"error": "Invalid time slot selected"}), 404
         
-        # Verify the slot belongs to the selected doctor
         if slot.doctor_id != data["doctor_id"]:
             return jsonify({"error": "Time slot does not belong to selected doctor"}), 400
         
-        # Check if slot is already booked
         if slot.is_booked:
             return jsonify({"error": "This time slot is already booked"}), 400
         
-        # Verify doctor exists
         doctor = User.query.filter_by(id=data["doctor_id"], role="doctor").first()
         if not doctor:
             return jsonify({"error": "Doctor not found"}), 404
         
-        # Use slot's datetime values
         start_time = slot.starts_at
         end_time = slot.ends_at
         appointment_date = slot.appointment_date
         
-        # We'll create the Google Meet link after the appointment is saved
-        
-        # Prepare calendar event data with appointment ID placeholder
-        calendar_data = {
-            'summary': f'Red Dot Pharmacy - Consultation with {doctor.name}',
-            'description': f'Patient: {current_user.name}\nSymptoms: {data["symptoms"]}',
-            'start_time': start_time,
-            'end_time': end_time,
-            'attendee_emails': [current_user.email, doctor.email],
-            'appointment_id': None  # Will be set after appointment is created
-        }
-        
-        calendar_result = calendar_service.create_appointment_event(calendar_data)
-        
-        # Create appointment record
         appointment = Appointment()
         appointment.user_id = current_user.id
         appointment.doctor_id = data["doctor_id"]
-        appointment.time_slot_id = slot.id  # Link to the time slot
+        appointment.time_slot_id = slot.id
         appointment.appointment_date = appointment_date
         appointment.starts_at = start_time
         appointment.ends_at = end_time
         appointment.symptoms = data["symptoms"]
         appointment.note = data.get("note", "")
-        appointment.google_meet_link = None  # Will be set after commit
-        appointment.google_calendar_event_id = calendar_result["event_id"] if calendar_result else None
-        appointment.status = "pending"  # Initial status
-        appointment.approval_status = "pending"  # Needs doctor/admin approval
+        appointment.status = "pending"
+        appointment.approval_status = "pending"
         
         db.session.add(appointment)
-        
-        # Mark the slot as booked
         slot.is_booked = True
         slot.updated_at = datetime.utcnow()
-        
         db.session.commit()
         
-        # Now update calendar data with real appointment ID and try to create real Google Calendar event
-        calendar_data['appointment_id'] = appointment.id
+        calendar_result = None
+        meet_link = None
         
-        # Try doctor-specific Google Calendar integration FIRST for REAL Google Meet links
-        from services.doctor_oauth_service import doctor_oauth_service
+        if calendar_service_account.has_credentials:
+            appointment_data = {
+                'doctor_email': doctor.email,
+                'patient_email': current_user.email,
+                'doctor_name': doctor.name,
+                'patient_name': current_user.name,
+                'start_time': start_time,
+                'end_time': end_time,
+                'symptoms': data["symptoms"],
+                'appointment_id': appointment.id
+            }
+            
+            calendar_result = calendar_service_account.create_event_for_both_calendars(appointment_data)
+            
+            if calendar_result and calendar_result.get('success'):
+                meet_link = calendar_result.get('meet_link')
+                
+                if calendar_result.get('doctor_event'):
+                    appointment.google_calendar_event_id = calendar_result['doctor_event'].get('event_id')
+                
+                logging.info(f"✅ Created Google Calendar events for Dr. {doctor.name} and {current_user.name}")
+                logging.info(f"✅ Google Meet link: {meet_link}")
         
-        real_meet_link = None
-        if doctor.google_access_token:
-            # Doctor has connected their Google Calendar - create event in their calendar
-            real_calendar_result = doctor_oauth_service.create_calendar_event_for_doctor(
-                doctor_id=doctor.id,
-                appointment_data=calendar_data
-            )
-            if real_calendar_result and real_calendar_result.get('meet_link'):
-                real_meet_link = real_calendar_result['meet_link']
-                appointment.google_calendar_event_id = real_calendar_result.get('event_id')
-                logging.info(f"✅ Created REAL Google Meet in Dr. {doctor.name}'s calendar: {real_meet_link}")
+        if not meet_link:
+            from services.doctor_oauth_service import doctor_oauth_service
+            
+            if doctor.google_access_token:
+                calendar_data = {
+                    'summary': f'Online Consultation - Red Dot Pharmacy',
+                    'description': f'Patient: {current_user.name}\nSymptoms: {data["symptoms"]}',
+                    'start_time': start_time,
+                    'end_time': end_time,
+                    'attendee_emails': [current_user.email, doctor.email],
+                    'appointment_id': appointment.id
+                }
+                
+                oauth_result = doctor_oauth_service.create_calendar_event_for_doctor(
+                    doctor_id=doctor.id,
+                    appointment_data=calendar_data
+                )
+                
+                if oauth_result and oauth_result.get('meet_link'):
+                    meet_link = oauth_result['meet_link']
+                    appointment.google_calendar_event_id = oauth_result.get('event_id')
+                    logging.info(f"✅ Created event via Doctor OAuth: {meet_link}")
         
-        if real_meet_link:
-            # SUCCESS: Real Google Meet link from doctor's Calendar
-            appointment.google_meet_link = real_meet_link
-        else:
-            # FALLBACK: Generate valid Google Meet format (but not a real room)
-            # This creates URLs that look real but may not work
-            appointment.google_meet_link = meet_service.create_meet_room(
+        if not meet_link:
+            meet_link = meet_service.create_meet_room(
                 appointment_id=appointment.id,
                 doctor_name=doctor.name,
                 patient_name=current_user.name
             )
-            if doctor.google_access_token:
-                logging.warning(f"⚠️ Dr. {doctor.name} has Google connected but Meet creation failed, using fallback: {appointment.google_meet_link}")
-            else:
-                logging.info(f"ℹ️ Dr. {doctor.name} hasn't connected Google Calendar, using fallback: {appointment.google_meet_link}")
+            logging.info(f"ℹ️ Using Jitsi Meet fallback: {meet_link}")
         
+        appointment.google_meet_link = meet_link
         db.session.commit()
         
-        # Send fake emails (logging only as requested)
-        logging.info(f"Email sent to {current_user.email}: Appointment booked with {doctor.name} at {start_time.strftime('%Y-%m-%d %H:%M')}. Waiting for approval.")
-        logging.info(f"Email sent to {doctor.email}: New appointment request from {current_user.name} for {start_time.strftime('%Y-%m-%d %H:%M')}.")
+        logging.info(f"📧 Notification to {current_user.email}: Appointment booked with {doctor.name} at {start_time.strftime('%Y-%m-%d %H:%M')}. Meet link: {meet_link}")
+        logging.info(f"📧 Notification to {doctor.email}: New appointment from {current_user.name} for {start_time.strftime('%Y-%m-%d %H:%M')}. Meet link: {meet_link}")
         
         return jsonify({
             "success": True,
@@ -138,7 +135,7 @@ def create_appointment():
                 "end_time": appointment.ends_at.isoformat(),
                 "status": appointment.status,
                 "google_meet_link": appointment.google_meet_link,
-                "calendar_link": calendar_result["calendar_link"] if calendar_result else None
+                "calendar_integrated": calendar_result.get('success') if calendar_result else False
             }
         }), 201
         
