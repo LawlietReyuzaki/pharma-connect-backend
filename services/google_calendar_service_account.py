@@ -401,8 +401,19 @@ This is an automated message from Red Dot Pharmacy.""",
             'fallback': True
         }
     
+    def reinitialize(self):
+        """Reinitialize credentials from environment (useful after secret updates)"""
+        self.credentials = None
+        self.has_credentials = False
+        self.service_account_email = None
+        self._initialize_credentials()
+        return self.has_credentials
+    
     def check_service_account_setup(self):
         """Check if service account is properly configured"""
+        if not self.has_credentials:
+            self.reinitialize()
+        
         status = {
             'has_credentials': self.has_credentials,
             'service_account_email': self.service_account_email,
