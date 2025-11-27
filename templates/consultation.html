@@ -354,5 +354,475 @@
     align-items: center;
     justify-content: center;
 }
+
+.doctor-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: none;
+    border-radius: 15px;
+}
+
+.doctor-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
+}
+
+.success-modal-content {
+    text-align: center;
+    padding: 2rem;
+}
+
+.success-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #28a745, #20c997);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+}
+
+.meet-link-box {
+    background: linear-gradient(135deg, #4285f4, #0d6efd);
+    color: white;
+    padding: 1rem;
+    border-radius: 10px;
+    margin: 1rem 0;
+}
+
+.meet-link-box a {
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.meet-link-box a:hover {
+    text-decoration: underline;
+}
 </style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Consultation Booking System
+let selectedSlotId = null;
+let selectedDoctorId = null;
+let doctors = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Set minimum date to today
+    const dateInput = document.getElementById('consultationDate');
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.min = today;
+    dateInput.value = today;
+    
+    // Load doctors
+    loadDoctors();
+    
+    // Event listeners
+    document.getElementById('doctorSelect').addEventListener('change', onDoctorChange);
+    dateInput.addEventListener('change', onDateChange);
+    document.getElementById('consultationForm').addEventListener('submit', handleFormSubmit);
+});
+
+async function loadDoctors() {
+    try {
+        const response = await fetch('/api/appointments/doctors');
+        const data = await response.json();
+        
+        if (data.success && data.doctors) {
+            doctors = data.doctors;
+            populateDoctorDropdown(doctors);
+            displayDoctorGrid(doctors);
+        }
+    } catch (error) {
+        console.error('Error loading doctors:', error);
+    }
+}
+
+function populateDoctorDropdown(doctors) {
+    const select = document.getElementById('doctorSelect');
+    select.innerHTML = '<option value="">Choose a doctor...</option>';
+    
+    doctors.forEach(doctor => {
+        const option = document.createElement('option');
+        option.value = doctor.id;
+        option.textContent = `${doctor.name} - ${doctor.specialization || 'General Practice'}`;
+        select.appendChild(option);
+    });
+}
+
+function displayDoctorGrid(doctors) {
+    const grid = document.getElementById('doctorGrid');
+    
+    if (doctors.length === 0) {
+        grid.innerHTML = `
+            <div class="col-12 text-center">
+                <p class="text-muted">No doctors available at the moment.</p>
+            </div>`;
+        return;
+    }
+    
+    grid.innerHTML = doctors.map(doctor => `
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card doctor-card shadow h-100">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <div class="bg-danger text-white rounded-circle d-inline-flex align-items-center justify-content-center" 
+                             style="width: 80px; height: 80px;">
+                            <i class="fas fa-user-md fa-2x"></i>
+                        </div>
+                    </div>
+                    <h5 class="card-title mb-1">${doctor.name}</h5>
+                    <p class="text-danger mb-2">${doctor.specialization || 'General Practice'}</p>
+                    <p class="text-muted small mb-2">
+                        <i class="fas fa-graduation-cap me-1"></i>${doctor.qualification || 'MBBS'}
+                    </p>
+                    <p class="text-muted small mb-2">
+                        <i class="fas fa-briefcase me-1"></i>${doctor.experience_years || 0} years experience
+                    </p>
+                    <p class="text-muted small mb-3">
+                        <i class="fas fa-hospital me-1"></i>${doctor.current_hospital || 'Red Dot Pharmacy'}
+                    </p>
+                    <button class="btn btn-outline-danger btn-sm" onclick="selectDoctor(${doctor.id})">
+                        <i class="fas fa-calendar-plus me-1"></i>Book Appointment
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function selectDoctor(doctorId) {
+    document.getElementById('doctorSelect').value = doctorId;
+    onDoctorChange();
+    document.getElementById('consultationForm').scrollIntoView({ behavior: 'smooth' });
+}
+
+function onDoctorChange() {
+    selectedDoctorId = document.getElementById('doctorSelect').value;
+    const date = document.getElementById('consultationDate').value;
+    
+    if (selectedDoctorId && date) {
+        loadTimeSlots(selectedDoctorId, date);
+    } else {
+        document.getElementById('timeSlots').innerHTML = '<p class="text-muted">Please select a doctor and date to see available slots.</p>';
+    }
+}
+
+function onDateChange() {
+    const date = document.getElementById('consultationDate').value;
+    const doctorId = document.getElementById('doctorSelect').value;
+    
+    if (doctorId && date) {
+        loadTimeSlots(doctorId, date);
+    }
+}
+
+async function loadTimeSlots(doctorId, date) {
+    const slotsContainer = document.getElementById('timeSlots');
+    slotsContainer.innerHTML = '<div class="text-center"><div class="spinner-border text-danger spinner-border-sm"></div> Loading slots...</div>';
+    
+    try {
+        const response = await fetch(`/api/appointments/available-slots/${doctorId}?date=${date}`);
+        const data = await response.json();
+        
+        if (data.success && data.slots) {
+            displayTimeSlots(data.slots);
+        } else {
+            slotsContainer.innerHTML = '<p class="text-warning">No available slots for this date.</p>';
+        }
+    } catch (error) {
+        console.error('Error loading time slots:', error);
+        slotsContainer.innerHTML = '<p class="text-danger">Failed to load time slots. Please try again.</p>';
+    }
+}
+
+function displayTimeSlots(slots) {
+    const container = document.getElementById('timeSlots');
+    
+    if (slots.length === 0) {
+        container.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                No available time slots for this date. Please select another date or doctor.
+            </div>`;
+        return;
+    }
+    
+    container.innerHTML = slots.map(slot => {
+        const startTime = new Date(slot.start_time);
+        const timeStr = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        return `
+            <div class="time-slot ${!slot.available ? 'unavailable' : ''}" 
+                 data-slot-id="${slot.slot_id}"
+                 onclick="${slot.available ? `selectTimeSlot(${slot.slot_id}, this)` : ''}">
+                ${timeStr}
+            </div>`;
+    }).join('');
+}
+
+function selectTimeSlot(slotId, element) {
+    // Remove previous selection
+    document.querySelectorAll('.time-slot.selected').forEach(el => el.classList.remove('selected'));
+    
+    // Select new slot
+    element.classList.add('selected');
+    selectedSlotId = slotId;
+}
+
+async function handleFormSubmit(event) {
+    event.preventDefault();
+    
+    // Check authentication
+    const authToken = localStorage.getItem('auth_token');
+    if (!authToken) {
+        showLogin();
+        return;
+    }
+    
+    // Validate form
+    const doctorId = document.getElementById('doctorSelect').value;
+    const symptoms = document.getElementById('symptoms').value.trim();
+    const note = document.getElementById('consultationNotes').value.trim();
+    
+    if (!doctorId) {
+        alert('Please select a doctor.');
+        return;
+    }
+    
+    if (!selectedSlotId) {
+        alert('Please select a time slot.');
+        return;
+    }
+    
+    if (!symptoms) {
+        alert('Please describe your symptoms.');
+        return;
+    }
+    
+    // Show loading state
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Booking...';
+    
+    try {
+        const response = await fetch('/api/appointments/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+                doctor_id: parseInt(doctorId),
+                slot_id: selectedSlotId,
+                symptoms: symptoms,
+                note: note
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            showSuccessModal(data.appointment);
+            // Reset form
+            document.getElementById('consultationForm').reset();
+            selectedSlotId = null;
+            document.querySelectorAll('.time-slot.selected').forEach(el => el.classList.remove('selected'));
+            document.getElementById('timeSlots').innerHTML = '<p class="text-muted">Please select a doctor and date to see available slots.</p>';
+        } else {
+            alert(data.error || 'Failed to book appointment. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error booking appointment:', error);
+        alert('An error occurred while booking. Please try again.');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    }
+}
+
+function showSuccessModal(appointment) {
+    // Create success modal
+    const modalHtml = `
+        <div class="modal fade" id="successModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-body success-modal-content">
+                        <div class="success-icon">
+                            <i class="fas fa-check fa-2x text-white"></i>
+                        </div>
+                        <h4 class="text-success mb-3">Appointment Booked Successfully!</h4>
+                        <p class="text-muted">Your consultation has been scheduled.</p>
+                        
+                        <div class="appointment-details bg-light rounded p-3 mb-3">
+                            <div class="row text-start">
+                                <div class="col-6">
+                                    <small class="text-muted">Doctor</small>
+                                    <p class="mb-2 fw-bold">${appointment.doctor_name}</p>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Date & Time</small>
+                                    <p class="mb-2 fw-bold">${formatDateTime(appointment.start_time)}</p>
+                                </div>
+                            </div>
+                            <div class="row text-start">
+                                <div class="col-12">
+                                    <small class="text-muted">Status</small>
+                                    <p class="mb-0">
+                                        <span class="badge bg-warning text-dark">Pending Approval</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        ${appointment.google_meet_link ? `
+                        <div class="meet-link-box">
+                            <p class="mb-1"><i class="fas fa-video me-2"></i>Google Meet Link</p>
+                            <a href="${appointment.google_meet_link}" target="_blank">
+                                ${appointment.google_meet_link}
+                            </a>
+                            <button class="btn btn-sm btn-light mt-2" onclick="copyMeetLink('${appointment.google_meet_link}')">
+                                <i class="fas fa-copy me-1"></i>Copy Link
+                            </button>
+                        </div>
+                        ` : `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Meeting link will be available once your appointment is approved.
+                        </div>
+                        `}
+                        
+                        <p class="text-muted small mt-3">
+                            <i class="fas fa-envelope me-1"></i>
+                            You will receive an email confirmation with the meeting details.
+                        </p>
+                        
+                        <div class="d-grid gap-2 mt-4">
+                            <a href="/appointments" class="btn btn-danger">
+                                <i class="fas fa-calendar me-2"></i>View My Appointments
+                            </a>
+                            <button class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                Book Another Appointment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('successModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add and show modal
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('successModal'));
+    modal.show();
+}
+
+function formatDateTime(isoString) {
+    const date = new Date(isoString);
+    return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function copyMeetLink(link) {
+    navigator.clipboard.writeText(link).then(() => {
+        alert('Meeting link copied to clipboard!');
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+    });
+}
+
+function showLogin() {
+    const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+    loginModal.show();
+}
+
+function showRegister() {
+    bootstrap.Modal.getInstance(document.getElementById('loginModal'))?.hide();
+    const registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
+    registerModal.show();
+}
+
+// Login form handler
+document.getElementById('loginForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    
+    try {
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.token) {
+            localStorage.setItem('auth_token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
+            alert('Login successful! You can now book appointments.');
+            location.reload();
+        } else {
+            alert(data.error || 'Login failed. Please check your credentials.');
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        alert('Login failed. Please try again.');
+    }
+});
+
+// Register form handler
+document.getElementById('registerForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const name = document.getElementById('registerName').value;
+    const email = document.getElementById('registerEmail').value;
+    const phone = document.getElementById('registerPhone').value;
+    const password = document.getElementById('registerPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    if (password !== confirmPassword) {
+        alert('Passwords do not match!');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, phone, password, role: 'patient' })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.token) {
+            localStorage.setItem('auth_token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            bootstrap.Modal.getInstance(document.getElementById('registerModal')).hide();
+            alert('Registration successful! You can now book appointments.');
+            location.reload();
+        } else {
+            alert(data.error || 'Registration failed. Please try again.');
+        }
+    } catch (error) {
+        console.error('Registration error:', error);
+        alert('Registration failed. Please try again.');
+    }
+});
+</script>
 {% endblock %}

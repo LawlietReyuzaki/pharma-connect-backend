@@ -391,3 +391,125 @@ def get_available_slots(doctor_id):
     except Exception as e:
         logging.error(f"Get available slots error: {e}")
         return jsonify({"error": f"Failed to retrieve available slots: {str(e)}"}), 500
+
+
+@bp.route("/schedule-appointment", methods=["POST"])
+def schedule_appointment():
+    """
+    Alternative endpoint for scheduling appointments as specified in requirements.
+    Accepts: doctorEmail, patientEmail, start, end, reason
+    Returns: meetLink, appointment details
+    
+    This endpoint creates calendar events in both doctor's and patient's Google Calendars
+    with automatic Google Meet link generation.
+    """
+    try:
+        from services.google_calendar_service_account import calendar_service_account
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided", "success": False}), 400
+        
+        doctor_email = data.get("doctorEmail")
+        patient_email = data.get("patientEmail")
+        start_time_str = data.get("start")
+        end_time_str = data.get("end")
+        reason = data.get("reason", "General medical consultation")
+        
+        if not all([doctor_email, patient_email, start_time_str]):
+            return jsonify({
+                "error": "Missing required fields: doctorEmail, patientEmail, start",
+                "success": False
+            }), 400
+        
+        try:
+            start_time = datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
+            if end_time_str:
+                end_time = datetime.fromisoformat(end_time_str.replace('Z', '+00:00'))
+            else:
+                end_time = start_time + timedelta(minutes=30)
+        except ValueError as e:
+            return jsonify({
+                "error": f"Invalid date format: {str(e)}",
+                "success": False
+            }), 400
+        
+        doctor = User.query.filter_by(email=doctor_email, role="doctor").first()
+        if not doctor:
+            return jsonify({"error": "Doctor not found with provided email", "success": False}), 404
+        
+        patient = User.query.filter_by(email=patient_email).first()
+        if not patient:
+            return jsonify({"error": "Patient not found with provided email", "success": False}), 404
+        
+        appointment = Appointment()
+        appointment.user_id = patient.id
+        appointment.doctor_id = doctor.id
+        appointment.appointment_date = start_time.date()
+        appointment.starts_at = start_time
+        appointment.ends_at = end_time
+        appointment.symptoms = reason
+        appointment.status = "pending"
+        appointment.approval_status = "pending"
+        
+        db.session.add(appointment)
+        db.session.commit()
+        
+        meet_link = None
+        calendar_result = None
+        
+        if calendar_service_account.has_credentials:
+            appointment_data = {
+                'doctor_email': doctor.email,
+                'patient_email': patient.email,
+                'doctor_name': doctor.name,
+                'patient_name': patient.name,
+                'start_time': start_time,
+                'end_time': end_time,
+                'symptoms': reason,
+                'appointment_id': appointment.id
+            }
+            
+            calendar_result = calendar_service_account.create_event_for_both_calendars(appointment_data)
+            
+            if calendar_result and calendar_result.get('success'):
+                meet_link = calendar_result.get('meet_link')
+                if calendar_result.get('doctor_event'):
+                    appointment.google_calendar_event_id = calendar_result['doctor_event'].get('event_id')
+                logging.info(f"✅ Created Google Calendar events with Meet link: {meet_link}")
+        
+        if not meet_link:
+            meet_link = meet_service.create_meet_room(
+                appointment_id=appointment.id,
+                doctor_name=doctor.name,
+                patient_name=patient.name
+            )
+            logging.info(f"ℹ️ Using Jitsi fallback: {meet_link}")
+        
+        appointment.google_meet_link = meet_link
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "meetLink": meet_link,
+            "appointment": {
+                "id": appointment.id,
+                "doctorName": doctor.name,
+                "doctorEmail": doctor.email,
+                "patientName": patient.name,
+                "patientEmail": patient.email,
+                "start": start_time.isoformat(),
+                "end": end_time.isoformat(),
+                "reason": reason,
+                "status": appointment.status,
+                "calendarIntegrated": calendar_result.get('success') if calendar_result else False
+            }
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Schedule appointment error: {e}")
+        return jsonify({
+            "error": f"Failed to schedule appointment: {str(e)}",
+            "success": False
+        }), 500

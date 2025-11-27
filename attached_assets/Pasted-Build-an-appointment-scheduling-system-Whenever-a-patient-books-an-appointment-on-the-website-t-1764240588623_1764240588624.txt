@@ -1,0 +1,89 @@
+Build an appointment scheduling system.
+
+Whenever a patient books an appointment on the website, the system must:
+
+---------------------------------------------------------
+GOOGLE CALENDAR + MEET INTEGRATION REQUIREMENTS
+---------------------------------------------------------
+
+1. Use my Google Service Account credentials stored in Replit environment variables.
+
+2. Use Google Calendar API with the service account.
+
+3. When a patient selects:
+   • Date
+   • Time
+   • Doctor
+   • Problem reason
+   The system must automatically create a calendar event.
+
+4. The event must be added to BOTH calendars:
+   • Doctor’s Google Calendar
+   • Patient’s Google Calendar
+
+5. The event must automatically generate a Google Meet link using:
+   conferenceData → createRequest → hangoutsMeet
+
+6. The event must include:
+   - Title: “Medical Appointment / Consultation”
+   - Description:
+     “This consultation is scheduled between the doctor and the patient. Google Meet link is included.”
+   - Start time (selected by patient)
+   - End time (auto +30 mins)
+   - Google Meet link
+   - Attendees:
+       { "email": doctor_email }
+       { "email": patient_email }
+
+7. Both doctor and patient must receive:
+   • Calendar invite
+   • Google Meet link
+   • Email notification (default calendar behavior)
+
+8. If the doctor’s or patient’s calendar requires access:
+   The system must ensure the service account has:
+   “Make changes and manage sharing” permission.
+
+---------------------------------------------------------
+BACKEND REQUIREMENTS
+---------------------------------------------------------
+
+Create an endpoint:
+POST /schedule-appointment
+Body example:
+{
+   "doctorEmail": "doctor@example.com",
+   "patientEmail": "patient@example.com",
+   "start": "2025-02-01T10:00:00",
+   "end": "2025-02-01T10:30:00",
+   "reason": "General medical consultation"
+}
+
+The backend should:
+- Build Google Calendar event JSON
+- Add conferenceData for Meet link
+- Insert event using Calendar API
+- Return response including:
+  { "meetLink": "https://meet.google.com/..." }
+
+---------------------------------------------------------
+FRONTEND REQUIREMENTS
+---------------------------------------------------------
+
+• Appointment form (doctor, date, time, reason)
+• Success message showing:
+  - Meet link
+  - Time
+  - Date
+• Mobile responsive UI
+
+---------------------------------------------------------
+NOTES FOR REPLIT
+---------------------------------------------------------
+
+• Use my stored environment variable for the Google API key.
+• Ensure the system uses OAuth / service account JSON from env.
+• All access must remain server-side for security.
+• Code must be clean, modular, and error-handled.
+
+Build the full appointment scheduling system with these rules.
