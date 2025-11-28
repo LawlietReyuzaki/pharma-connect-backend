@@ -55,6 +55,10 @@
                                         <i class="fas fa-language me-1"></i>
                                         <span id="currentLang">English</span>
                                     </button>
+                                    <button class="btn btn-light btn-sm me-2 mute-btn" id="muteToggle" onclick="toggleMute()">
+                                        <i class="fas fa-volume-up me-1" id="muteIcon"></i>
+                                        <span id="muteLabel">Mute</span>
+                                    </button>
                                     <button class="btn btn-outline-light btn-sm" id="clearChat" onclick="clearChatHistory()">
                                         <i class="fas fa-trash-alt me-1"></i>Clear Chat
                                     </button>
@@ -183,11 +187,16 @@
 let isListening = false;
 let currentLanguage = 'en';
 let chatHistory = [];
+let isMuted = localStorage.getItem('tts_muted') === 'true';
+let currentAudio = null;
 
 // Initialize chat functionality when page loads
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize the window.currentLanguage properly
     window.currentLanguage = currentLanguage; // Set it to the initial value ('en')
+    
+    // Initialize mute button state from localStorage
+    updateMuteButtonUI();
     
     // Enable Enter key to send message
     document.getElementById('messageInput').addEventListener('keypress', function(e) {
@@ -200,7 +209,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load chat history if exists
     loadChatHistory();
     
-    console.log('Chat initialized with language:', window.currentLanguage);
+    console.log('Chat initialized with language:', window.currentLanguage, 'muted:', isMuted);
 });
 
 // Function to ask a sample question
@@ -241,6 +250,77 @@ function toggleLanguage() {
     updateChatStatus(currentLanguage === 'en' ? 'Language changed to English' : 'زبان اردو میں تبدیل ہو گئی');
     
     console.log('Language changed to:', currentLanguage, 'Voice language:', newLanguageCode);
+}
+
+// Function to toggle mute/unmute for TTS
+function toggleMute() {
+    isMuted = !isMuted;
+    localStorage.setItem('tts_muted', isMuted.toString());
+    
+    // Stop any currently playing audio immediately when muting
+    if (isMuted) {
+        stopAllAudio();
+    }
+    
+    // Update button UI with animation
+    updateMuteButtonUI();
+    
+    // Show status update
+    const statusMsg = isMuted 
+        ? (currentLanguage === 'ur' ? 'آواز بند ہے' : 'Audio muted') 
+        : (currentLanguage === 'ur' ? 'آواز چالو ہے' : 'Audio unmuted');
+    updateChatStatus(statusMsg);
+    
+    console.log('Mute toggled:', isMuted);
+}
+
+// Function to update mute button UI
+function updateMuteButtonUI() {
+    const muteButton = document.getElementById('muteToggle');
+    const muteIcon = document.getElementById('muteIcon');
+    const muteLabel = document.getElementById('muteLabel');
+    
+    if (!muteButton || !muteIcon || !muteLabel) return;
+    
+    // Add animation class
+    muteButton.classList.add('mute-btn-animate');
+    
+    if (isMuted) {
+        muteIcon.className = 'fas fa-volume-mute me-1';
+        muteLabel.textContent = 'Unmute';
+        muteButton.classList.add('muted');
+        muteButton.title = 'Click to enable audio';
+    } else {
+        muteIcon.className = 'fas fa-volume-up me-1';
+        muteLabel.textContent = 'Mute';
+        muteButton.classList.remove('muted');
+        muteButton.title = 'Click to mute audio';
+    }
+    
+    // Remove animation class after animation completes
+    setTimeout(() => {
+        muteButton.classList.remove('mute-btn-animate');
+    }, 300);
+}
+
+// Function to stop all audio playback
+function stopAllAudio() {
+    // Stop Web Speech API
+    if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+    }
+    
+    // Stop any HTML5 audio element
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio = null;
+    }
+    
+    // Reset all play buttons to default state
+    document.querySelectorAll('.play-audio i').forEach(icon => {
+        icon.className = 'fas fa-volume-up';
+    });
 }
 
 // Function to toggle voice input
@@ -538,6 +618,20 @@ function showError(message) {
 // Function to speak the message using Web Speech API or server-side TTS
 function speakMessage(button, text) {
     try {
+        // Check if audio is muted
+        if (isMuted) {
+            console.log('Audio is muted, skipping playback');
+            updateChatStatus(currentLanguage === 'ur' ? 'آواز بند ہے - چلانے کے لیے آواز کھولیں' : 'Audio is muted - unmute to play');
+            
+            // Brief visual feedback on the button
+            const icon = button.querySelector('i');
+            icon.className = 'fas fa-volume-mute';
+            setTimeout(() => {
+                icon.className = 'fas fa-volume-up';
+            }, 500);
+            return;
+        }
+        
         const icon = button.querySelector('i');
         const originalIcon = icon.className;
         
@@ -562,19 +656,29 @@ function speakMessage(button, text) {
                 return response.blob();
             })
             .then(blob => {
+                // Double-check mute state after fetch completes
+                if (isMuted) {
+                    icon.className = originalIcon;
+                    return;
+                }
+                
                 const audioUrl = URL.createObjectURL(blob);
                 const audio = new Audio(audioUrl);
+                currentAudio = audio; // Store reference for stopping
                 
                 // Update icon while playing
-                icon.className = 'fas fa-volume-up';
+                icon.className = 'fas fa-volume-up playing-audio';
                 
                 audio.onended = () => {
-                    URL.revokeObjectURL(audioUrl); // Clean up the object URL
+                    URL.revokeObjectURL(audioUrl);
                     icon.className = originalIcon;
+                    currentAudio = null;
                 };
                 
                 audio.onerror = () => {
-                    URL.revokeObjectURL(audioUrl); // Clean up on error
+                    URL.revokeObjectURL(audioUrl);
+                    icon.className = originalIcon;
+                    currentAudio = null;
                     throw new Error('Failed to play audio');
                 };
                 
@@ -591,7 +695,7 @@ function speakMessage(button, text) {
             utterance.lang = 'en-US';
             
             // Update icon while speaking
-            icon.className = 'fas fa-volume-up';
+            icon.className = 'fas fa-volume-up playing-audio';
             
             utterance.onend = () => {
                 icon.className = originalIcon;
@@ -615,6 +719,46 @@ function speakMessage(button, text) {
 </script>
 
 <style>
+/* Mute button styling */
+.mute-btn {
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.mute-btn:hover {
+    transform: scale(1.05);
+}
+
+.mute-btn.muted {
+    background-color: #6c757d !important;
+    color: white !important;
+    border-color: #6c757d !important;
+}
+
+.mute-btn.muted:hover {
+    background-color: #5a6268 !important;
+}
+
+.mute-btn-animate {
+    animation: muteButtonPulse 0.3s ease;
+}
+
+@keyframes muteButtonPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* Playing audio icon animation */
+.playing-audio {
+    animation: audioPlaying 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes audioPlaying {
+    0% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
 /* Typing indicator animation */
 .typing-dots {
     display: flex;
