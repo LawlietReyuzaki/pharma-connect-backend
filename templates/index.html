@@ -6,45 +6,40 @@
 <!-- Hero Section -->
 <section id="home" class="hero-section">
     <div class="container">
-        <div class="row align-items-center min-vh-100 pt-5">
+        <div class="row align-items-center min-vh-100 py-5">
             <div class="col-lg-6 mb-5 mb-lg-0">
                 <div class="hero-content">
-                    <h1 class="display-4 fw-bold text-dark mb-4">
-                        Your Trusted <span class="text-danger">Healthcare Partner</span>
+                    <div class="section-badge">
+                        <i class="fas fa-heartbeat"></i>
+                        <span>Your Health, Our Priority</span>
+                    </div>
+                    <h1>
+                        Your Trusted <span>Healthcare Partner</span>
                     </h1>
-                    <p class="lead text-muted mb-4">
+                    <p class="lead">
                         Get quality medicines delivered to your doorstep and consult with qualified doctors online. 
                         Red Dot Pharmacy - where your health comes first.
                     </p>
-                    <div class="d-flex flex-wrap gap-3 mb-4">
-                        <a href="/shop" class="btn btn-danger btn-lg px-5 py-3">
-                            <i class="fas fa-pills me-2"></i>Medicines
+                    <div class="hero-buttons">
+                        <a href="/shop" class="btn btn-danger btn-lg">
+                            <i class="fas fa-pills"></i>Shop Medicines
                         </a>
-                        <button class="btn btn-outline-danger btn-lg px-4 py-3" onclick="scrollToSection('medicines')">
-                            <i class="fas fa-pills me-2"></i>Browse Medicines
-                        </button>
                         <a href="/consultation" class="btn btn-outline-danger btn-lg">
-                            <i class="fas fa-video me-2"></i>Book Consultation
+                            <i class="fas fa-video"></i>Book Consultation
                         </a>
                     </div>
-                    <div class="row text-center">
-                        <div class="col-4">
-                            <div class="stat-item">
-                                <h3 class="text-danger fw-bold" id="medicineCount">500+</h3>
-                                <small class="text-muted">Medicines</small>
-                            </div>
+                    <div class="hero-stats">
+                        <div class="stat-item">
+                            <h3 id="medicineCount">500+</h3>
+                            <small>Medicines</small>
                         </div>
-                        <div class="col-4">
-                            <div class="stat-item">
-                                <h3 class="text-danger fw-bold">24/7</h3>
-                                <small class="text-muted">Support</small>
-                            </div>
+                        <div class="stat-item">
+                            <h3>24/7</h3>
+                            <small>Support</small>
                         </div>
-                        <div class="col-4">
-                            <div class="stat-item">
-                                <h3 class="text-danger fw-bold">1000+</h3>
-                                <small class="text-muted">Happy Customers</small>
-                            </div>
+                        <div class="stat-item">
+                            <h3>1000+</h3>
+                            <small>Happy Customers</small>
                         </div>
                     </div>
                 </div>
@@ -52,8 +47,8 @@
             <div class="col-lg-6">
                 <div class="hero-image">
                     <img src="https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=800&q=80" 
-                         alt="Red Dot Pharmacy Interior" 
-                         class="img-fluid rounded-3 shadow-lg"
+                         alt="Red Dot Pharmacy" 
+                         class="img-fluid"
                          onerror="this.src='https://images.unsplash.com/photo-1576602976047-174e57a47881?w=800&q=80'">
                 </div>
             </div>
@@ -62,43 +57,53 @@
 </section>
 
 <!-- Services Section -->
-<section class="py-5 bg-light">
+<section class="services-section" id="services">
     <div class="container">
-        <div class="row">
-            <div class="col-lg-3 col-md-6 mb-4">
-                <div class="service-card text-center">
+        <div class="row text-center mb-5">
+            <div class="col-lg-8 mx-auto">
+                <div class="section-badge mx-auto">
+                    <i class="fas fa-star"></i>
+                    <span>Our Services</span>
+                </div>
+                <h2 class="section-title">Why Choose Red Dot Pharmacy?</h2>
+                <p class="section-subtitle">We provide comprehensive healthcare services with quality medicines and expert medical consultation</p>
+            </div>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="service-card">
                     <div class="service-icon">
-                        <i class="fas fa-truck text-danger"></i>
+                        <i class="fas fa-truck"></i>
                     </div>
-                    <h5>Free Delivery</h5>
-                    <p class="text-muted">Fast and reliable delivery across Islamabad</p>
+                    <h5>Fast Delivery</h5>
+                    <p>Quick and reliable delivery across Islamabad with same-day delivery options</p>
                 </div>
             </div>
-            <div class="col-lg-3 col-md-6 mb-4">
-                <div class="service-card text-center">
+            <div class="col-lg-3 col-md-6">
+                <div class="service-card">
                     <div class="service-icon">
-                        <i class="fas fa-user-md text-danger"></i>
+                        <i class="fas fa-user-md"></i>
                     </div>
                     <h5>Expert Doctors</h5>
-                    <p class="text-muted">Qualified and experienced medical professionals</p>
+                    <p>Consult with qualified and experienced medical professionals online</p>
                 </div>
             </div>
-            <div class="col-lg-3 col-md-6 mb-4">
-                <div class="service-card text-center">
+            <div class="col-lg-3 col-md-6">
+                <div class="service-card">
                     <div class="service-icon">
-                        <i class="fas fa-shield-alt text-danger"></i>
+                        <i class="fas fa-shield-alt"></i>
                     </div>
                     <h5>Genuine Medicines</h5>
-                    <p class="text-muted">100% authentic medicines from trusted suppliers</p>
+                    <p>100% authentic medicines sourced from trusted pharmaceutical suppliers</p>
                 </div>
             </div>
-            <div class="col-lg-3 col-md-6 mb-4">
-                <div class="service-card text-center">
+            <div class="col-lg-3 col-md-6">
+                <div class="service-card">
                     <div class="service-icon">
-                        <i class="fas fa-clock text-danger"></i>
+                        <i class="fas fa-headset"></i>
                     </div>
                     <h5>24/7 Support</h5>
-                    <p class="text-muted">Round-the-clock customer support and assistance</p>
+                    <p>Round-the-clock customer support and AI-powered medical assistance</p>
                 </div>
             </div>
         </div>
@@ -106,85 +111,82 @@
 </section>
 
 <!-- Medicine Store Section -->
-<section id="medicines" class="py-5 bg-gradient-light">
+<section id="medicines" class="medicine-section">
     <div class="container">
-        <div class="row mb-5">
-            <div class="col-lg-10 mx-auto text-center">
-                <div class="shopping-header mb-4">
-                    <span class="badge bg-danger mb-3 px-3 py-2">🛍️ Shop Now</span>
-                    <h2 class="display-4 fw-bold text-dark mb-4">Red Dot Medicine Store</h2>
-                    <p class="lead text-muted mb-4">Discover our extensive collection of quality medicines and healthcare products. Quick delivery, authentic medicines, and expert advice.</p>
-                    <div class="row text-center mt-4">
-                        <div class="col-md-3 col-6 mb-3">
-                            <div class="feature-highlight">
-                                <i class="fas fa-shipping-fast text-danger fa-2x mb-2"></i>
-                                <h6>Fast Delivery</h6>
-                                <small class="text-muted">Same day delivery available</small>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-6 mb-3">
-                            <div class="feature-highlight">
-                                <i class="fas fa-certificate text-danger fa-2x mb-2"></i>
-                                <h6>100% Authentic</h6>
-                                <small class="text-muted">Genuine medicines only</small>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-6 mb-3">
-                            <div class="feature-highlight">
-                                <i class="fas fa-bolt text-danger fa-2x mb-2"></i>
-                                <h6>Buy Now Option</h6>
-                                <small class="text-muted">Skip cart, order instantly</small>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-6 mb-3">
-                            <div class="feature-highlight">
-                                <i class="fas fa-headset text-danger fa-2x mb-2"></i>
-                                <h6>24/7 Support</h6>
-                                <small class="text-muted">Always here to help</small>
-                            </div>
-                        </div>
-                    </div>
+        <div class="medicine-header">
+            <div class="section-badge">
+                <i class="fas fa-shopping-bag"></i>
+                <span>Shop Now</span>
+            </div>
+            <h2 class="section-title">Red Dot Medicine Store</h2>
+            <p class="section-subtitle">Discover our extensive collection of quality medicines and healthcare products</p>
+            
+            <!-- Feature Highlights -->
+            <div class="feature-highlights mt-5">
+                <div class="feature-highlight">
+                    <i class="fas fa-shipping-fast"></i>
+                    <h6>Fast Delivery</h6>
+                    <small>Same day delivery</small>
+                </div>
+                <div class="feature-highlight">
+                    <i class="fas fa-certificate"></i>
+                    <h6>100% Authentic</h6>
+                    <small>Genuine medicines</small>
+                </div>
+                <div class="feature-highlight">
+                    <i class="fas fa-bolt"></i>
+                    <h6>Buy Now Option</h6>
+                    <small>Skip cart, order instantly</small>
+                </div>
+                <div class="feature-highlight">
+                    <i class="fas fa-headset"></i>
+                    <h6>24/7 Support</h6>
+                    <small>Always here to help</small>
                 </div>
             </div>
         </div>
         
         <!-- Search and Filter -->
-        <div class="row mb-4">
-            <div class="col-lg-8 mx-auto">
-                <div class="search-form">
-                    <div class="input-group">
-                        <input type="text" class="form-control form-control-lg" id="medicineSearch" 
-                               placeholder="Search medicines by name or condition...">
-                        <button class="btn btn-danger" type="button" onclick="searchMedicines()">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                </div>
+        <div class="search-form">
+            <div class="input-group">
+                <input type="text" class="form-control form-control-lg" id="medicineSearch" 
+                       placeholder="Search medicines by name or condition...">
+                <button class="btn btn-danger" type="button" onclick="searchMedicines()">
+                    <i class="fas fa-search me-2"></i>Search
+                </button>
             </div>
         </div>
         
         <!-- Category Filter -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="category-filter d-flex flex-wrap gap-2 justify-content-center">
-                    <button class="btn btn-outline-danger active" data-category="" onclick="filterByCategory('')">All</button>
-                    <button class="btn btn-outline-danger" data-category="Pain Relief" onclick="filterByCategory('Pain Relief')">Pain Relief</button>
-                    <button class="btn btn-outline-danger" data-category="Antibiotics" onclick="filterByCategory('Antibiotics')">Antibiotics</button>
-                    <button class="btn btn-outline-danger" data-category="Cold & Flu" onclick="filterByCategory('Cold & Flu')">Cold & Flu</button>
-                    <button class="btn btn-outline-danger" data-category="Gastric" onclick="filterByCategory('Gastric')">Gastric</button>
-                    <button class="btn btn-outline-danger" data-category="Vitamins" onclick="filterByCategory('Vitamins')">Vitamins</button>
-                </div>
-            </div>
+        <div class="category-filter">
+            <button class="btn active" data-category="" onclick="filterByCategory('')">
+                <i class="fas fa-th-large me-2"></i>All
+            </button>
+            <button class="btn" data-category="Pain Relief" onclick="filterByCategory('Pain Relief')">
+                Pain Relief
+            </button>
+            <button class="btn" data-category="Antibiotics" onclick="filterByCategory('Antibiotics')">
+                Antibiotics
+            </button>
+            <button class="btn" data-category="Cold & Flu" onclick="filterByCategory('Cold & Flu')">
+                Cold & Flu
+            </button>
+            <button class="btn" data-category="Gastric" onclick="filterByCategory('Gastric')">
+                Gastric
+            </button>
+            <button class="btn" data-category="Vitamins" onclick="filterByCategory('Vitamins')">
+                Vitamins
+            </button>
         </div>
         
         <!-- Medicine Grid -->
-        <div class="row" id="medicineGrid">
+        <div class="row g-4" id="medicineGrid">
             <!-- Medicines will be loaded here -->
         </div>
         
         <!-- Load More -->
-        <div class="text-center mt-4">
-            <button class="btn btn-outline-danger" id="loadMoreBtn" onclick="loadMoreMedicines()">
+        <div class="text-center mt-5">
+            <button class="btn btn-outline-danger btn-lg" id="loadMoreBtn" onclick="loadMoreMedicines()">
                 <i class="fas fa-plus me-2"></i>Load More Medicines
             </button>
         </div>
@@ -192,61 +194,70 @@
 </section>
 
 <!-- Consultation Section -->
-<section id="consultation" class="py-5 bg-light">
+<section id="consultation" class="consultation-section">
     <div class="container">
-        <div class="row mb-5">
-            <div class="col-lg-8 mx-auto text-center">
-                <h2 class="display-5 fw-bold text-dark mb-4">Online Consultation</h2>
-                <p class="lead text-muted">Book a video consultation with our qualified doctors from the comfort of your home</p>
+        <div class="row text-center mb-5">
+            <div class="col-lg-8 mx-auto">
+                <div class="section-badge">
+                    <i class="fas fa-video"></i>
+                    <span>Online Consultation</span>
+                </div>
+                <h2 class="section-title">Consult With Expert Doctors</h2>
+                <p class="section-subtitle">Book a video consultation with our qualified doctors from the comfort of your home</p>
             </div>
         </div>
         
-        <div class="row align-items-center">
-            <div class="col-lg-6 mb-4">
-                <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&q=80" 
-                     alt="Online Medical Consultation" 
-                     class="img-fluid rounded-3 shadow"
-                     onerror="this.src='https://images.unsplash.com/photo-1559757175-5700dde675bc?w=800&q=80'">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <div class="consultation-image">
+                    <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&q=80" 
+                         alt="Online Medical Consultation" 
+                         class="img-fluid"
+                         onerror="this.src='https://images.unsplash.com/photo-1559757175-5700dde675bc?w=800&q=80'">
+                </div>
             </div>
             <div class="col-lg-6">
                 <div class="consultation-form">
-                    <div class="card border-0 shadow">
-                        <div class="card-body p-4">
-                            <h4 class="card-title text-danger mb-4">Book Your Consultation</h4>
+                    <div class="card">
+                        <div class="card-body">
+                            <h4 class="card-title">
+                                <i class="fas fa-calendar-plus"></i>
+                                Book Your Consultation
+                            </h4>
                             
                             <form id="consultationForm">
-                                <div class="mb-3">
+                                <div class="mb-4">
                                     <label class="form-label">Select Doctor</label>
                                     <select class="form-select" id="doctorSelect" name="doctor_id" required>
                                         <option value="">Choose a doctor...</option>
                                     </select>
                                 </div>
                                 
-                                <div class="mb-3">
+                                <div class="mb-4">
                                     <label class="form-label">Preferred Date</label>
                                     <input type="date" class="form-control" id="consultationDate" name="consultation_date" required>
                                 </div>
                                 
-                                <div class="mb-3">
+                                <div class="mb-4">
                                     <label class="form-label">Available Time Slots</label>
                                     <div id="timeSlots" class="time-slots">
-                                        <!-- Time slots will be loaded here -->
+                                        <p class="text-muted small">Please select a doctor and date first</p>
                                     </div>
                                 </div>
                                 
-                                <div class="mb-3">
+                                <div class="mb-4">
                                     <label class="form-label">Describe Your Symptoms</label>
                                     <textarea class="form-control" id="symptoms" name="symptoms" rows="3" 
                                               placeholder="Please describe your symptoms or health concerns..." required></textarea>
                                 </div>
                                 
-                                <div class="mb-3">
+                                <div class="mb-4">
                                     <label class="form-label">Additional Notes (Optional)</label>
                                     <textarea class="form-control" id="consultationNotes" name="note" rows="2" 
                                               placeholder="Any additional information for the doctor..."></textarea>
                                 </div>
                                 
-                                <button type="submit" class="btn btn-danger w-100">
+                                <button type="submit" class="btn btn-danger w-100 btn-lg">
                                     <i class="fas fa-calendar-plus me-2"></i>Book Consultation
                                 </button>
                             </form>
@@ -257,62 +268,91 @@
         </div>
         
         <!-- Available Doctors -->
-        <div class="row mt-5">
-            <div class="col-12">
-                <h4 class="text-center mb-4">Our Available Doctors</h4>
-                <div class="row" id="doctorGrid">
-                    <!-- Doctors will be loaded here -->
-                </div>
+        <div class="mt-5 pt-4">
+            <h4 class="text-center mb-4">
+                <i class="fas fa-user-md text-danger me-2"></i>
+                Our Available Doctors
+            </h4>
+            <div class="row g-4" id="doctorGrid">
+                <!-- Doctors will be loaded here -->
             </div>
         </div>
     </div>
 </section>
 
 <!-- About Section -->
-<section id="about" class="py-5">
+<section id="about" class="about-section">
     <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-6 mb-4">
-                <h2 class="display-5 fw-bold text-dark mb-4">About Red Dot Pharmacy</h2>
-                <p class="lead text-muted mb-4">
-                    Located in the heart of Islamabad, Red Dot Pharmacy has been serving the community with 
-                    quality healthcare services and genuine medicines.
-                </p>
-                <div class="about-features">
-                    <div class="feature-item d-flex align-items-center mb-3">
-                        <div class="feature-icon me-3">
-                            <i class="fas fa-map-marker-alt text-danger"></i>
-                        </div>
-                        <div>
-                            <h6 class="mb-1">Prime Location</h6>
-                            <p class="text-muted mb-0">G11 Markaz, Islamabad - Easy to find and accessible</p>
-                        </div>
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <div class="about-content">
+                    <div class="section-badge">
+                        <i class="fas fa-info-circle"></i>
+                        <span>About Us</span>
                     </div>
-                    <div class="feature-item d-flex align-items-center mb-3">
-                        <div class="feature-icon me-3">
-                            <i class="fas fa-certificate text-danger"></i>
+                    <h2 class="section-title">About Red Dot Pharmacy</h2>
+                    <p class="lead">
+                        Located in the heart of Islamabad, Red Dot Pharmacy has been serving the community with 
+                        quality healthcare services and genuine medicines for years.
+                    </p>
+                    <div class="about-features">
+                        <div class="feature-item">
+                            <div class="feature-icon">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </div>
+                            <div>
+                                <h6>Prime Location</h6>
+                                <p>G11 Markaz, Islamabad - Easy to find and accessible</p>
+                            </div>
                         </div>
-                        <div>
-                            <h6 class="mb-1">Licensed Pharmacy</h6>
-                            <p class="text-muted mb-0">Fully licensed and regulated by health authorities</p>
+                        <div class="feature-item">
+                            <div class="feature-icon">
+                                <i class="fas fa-certificate"></i>
+                            </div>
+                            <div>
+                                <h6>Licensed Pharmacy</h6>
+                                <p>Fully licensed and regulated by health authorities</p>
+                            </div>
                         </div>
-                    </div>
-                    <div class="feature-item d-flex align-items-center">
-                        <div class="feature-icon me-3">
-                            <i class="fas fa-users text-danger"></i>
-                        </div>
-                        <div>
-                            <h6 class="mb-1">Expert Team</h6>
-                            <p class="text-muted mb-0">Qualified pharmacists and healthcare professionals</p>
+                        <div class="feature-item">
+                            <div class="feature-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div>
+                                <h6>Expert Team</h6>
+                                <p>Qualified pharmacists and healthcare professionals</p>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="col-lg-6">
-                <img src="https://images.unsplash.com/photo-1631549916768-4119b2e5f926?w=800&q=80" 
-                     alt="Red Dot Pharmacy Team" 
-                     class="img-fluid rounded-3 shadow"
-                     onerror="this.src='https://images.unsplash.com/photo-1576602976047-174e57a47881?w=800&q=80'">
+                <div class="about-image">
+                    <img src="https://images.unsplash.com/photo-1631549916768-4119b2e5f926?w=800&q=80" 
+                         alt="Red Dot Pharmacy Team" 
+                         class="img-fluid"
+                         onerror="this.src='https://images.unsplash.com/photo-1576602976047-174e57a47881?w=800&q=80'">
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- AI Assistant CTA -->
+<section class="py-5 bg-dark text-white">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h3 class="mb-2">
+                    <i class="fas fa-robot me-3"></i>
+                    Need Medical Guidance?
+                </h3>
+                <p class="text-white-50 mb-0">Our AI-powered medical assistant supports both English and Urdu. Get instant answers to your health questions.</p>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
+                <a href="/assistant" class="btn btn-light btn-lg">
+                    <i class="fas fa-comments me-2"></i>Chat with AI Assistant
+                </a>
             </div>
         </div>
     </div>
@@ -321,9 +361,11 @@
 <!-- Chatbot Widget -->
 <div id="chatWidget" class="chat-widget">
     <div class="chat-header" onclick="window.location.href='/assistant'">
-        <i class="fas fa-comments"></i>
-        <span>Ask Our Assistant</span>
-        <span class="urdu-text">اردو میں پوچھیں</span>
+        <div>
+            <i class="fas fa-comments"></i>
+            <span>Ask Our Assistant</span>
+            <span class="urdu-text">اردو میں پوچھیں</span>
+        </div>
         <i class="fas fa-arrow-right chat-toggle"></i>
     </div>
     <div class="chat-body" id="chatBody">
@@ -331,14 +373,14 @@
             <div class="bot-message">
                 <div class="message-content">
                     <p>سلام! میں Red Dot Pharmacy کا مددگار ہوں۔ آپ کی صحت کے بارے میں سوال پوچھ سکتے ہیں۔</p>
-                    <p class="small">Hello! I'm Red Dot Pharmacy's assistant. You can ask questions about your health.</p>
+                    <p class="small mb-0">Hello! I'm Red Dot Pharmacy's assistant. You can ask questions about your health.</p>
                 </div>
             </div>
         </div>
         <div class="chat-input">
             <div class="input-group">
                 <input type="text" class="form-control" id="chatInput" 
-                       placeholder="Type your message... / اپنا پیغام لکھیں...">
+                       placeholder="Type your message...">
                 <button class="btn btn-danger" id="voiceButton" onclick="toggleVoiceInput()">
                     <i class="fas fa-microphone"></i>
                 </button>
@@ -347,7 +389,7 @@
                 </button>
             </div>
             <div class="voice-status" id="voiceStatus" style="display: none;">
-                <span class="text-muted">
+                <span>
                     <i class="fas fa-microphone-alt text-danger"></i>
                     Listening... / سن رہا ہوں...
                 </span>
@@ -392,9 +434,42 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize forms
     initializeForms();
     
-    // Initialize chatbot (if on assistant page)
-    if (window.location.pathname === '/assistant') {
-        console.log('Chatbot initialization handled by assistant page');
+    // Navbar scroll effect
+    window.addEventListener('scroll', function() {
+        const navbar = document.querySelector('.navbar');
+        if (navbar) {
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        }
+    });
+    
+    // Add fade-in animation to sections
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('fade-in-up');
+                observer.unobserve(entry.target);
+            }
+        });
+    }, observerOptions);
+    
+    document.querySelectorAll('section').forEach(section => {
+        section.style.opacity = '0';
+        observer.observe(section);
+    });
+    
+    // Make first section visible immediately
+    const heroSection = document.getElementById('home');
+    if (heroSection) {
+        heroSection.style.opacity = '1';
     }
 });
 
@@ -405,4 +480,16 @@ function scrollToSection(sectionId) {
     }
 }
 </script>
+
+<style>
+/* Page-specific animation styles */
+section {
+    transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+section.fade-in-up {
+    opacity: 1 !important;
+    animation: fadeInUp 0.6s ease forwards;
+}
+</style>
 {% endblock %}
