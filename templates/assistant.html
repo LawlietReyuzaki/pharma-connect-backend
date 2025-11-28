@@ -3,10 +3,15 @@
 {% block title %}AI Assistant - Red Dot Pharmacy{% endblock %}
 
 {% block content %}
-<!-- Sticky Mute/Unmute Toggle Button - Always Visible -->
-<div id="stickyMuteToggle" class="sticky-mute-btn" onclick="toggleMute()">
-    <i class="fas fa-volume-up" id="stickyMuteIcon"></i>
-    <span id="stickyMuteLabel">Unmute</span>
+<!-- TTS Toggle Button - Always Visible at Top Right -->
+<div id="ttsToggleBtn" class="tts-toggle-btn" onclick="toggleTTS()">
+    <div class="tts-toggle-inner">
+        <i class="fas fa-volume-up" id="ttsIcon"></i>
+        <span id="ttsLabel">Sound ON</span>
+        <div class="tts-switch">
+            <div class="tts-switch-handle"></div>
+        </div>
+    </div>
 </div>
 
 <!-- Compact Header -->
@@ -199,8 +204,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize the window.currentLanguage properly
     window.currentLanguage = currentLanguage;
     
-    // Initialize mute button state from localStorage
-    updateStickyMuteUI();
+    // Initialize TTS toggle button state from localStorage
+    updateTTSToggleUI();
     
     // Enable Enter key to send message
     document.getElementById('messageInput').addEventListener('keypress', function(e) {
@@ -257,60 +262,71 @@ function toggleLanguage() {
 }
 
 // ============================================
-// AUDIO CONTROL SYSTEM - Mute/Unmute & Playback
+// TTS AUDIO CONTROL SYSTEM
 // ============================================
 
-// Toggle mute/unmute for TTS audio
-function toggleMute() {
+// Toggle TTS on/off
+function toggleTTS() {
     isMuted = !isMuted;
     localStorage.setItem('tts_muted', isMuted.toString());
     
-    // Immediately stop any playing audio when muting
+    // Immediately stop any playing audio when turning OFF
     if (isMuted) {
         stopAllAudio();
     }
     
-    // Update sticky button UI
-    updateStickyMuteUI();
+    // Update toggle button UI
+    updateTTSToggleUI();
     
     // Show status update
     const statusMsg = isMuted 
-        ? (currentLanguage === 'ur' ? 'آواز بند ہے' : 'Audio muted') 
-        : (currentLanguage === 'ur' ? 'آواز چالو ہے' : 'Audio enabled');
+        ? (currentLanguage === 'ur' ? '🔇 آواز بند ہے' : '🔇 Sound OFF') 
+        : (currentLanguage === 'ur' ? '🔊 آواز چالو ہے' : '🔊 Sound ON');
     updateChatStatus(statusMsg);
     
-    console.log('Mute toggled:', isMuted);
+    console.log('TTS toggled - Sound is now:', isMuted ? 'OFF' : 'ON');
 }
 
-// Update the sticky mute button UI based on current state
-function updateStickyMuteUI() {
-    const stickyBtn = document.getElementById('stickyMuteToggle');
-    const stickyIcon = document.getElementById('stickyMuteIcon');
-    const stickyLabel = document.getElementById('stickyMuteLabel');
+// Update the TTS toggle button UI
+function updateTTSToggleUI() {
+    const toggleBtn = document.getElementById('ttsToggleBtn');
+    const ttsIcon = document.getElementById('ttsIcon');
+    const ttsLabel = document.getElementById('ttsLabel');
     
-    if (!stickyBtn || !stickyIcon || !stickyLabel) return;
+    if (!toggleBtn || !ttsIcon || !ttsLabel) return;
     
-    // Add pulse animation
-    stickyBtn.classList.add('pulse-animate');
+    // Add animation
+    toggleBtn.classList.add('tts-animate');
     
     if (isMuted) {
-        // When muted: show mute icon with "Mute" label (indicating audio is OFF)
-        stickyIcon.className = 'fas fa-volume-mute';
-        stickyLabel.textContent = 'Mute';
-        stickyBtn.classList.add('muted');
-        stickyBtn.title = 'Audio is OFF - Click to enable';
+        // Sound is OFF
+        ttsIcon.className = 'fas fa-volume-mute';
+        ttsLabel.textContent = 'Sound OFF';
+        toggleBtn.classList.add('sound-off');
+        toggleBtn.classList.remove('sound-on');
+        toggleBtn.title = 'Click to turn sound ON';
     } else {
-        // When unmuted: show speaker icon with "Unmute" label (indicating audio is ON)
-        stickyIcon.className = 'fas fa-volume-up';
-        stickyLabel.textContent = 'Unmute';
-        stickyBtn.classList.remove('muted');
-        stickyBtn.title = 'Audio is ON - Click to mute';
+        // Sound is ON
+        ttsIcon.className = 'fas fa-volume-up';
+        ttsLabel.textContent = 'Sound ON';
+        toggleBtn.classList.add('sound-on');
+        toggleBtn.classList.remove('sound-off');
+        toggleBtn.title = 'Click to turn sound OFF';
     }
     
     // Remove animation class after completion
     setTimeout(() => {
-        stickyBtn.classList.remove('pulse-animate');
+        toggleBtn.classList.remove('tts-animate');
     }, 300);
+}
+
+// Alias for backward compatibility
+function toggleMute() {
+    toggleTTS();
+}
+
+function updateStickyMuteUI() {
+    updateTTSToggleUI();
 }
 
 // Stop all audio playback immediately
@@ -742,71 +758,142 @@ function speakMessage(button, text) {
 
 <style>
 /* ============================================
-   STICKY MUTE BUTTON - Always Visible
+   TTS TOGGLE BUTTON - Always Visible Top Right
    ============================================ */
-.sticky-mute-btn {
+.tts-toggle-btn {
     position: fixed;
     top: 80px;
     right: 20px;
     z-index: 9999;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background: linear-gradient(135deg, #28a745, #20c997);
-    color: white;
-    border-radius: 50px;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
-    transition: all 0.3s ease;
-    font-weight: 600;
-    font-size: 14px;
     user-select: none;
 }
 
-.sticky-mute-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.5);
+.tts-toggle-inner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    border-radius: 50px;
+    box-shadow: 0 4px 20px rgba(40, 167, 69, 0.4);
+    transition: all 0.3s ease;
+    font-weight: 600;
+    font-size: 14px;
 }
 
-.sticky-mute-btn:active {
+.tts-toggle-btn:hover .tts-toggle-inner {
+    transform: scale(1.05);
+    box-shadow: 0 6px 25px rgba(40, 167, 69, 0.5);
+}
+
+.tts-toggle-btn:active .tts-toggle-inner {
     transform: scale(0.98);
 }
 
-.sticky-mute-btn.muted {
+/* TTS Switch indicator */
+.tts-switch {
+    width: 44px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.tts-switch-handle {
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* Sound ON state (default) */
+.tts-toggle-btn.sound-on .tts-toggle-inner {
+    background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.tts-toggle-btn.sound-on .tts-switch {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.tts-toggle-btn.sound-on .tts-switch-handle {
+    right: 2px;
+    left: auto;
+}
+
+/* Sound OFF state */
+.tts-toggle-btn.sound-off .tts-toggle-inner {
     background: linear-gradient(135deg, #6c757d, #495057);
-    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);
+    box-shadow: 0 4px 20px rgba(108, 117, 125, 0.4);
 }
 
-.sticky-mute-btn.muted:hover {
-    box-shadow: 0 6px 20px rgba(108, 117, 125, 0.5);
+.tts-toggle-btn.sound-off .tts-switch {
+    background: rgba(255, 255, 255, 0.2);
 }
 
-.sticky-mute-btn i {
-    font-size: 18px;
+.tts-toggle-btn.sound-off .tts-switch-handle {
+    left: 2px;
+    right: auto;
 }
 
-.pulse-animate {
-    animation: pulseEffect 0.3s ease;
+.tts-toggle-btn i {
+    font-size: 20px;
 }
 
-@keyframes pulseEffect {
+/* Animation on toggle */
+.tts-animate .tts-toggle-inner {
+    animation: ttsTogglePulse 0.3s ease;
+}
+
+@keyframes ttsTogglePulse {
     0% { transform: scale(1); }
-    50% { transform: scale(1.15); }
+    50% { transform: scale(1.1); }
     100% { transform: scale(1); }
 }
 
 /* Mobile responsive */
 @media (max-width: 768px) {
-    .sticky-mute-btn {
+    .tts-toggle-btn {
         top: 70px;
         right: 10px;
-        padding: 8px 12px;
-        font-size: 12px;
     }
     
-    .sticky-mute-btn i {
+    .tts-toggle-inner {
+        padding: 10px 14px;
+        font-size: 12px;
+        gap: 8px;
+    }
+    
+    .tts-toggle-btn i {
         font-size: 16px;
+    }
+    
+    .tts-switch {
+        width: 36px;
+        height: 20px;
+    }
+    
+    .tts-switch-handle {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+/* Very small screens - compact mode */
+@media (max-width: 400px) {
+    .tts-toggle-inner span {
+        display: none;
+    }
+    
+    .tts-toggle-inner {
+        padding: 10px 12px;
     }
 }
 
