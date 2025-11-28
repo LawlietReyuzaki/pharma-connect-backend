@@ -3,6 +3,12 @@
 {% block title %}AI Assistant - Red Dot Pharmacy{% endblock %}
 
 {% block content %}
+<!-- Sticky Mute/Unmute Toggle Button - Always Visible -->
+<div id="stickyMuteToggle" class="sticky-mute-btn" onclick="toggleMute()">
+    <i class="fas fa-volume-up" id="stickyMuteIcon"></i>
+    <span id="stickyMuteLabel">Unmute</span>
+</div>
+
 <!-- Compact Header -->
 <section class="py-3 bg-gradient-primary">
     <div class="container">
@@ -54,10 +60,6 @@
                                     <button class="btn btn-light btn-sm me-2" id="languageToggle" onclick="toggleLanguage()">
                                         <i class="fas fa-language me-1"></i>
                                         <span id="currentLang">English</span>
-                                    </button>
-                                    <button class="btn btn-light btn-sm me-2 mute-btn" id="muteToggle" onclick="toggleMute()">
-                                        <i class="fas fa-volume-up me-1" id="muteIcon"></i>
-                                        <span id="muteLabel">Mute</span>
                                     </button>
                                     <button class="btn btn-outline-light btn-sm" id="clearChat" onclick="clearChatHistory()">
                                         <i class="fas fa-trash-alt me-1"></i>Clear Chat
@@ -187,16 +189,18 @@
 let isListening = false;
 let currentLanguage = 'en';
 let chatHistory = [];
-let isMuted = localStorage.getItem('tts_muted') === 'true';
-let currentAudio = null;
+
+// Audio control - global mute state with localStorage persistence
+let isMuted = localStorage.getItem('tts_muted') !== 'false'; // Default to muted (true)
+let currentAudio = null; // Track current HTML5 Audio instance
 
 // Initialize chat functionality when page loads
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize the window.currentLanguage properly
-    window.currentLanguage = currentLanguage; // Set it to the initial value ('en')
+    window.currentLanguage = currentLanguage;
     
     // Initialize mute button state from localStorage
-    updateMuteButtonUI();
+    updateStickyMuteUI();
     
     // Enable Enter key to send message
     document.getElementById('messageInput').addEventListener('keypress', function(e) {
@@ -209,7 +213,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load chat history if exists
     loadChatHistory();
     
-    console.log('Chat initialized with language:', window.currentLanguage, 'muted:', isMuted);
+    console.log('Chat initialized - language:', window.currentLanguage, 'muted:', isMuted);
 });
 
 // Function to ask a sample question
@@ -252,75 +256,180 @@ function toggleLanguage() {
     console.log('Language changed to:', currentLanguage, 'Voice language:', newLanguageCode);
 }
 
-// Function to toggle mute/unmute for TTS
+// ============================================
+// AUDIO CONTROL SYSTEM - Mute/Unmute & Playback
+// ============================================
+
+// Toggle mute/unmute for TTS audio
 function toggleMute() {
     isMuted = !isMuted;
     localStorage.setItem('tts_muted', isMuted.toString());
     
-    // Stop any currently playing audio immediately when muting
+    // Immediately stop any playing audio when muting
     if (isMuted) {
         stopAllAudio();
     }
     
-    // Update button UI with animation
-    updateMuteButtonUI();
+    // Update sticky button UI
+    updateStickyMuteUI();
     
     // Show status update
     const statusMsg = isMuted 
         ? (currentLanguage === 'ur' ? 'آواز بند ہے' : 'Audio muted') 
-        : (currentLanguage === 'ur' ? 'آواز چالو ہے' : 'Audio unmuted');
+        : (currentLanguage === 'ur' ? 'آواز چالو ہے' : 'Audio enabled');
     updateChatStatus(statusMsg);
     
     console.log('Mute toggled:', isMuted);
 }
 
-// Function to update mute button UI
-function updateMuteButtonUI() {
-    const muteButton = document.getElementById('muteToggle');
-    const muteIcon = document.getElementById('muteIcon');
-    const muteLabel = document.getElementById('muteLabel');
+// Update the sticky mute button UI based on current state
+function updateStickyMuteUI() {
+    const stickyBtn = document.getElementById('stickyMuteToggle');
+    const stickyIcon = document.getElementById('stickyMuteIcon');
+    const stickyLabel = document.getElementById('stickyMuteLabel');
     
-    if (!muteButton || !muteIcon || !muteLabel) return;
+    if (!stickyBtn || !stickyIcon || !stickyLabel) return;
     
-    // Add animation class
-    muteButton.classList.add('mute-btn-animate');
+    // Add pulse animation
+    stickyBtn.classList.add('pulse-animate');
     
     if (isMuted) {
-        muteIcon.className = 'fas fa-volume-mute me-1';
-        muteLabel.textContent = 'Unmute';
-        muteButton.classList.add('muted');
-        muteButton.title = 'Click to enable audio';
+        // When muted: show mute icon with "Mute" label (indicating audio is OFF)
+        stickyIcon.className = 'fas fa-volume-mute';
+        stickyLabel.textContent = 'Mute';
+        stickyBtn.classList.add('muted');
+        stickyBtn.title = 'Audio is OFF - Click to enable';
     } else {
-        muteIcon.className = 'fas fa-volume-up me-1';
-        muteLabel.textContent = 'Mute';
-        muteButton.classList.remove('muted');
-        muteButton.title = 'Click to mute audio';
+        // When unmuted: show speaker icon with "Unmute" label (indicating audio is ON)
+        stickyIcon.className = 'fas fa-volume-up';
+        stickyLabel.textContent = 'Unmute';
+        stickyBtn.classList.remove('muted');
+        stickyBtn.title = 'Audio is ON - Click to mute';
     }
     
-    // Remove animation class after animation completes
+    // Remove animation class after completion
     setTimeout(() => {
-        muteButton.classList.remove('mute-btn-animate');
+        stickyBtn.classList.remove('pulse-animate');
     }, 300);
 }
 
-// Function to stop all audio playback
+// Stop all audio playback immediately
 function stopAllAudio() {
-    // Stop Web Speech API
+    // Cancel Web Speech API synthesis
     if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
     }
     
-    // Stop any HTML5 audio element
+    // Stop and reset HTML5 Audio element
     if (currentAudio) {
         currentAudio.pause();
         currentAudio.currentTime = 0;
         currentAudio = null;
     }
     
-    // Reset all play buttons to default state
+    // Reset all play button icons
     document.querySelectorAll('.play-audio i').forEach(icon => {
         icon.className = 'fas fa-volume-up';
     });
+}
+
+// Unified audio playback function - SINGLE ENTRY POINT for all TTS
+// Plays audio ONCE, no looping, respects mute state
+function playAudio(type, payload, buttonIcon) {
+    // ALWAYS check mute state first
+    if (isMuted) {
+        console.log('Audio blocked - muted');
+        if (buttonIcon) {
+            buttonIcon.className = 'fas fa-volume-mute';
+            setTimeout(() => { buttonIcon.className = 'fas fa-volume-up'; }, 500);
+        }
+        return Promise.resolve();
+    }
+    
+    // Stop any currently playing audio before starting new
+    stopAllAudio();
+    
+    const originalIconClass = buttonIcon ? buttonIcon.className : null;
+    if (buttonIcon) buttonIcon.className = 'fas fa-spinner fa-spin';
+    
+    if (type === 'urdu') {
+        // Server-side TTS for Urdu
+        return fetch('/api/chat/speak-urdu', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: payload })
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('TTS request failed');
+            return response.blob();
+        })
+        .then(blob => {
+            // Double-check mute state after async operation
+            if (isMuted) {
+                if (buttonIcon) buttonIcon.className = originalIconClass || 'fas fa-volume-up';
+                return;
+            }
+            
+            const audioUrl = URL.createObjectURL(blob);
+            const audio = new Audio(audioUrl);
+            
+            // CRITICAL: Prevent looping
+            audio.loop = false;
+            
+            // Store reference for stopping
+            currentAudio = audio;
+            
+            if (buttonIcon) buttonIcon.className = 'fas fa-volume-up playing';
+            
+            audio.onended = () => {
+                URL.revokeObjectURL(audioUrl);
+                if (buttonIcon) buttonIcon.className = originalIconClass || 'fas fa-volume-up';
+                currentAudio = null;
+            };
+            
+            audio.onerror = () => {
+                URL.revokeObjectURL(audioUrl);
+                if (buttonIcon) buttonIcon.className = originalIconClass || 'fas fa-volume-up';
+                currentAudio = null;
+            };
+            
+            // Play only once
+            return audio.play();
+        })
+        .catch(error => {
+            console.error('Urdu TTS error:', error);
+            if (buttonIcon) buttonIcon.className = originalIconClass || 'fas fa-volume-up';
+        });
+        
+    } else {
+        // Web Speech API for English
+        return new Promise((resolve, reject) => {
+            // Double-check mute state
+            if (isMuted) {
+                if (buttonIcon) buttonIcon.className = originalIconClass || 'fas fa-volume-up';
+                resolve();
+                return;
+            }
+            
+            const utterance = new SpeechSynthesisUtterance(payload);
+            utterance.lang = 'en-US';
+            
+            if (buttonIcon) buttonIcon.className = 'fas fa-volume-up playing';
+            
+            utterance.onend = () => {
+                if (buttonIcon) buttonIcon.className = originalIconClass || 'fas fa-volume-up';
+                resolve();
+            };
+            
+            utterance.onerror = (event) => {
+                console.error('Speech synthesis error:', event);
+                if (buttonIcon) buttonIcon.className = originalIconClass || 'fas fa-volume-up';
+                reject(event);
+            };
+            
+            window.speechSynthesis.speak(utterance);
+        });
+    }
 }
 
 // Function to toggle voice input
@@ -615,148 +724,100 @@ function showError(message) {
     addMessageToChat('bot', `Error: ${message}. Please try again.`);
 }
 
-// Function to speak the message using Web Speech API or server-side TTS
+// Speak message - wrapper that uses unified playAudio function
+// Called when user clicks the speaker icon on a message
 function speakMessage(button, text) {
-    try {
-        // Check if audio is muted
-        if (isMuted) {
-            console.log('Audio is muted, skipping playback');
-            updateChatStatus(currentLanguage === 'ur' ? 'آواز بند ہے - چلانے کے لیے آواز کھولیں' : 'Audio is muted - unmute to play');
-            
-            // Brief visual feedback on the button
-            const icon = button.querySelector('i');
-            icon.className = 'fas fa-volume-mute';
-            setTimeout(() => {
-                icon.className = 'fas fa-volume-up';
-            }, 500);
-            return;
-        }
-        
-        const icon = button.querySelector('i');
-        const originalIcon = icon.className;
-        
-        // Show loading state
-        icon.className = 'fas fa-spinner fa-spin';
-        
-        // Ensure we have a current language set, fallback to 'en' if not
-        const currentLang = window.currentLanguage || currentLanguage || 'en';
-        console.log('speakMessage called with language:', currentLang, 'text:', text.substring(0, 50));
-        
-        if (currentLang === 'ur') {
-            // For Urdu, call the server-side TTS endpoint
-            fetch('/api/chat/speak-urdu', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ text: text })
-            })
-            .then(response => {
-                if (!response.ok) throw new Error('Failed to get audio');
-                return response.blob();
-            })
-            .then(blob => {
-                // Double-check mute state after fetch completes
-                if (isMuted) {
-                    icon.className = originalIcon;
-                    return;
-                }
-                
-                const audioUrl = URL.createObjectURL(blob);
-                const audio = new Audio(audioUrl);
-                currentAudio = audio; // Store reference for stopping
-                
-                // Update icon while playing
-                icon.className = 'fas fa-volume-up playing-audio';
-                
-                audio.onended = () => {
-                    URL.revokeObjectURL(audioUrl);
-                    icon.className = originalIcon;
-                    currentAudio = null;
-                };
-                
-                audio.onerror = () => {
-                    URL.revokeObjectURL(audioUrl);
-                    icon.className = originalIcon;
-                    currentAudio = null;
-                    throw new Error('Failed to play audio');
-                };
-                
-                return audio.play();
-            })
-            .catch(error => {
-                console.error('Error playing Urdu audio:', error);
-                icon.className = originalIcon;
-                showError('Could not play the message');
-            });
-        } else {
-            // For English, use Web Speech API
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'en-US';
-            
-            // Update icon while speaking
-            icon.className = 'fas fa-volume-up playing-audio';
-            
-            utterance.onend = () => {
-                icon.className = originalIcon;
-            };
-            
-            utterance.onerror = (event) => {
-                console.error('Speech synthesis error:', event);
-                icon.className = originalIcon;
-                showError('Could not read the message');
-            };
-            
-            window.speechSynthesis.speak(utterance);
-        }
-    } catch (error) {
-        console.error('Error in speakMessage:', error);
-        showError('Could not read the message');
-        const icon = button.querySelector('i');
-        if (icon) icon.className = 'fas fa-volume-up';
-    }
+    const icon = button.querySelector('i');
+    const currentLang = window.currentLanguage || currentLanguage || 'en';
+    const type = currentLang === 'ur' ? 'urdu' : 'english';
+    
+    console.log('speakMessage - lang:', currentLang, 'muted:', isMuted);
+    
+    // Use the unified playAudio function (handles mute check, no looping)
+    playAudio(type, text, icon).catch(error => {
+        console.error('speakMessage error:', error);
+    });
 }
 </script>
 
 <style>
-/* Mute button styling */
-.mute-btn {
+/* ============================================
+   STICKY MUTE BUTTON - Always Visible
+   ============================================ */
+.sticky-mute-btn {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
     transition: all 0.3s ease;
-    border: 1px solid transparent;
+    font-weight: 600;
+    font-size: 14px;
+    user-select: none;
 }
 
-.mute-btn:hover {
+.sticky-mute-btn:hover {
     transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.5);
 }
 
-.mute-btn.muted {
-    background-color: #6c757d !important;
-    color: white !important;
-    border-color: #6c757d !important;
+.sticky-mute-btn:active {
+    transform: scale(0.98);
 }
 
-.mute-btn.muted:hover {
-    background-color: #5a6268 !important;
+.sticky-mute-btn.muted {
+    background: linear-gradient(135deg, #6c757d, #495057);
+    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);
 }
 
-.mute-btn-animate {
-    animation: muteButtonPulse 0.3s ease;
+.sticky-mute-btn.muted:hover {
+    box-shadow: 0 6px 20px rgba(108, 117, 125, 0.5);
 }
 
-@keyframes muteButtonPulse {
+.sticky-mute-btn i {
+    font-size: 18px;
+}
+
+.pulse-animate {
+    animation: pulseEffect 0.3s ease;
+}
+
+@keyframes pulseEffect {
     0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
+    50% { transform: scale(1.15); }
     100% { transform: scale(1); }
 }
 
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .sticky-mute-btn {
+        top: 70px;
+        right: 10px;
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+    
+    .sticky-mute-btn i {
+        font-size: 16px;
+    }
+}
+
 /* Playing audio icon animation */
-.playing-audio {
+.playing {
     animation: audioPlaying 0.5s ease-in-out infinite alternate;
 }
 
 @keyframes audioPlaying {
-    0% { opacity: 0.5; }
-    100% { opacity: 1; }
+    0% { opacity: 0.6; transform: scale(1); }
+    100% { opacity: 1; transform: scale(1.1); }
 }
 
 /* Typing indicator animation */
