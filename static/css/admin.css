@@ -1,0 +1,811 @@
+/* Red Dot Pharmacy - Admin Dashboard Navy Blue Glassmorphism Theme */
+
+/* ============================================
+   CSS VARIABLES - Admin Theme Colors
+   ============================================ */
+:root {
+    /* Primary Colors - Navy Blue (matching main website) */
+    --admin-primary: #1e3a5f;
+    --admin-primary-dark: #0f2744;
+    --admin-primary-light: #e8f0f8;
+    --admin-accent: #2563eb;
+    --admin-accent-light: #3b82f6;
+    
+    /* Glassmorphism Effects */
+    --admin-glass-bg: rgba(255, 255, 255, 0.75);
+    --admin-glass-bg-dark: rgba(30, 58, 95, 0.9);
+    --admin-glass-border: rgba(255, 255, 255, 0.35);
+    --admin-glass-shadow: 0 8px 32px rgba(30, 58, 95, 0.12);
+    --admin-glow: 0 0 40px rgba(37, 99, 235, 0.15);
+    
+    /* Gradients */
+    --admin-gradient: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%);
+    --admin-gradient-accent: linear-gradient(135deg, #2563eb 0%, #1e3a5f 100%);
+    --admin-gradient-mesh: radial-gradient(at 40% 20%, rgba(37, 99, 235, 0.08) 0px, transparent 50%),
+                           radial-gradient(at 80% 0%, rgba(30, 58, 95, 0.06) 0px, transparent 50%),
+                           radial-gradient(at 0% 50%, rgba(37, 99, 235, 0.05) 0px, transparent 50%);
+    
+    /* Status Colors */
+    --admin-success: #10b981;
+    --admin-success-light: rgba(16, 185, 129, 0.15);
+    --admin-warning: #f59e0b;
+    --admin-warning-light: rgba(245, 158, 11, 0.15);
+    --admin-danger: #ef4444;
+    --admin-danger-light: rgba(239, 68, 68, 0.15);
+    --admin-info: #0ea5e9;
+    --admin-info-light: rgba(14, 165, 233, 0.15);
+    
+    /* Neutrals */
+    --admin-gray-50: #f8fafc;
+    --admin-gray-100: #f1f5f9;
+    --admin-gray-200: #e2e8f0;
+    --admin-gray-300: #cbd5e1;
+    --admin-gray-400: #94a3b8;
+    --admin-gray-500: #64748b;
+    --admin-gray-600: #475569;
+    --admin-gray-700: #334155;
+    --admin-gray-800: #1e293b;
+    --admin-gray-900: #0f172a;
+    
+    /* Shadows */
+    --admin-shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
+    --admin-shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08);
+    --admin-shadow-lg: 0 8px 32px rgba(15, 23, 42, 0.12);
+    --admin-shadow-hover: 0 12px 40px rgba(30, 58, 95, 0.18);
+    
+    /* Border Radius */
+    --admin-radius-sm: 8px;
+    --admin-radius-md: 12px;
+    --admin-radius-lg: 16px;
+    --admin-radius-xl: 24px;
+    
+    /* Transitions */
+    --admin-transition: 0.25s ease;
+    --admin-transition-fast: 0.15s ease;
+}
+
+/* ============================================
+   BASE ADMIN STYLES
+   ============================================ */
+.admin-body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--admin-gradient-mesh), linear-gradient(135deg, #f8fafc 0%, #e8f0f8 50%, #f1f5f9 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    color: var(--admin-gray-800);
+}
+
+/* ============================================
+   ADMIN NAVIGATION
+   ============================================ */
+.admin-body .navbar {
+    background: var(--admin-gradient) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(30, 58, 95, 0.2);
+    padding: 12px 0;
+}
+
+.admin-body .navbar-brand {
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: white !important;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-body .navbar-brand i {
+    color: var(--admin-accent-light) !important;
+}
+
+.admin-body .navbar-nav .nav-link {
+    color: rgba(255, 255, 255, 0.85) !important;
+    font-weight: 500;
+    padding: 10px 16px !important;
+    border-radius: var(--admin-radius-sm);
+    transition: all var(--admin-transition);
+    margin: 0 2px;
+}
+
+.admin-body .navbar-nav .nav-link:hover {
+    color: white !important;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.admin-body .navbar-nav .nav-link.active {
+    color: white !important;
+    background: rgba(255, 255, 255, 0.18);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.admin-body .navbar-nav .nav-link i {
+    margin-right: 6px;
+}
+
+.admin-body .navbar .dropdown-menu {
+    background: var(--admin-glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--admin-glass-border);
+    border-radius: var(--admin-radius-md);
+    box-shadow: var(--admin-shadow-lg);
+    padding: 8px;
+    margin-top: 8px;
+}
+
+.admin-body .navbar .dropdown-item {
+    padding: 10px 16px;
+    border-radius: var(--admin-radius-sm);
+    color: var(--admin-gray-700);
+    transition: all var(--admin-transition-fast);
+}
+
+.admin-body .navbar .dropdown-item:hover {
+    background: var(--admin-primary-light);
+    color: var(--admin-primary);
+}
+
+/* Badge in nav */
+.admin-body .navbar-nav .badge {
+    background: var(--admin-warning) !important;
+    color: white;
+    font-size: 0.7rem;
+    padding: 4px 8px;
+    border-radius: 10px;
+}
+
+/* ============================================
+   ADMIN SECTION HEADERS
+   ============================================ */
+.admin-section h2 {
+    font-family: 'Poppins', 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 1.75rem;
+    color: var(--admin-gray-900);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.admin-section h2 i {
+    color: var(--admin-accent);
+    font-size: 1.5rem;
+}
+
+/* Replace text-danger with accent color */
+.admin-body .text-danger {
+    color: var(--admin-accent) !important;
+}
+
+/* ============================================
+   GLASSMORPHISM CARDS
+   ============================================ */
+.admin-body .card {
+    background: var(--admin-glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--admin-glass-border);
+    border-radius: var(--admin-radius-lg);
+    box-shadow: var(--admin-glass-shadow);
+    transition: all var(--admin-transition);
+    overflow: hidden;
+}
+
+.admin-body .card:hover {
+    box-shadow: var(--admin-shadow-hover), var(--admin-glow);
+    border-color: rgba(37, 99, 235, 0.25);
+    transform: translateY(-2px);
+}
+
+.admin-body .card-header {
+    background: transparent;
+    border-bottom: 1px solid var(--admin-gray-200);
+    padding: 20px 24px;
+    font-weight: 600;
+    color: var(--admin-gray-800);
+}
+
+.admin-body .card-body {
+    padding: 24px;
+}
+
+.admin-body .card-title {
+    font-weight: 600;
+    color: var(--admin-gray-800);
+    margin-bottom: 8px;
+}
+
+/* ============================================
+   STAT CARDS - DASHBOARD
+   ============================================ */
+.admin-body .card.bg-primary,
+.admin-body .card.bg-success,
+.admin-body .card.bg-info,
+.admin-body .card.bg-warning {
+    background: var(--admin-glass-bg) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--admin-glass-border);
+    position: relative;
+    overflow: hidden;
+    color: var(--admin-gray-800) !important;
+}
+
+.admin-body .card.bg-primary::before,
+.admin-body .card.bg-success::before,
+.admin-body .card.bg-info::before,
+.admin-body .card.bg-warning::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 100%;
+}
+
+.admin-body .card.bg-primary::before { background: var(--admin-accent); }
+.admin-body .card.bg-success::before { background: var(--admin-success); }
+.admin-body .card.bg-info::before { background: var(--admin-info); }
+.admin-body .card.bg-warning::before { background: var(--admin-warning); }
+
+.admin-body .card.bg-primary h3,
+.admin-body .card.bg-success h3,
+.admin-body .card.bg-info h3,
+.admin-body .card.bg-warning h3 {
+    color: var(--admin-gray-900) !important;
+    font-weight: 700;
+    font-size: 2rem;
+}
+
+.admin-body .card.bg-primary h6,
+.admin-body .card.bg-success h6,
+.admin-body .card.bg-info h6,
+.admin-body .card.bg-warning h6 {
+    color: var(--admin-gray-600) !important;
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+.admin-body .card.bg-primary i { color: var(--admin-accent) !important; }
+.admin-body .card.bg-success i { color: var(--admin-success) !important; }
+.admin-body .card.bg-info i { color: var(--admin-info) !important; }
+.admin-body .card.bg-warning i { color: var(--admin-warning) !important; }
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+.admin-body .btn-danger,
+.admin-body .btn-primary {
+    background: var(--admin-gradient) !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: var(--admin-radius-sm);
+    transition: all var(--admin-transition);
+    box-shadow: var(--admin-shadow-sm);
+}
+
+.admin-body .btn-danger:hover,
+.admin-body .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(30, 58, 95, 0.25);
+}
+
+.admin-body .btn-outline-danger {
+    color: var(--admin-primary) !important;
+    border: 2px solid var(--admin-primary) !important;
+    background: transparent !important;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: var(--admin-radius-sm);
+    transition: all var(--admin-transition);
+}
+
+.admin-body .btn-outline-danger:hover {
+    background: var(--admin-gradient) !important;
+    color: white !important;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(30, 58, 95, 0.25);
+}
+
+.admin-body .btn-outline-primary {
+    color: var(--admin-accent) !important;
+    border: 2px solid var(--admin-accent) !important;
+    background: transparent !important;
+}
+
+.admin-body .btn-outline-primary:hover {
+    background: var(--admin-gradient-accent) !important;
+    color: white !important;
+    border-color: var(--admin-accent) !important;
+}
+
+.admin-body .btn-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    border: none !important;
+    box-shadow: var(--admin-shadow-sm);
+}
+
+.admin-body .btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+}
+
+.admin-body .btn-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    border: none !important;
+    color: white !important;
+}
+
+.admin-body .btn-info {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+    border: none !important;
+}
+
+.admin-body .btn-secondary {
+    background: var(--admin-gray-500) !important;
+    border: none !important;
+}
+
+/* ============================================
+   FORM ELEMENTS
+   ============================================ */
+.admin-body .form-control,
+.admin-body .form-select {
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid var(--admin-gray-200);
+    border-radius: var(--admin-radius-sm);
+    padding: 12px 16px;
+    font-size: 0.9375rem;
+    transition: all var(--admin-transition);
+    color: var(--admin-gray-800);
+}
+
+.admin-body .form-control:focus,
+.admin-body .form-select:focus {
+    background: white;
+    border-color: var(--admin-accent);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    outline: none;
+}
+
+.admin-body .form-control::placeholder {
+    color: var(--admin-gray-400);
+}
+
+.admin-body .form-label {
+    font-weight: 600;
+    color: var(--admin-gray-700);
+    margin-bottom: 8px;
+    font-size: 0.875rem;
+}
+
+.admin-body .form-check-input:checked {
+    background-color: var(--admin-accent);
+    border-color: var(--admin-accent);
+}
+
+.admin-body .form-switch .form-check-input {
+    width: 3em;
+    height: 1.5em;
+}
+
+.admin-body .form-switch .form-check-input:checked {
+    background-color: var(--admin-success);
+    border-color: var(--admin-success);
+}
+
+/* ============================================
+   TABLES
+   ============================================ */
+.admin-body .table {
+    background: transparent;
+    margin-bottom: 0;
+}
+
+.admin-body .table thead th {
+    background: rgba(30, 58, 95, 0.05);
+    border: none;
+    padding: 16px 20px;
+    font-weight: 600;
+    color: var(--admin-gray-700);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+.admin-body .table tbody td {
+    padding: 16px 20px;
+    vertical-align: middle;
+    border-color: var(--admin-gray-100);
+    color: var(--admin-gray-700);
+}
+
+.admin-body .table tbody tr {
+    transition: all var(--admin-transition-fast);
+}
+
+.admin-body .table tbody tr:hover {
+    background: rgba(37, 99, 235, 0.04);
+}
+
+.admin-body .table-striped tbody tr:nth-of-type(odd) {
+    background: rgba(248, 250, 252, 0.5);
+}
+
+.admin-body .table-striped tbody tr:nth-of-type(odd):hover {
+    background: rgba(37, 99, 235, 0.06);
+}
+
+/* ============================================
+   BADGES & STATUS
+   ============================================ */
+.admin-body .badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.3px;
+}
+
+.admin-body .badge.bg-success {
+    background: var(--admin-success-light) !important;
+    color: var(--admin-success) !important;
+}
+
+.admin-body .badge.bg-warning {
+    background: var(--admin-warning-light) !important;
+    color: #b45309 !important;
+}
+
+.admin-body .badge.bg-danger {
+    background: var(--admin-danger-light) !important;
+    color: var(--admin-danger) !important;
+}
+
+.admin-body .badge.bg-info {
+    background: var(--admin-info-light) !important;
+    color: #0369a1 !important;
+}
+
+.admin-body .badge.bg-secondary {
+    background: rgba(100, 116, 139, 0.15) !important;
+    color: var(--admin-gray-600) !important;
+}
+
+.admin-body .badge.bg-primary {
+    background: rgba(37, 99, 235, 0.15) !important;
+    color: var(--admin-accent) !important;
+}
+
+/* ============================================
+   ALERTS
+   ============================================ */
+.admin-body .alert {
+    border: none;
+    border-radius: var(--admin-radius-md);
+    padding: 20px 24px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.admin-body .alert-warning {
+    background: var(--admin-warning-light);
+    border-left: 4px solid var(--admin-warning);
+    color: #92400e;
+}
+
+.admin-body .alert-success {
+    background: var(--admin-success-light);
+    border-left: 4px solid var(--admin-success);
+    color: #065f46;
+}
+
+.admin-body .alert-danger {
+    background: var(--admin-danger-light);
+    border-left: 4px solid var(--admin-danger);
+    color: #991b1b;
+}
+
+.admin-body .alert-info {
+    background: var(--admin-info-light);
+    border-left: 4px solid var(--admin-info);
+    color: #0c4a6e;
+}
+
+/* ============================================
+   MODALS
+   ============================================ */
+.admin-body .modal-content {
+    background: var(--admin-glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--admin-glass-border);
+    border-radius: var(--admin-radius-xl);
+    box-shadow: var(--admin-shadow-lg), var(--admin-glow);
+}
+
+.admin-body .modal-header {
+    background: var(--admin-gradient);
+    color: white;
+    padding: 20px 28px;
+    border: none;
+    border-radius: var(--admin-radius-xl) var(--admin-radius-xl) 0 0;
+}
+
+.admin-body .modal-header .modal-title {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-body .modal-header .btn-close {
+    filter: brightness(0) invert(1);
+    opacity: 0.8;
+}
+
+.admin-body .modal-header .btn-close:hover {
+    opacity: 1;
+}
+
+.admin-body .modal-body {
+    padding: 28px;
+}
+
+.admin-body .modal-footer {
+    padding: 20px 28px;
+    border-top: 1px solid var(--admin-gray-200);
+    gap: 12px;
+}
+
+/* ============================================
+   NAV PILLS (For tabs like Day selector)
+   ============================================ */
+.admin-body .nav-pills .nav-link {
+    color: var(--admin-gray-600);
+    background: var(--admin-glass-bg);
+    border: 1px solid var(--admin-glass-border);
+    border-radius: var(--admin-radius-sm);
+    padding: 10px 18px;
+    font-weight: 500;
+    margin-right: 8px;
+    transition: all var(--admin-transition);
+}
+
+.admin-body .nav-pills .nav-link:hover {
+    background: var(--admin-primary-light);
+    color: var(--admin-primary);
+    border-color: var(--admin-primary-light);
+}
+
+.admin-body .nav-pills .nav-link.active {
+    background: var(--admin-gradient) !important;
+    color: white !important;
+    border-color: var(--admin-primary);
+    box-shadow: 0 4px 12px rgba(30, 58, 95, 0.25);
+}
+
+/* ============================================
+   CHARTS CONTAINER
+   ============================================ */
+.admin-body .card canvas {
+    max-height: 300px;
+}
+
+/* ============================================
+   SCROLLBAR STYLING
+   ============================================ */
+.admin-body ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.admin-body ::-webkit-scrollbar-track {
+    background: var(--admin-gray-100);
+    border-radius: 4px;
+}
+
+.admin-body ::-webkit-scrollbar-thumb {
+    background: var(--admin-gray-400);
+    border-radius: 4px;
+}
+
+.admin-body ::-webkit-scrollbar-thumb:hover {
+    background: var(--admin-gray-500);
+}
+
+/* ============================================
+   LOADING STATES
+   ============================================ */
+.admin-body .spinner-border {
+    color: var(--admin-accent);
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes admin-fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.admin-body .admin-section {
+    animation: admin-fadeIn 0.3s ease-out;
+}
+
+/* Hover lift effect for cards */
+.admin-body .card {
+    will-change: transform, box-shadow;
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+@media (max-width: 992px) {
+    .admin-body .navbar-nav {
+        padding: 16px 0;
+    }
+    
+    .admin-body .navbar-nav .nav-link {
+        margin: 2px 0;
+    }
+    
+    .admin-body .card-body {
+        padding: 16px;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-section h2 {
+        font-size: 1.5rem;
+    }
+    
+    .admin-body .table {
+        font-size: 0.875rem;
+    }
+    
+    .admin-body .table thead th,
+    .admin-body .table tbody td {
+        padding: 12px;
+    }
+}
+
+/* ============================================
+   UTILITY CLASSES FOR ADMIN
+   ============================================ */
+.admin-body .bg-navy {
+    background: var(--admin-gradient) !important;
+}
+
+.admin-body .text-navy {
+    color: var(--admin-primary) !important;
+}
+
+.admin-body .text-accent {
+    color: var(--admin-accent) !important;
+}
+
+.admin-body .border-navy {
+    border-color: var(--admin-primary) !important;
+}
+
+.admin-body .glass-card {
+    background: var(--admin-glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--admin-glass-border);
+    border-radius: var(--admin-radius-lg);
+    box-shadow: var(--admin-glass-shadow);
+}
+
+/* Override any remaining red colors */
+.admin-body .bg-red-dot {
+    background: var(--admin-gradient) !important;
+}
+
+.admin-body .text-red-dot {
+    color: var(--admin-accent) !important;
+}
+
+/* Override btn-warning to use navy accent */
+.admin-body .btn-warning {
+    background: linear-gradient(135deg, var(--admin-accent) 0%, var(--admin-primary) 100%) !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 600;
+    box-shadow: var(--admin-shadow-sm);
+}
+
+.admin-body .btn-warning:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.3);
+    color: white !important;
+}
+
+/* Alert warning with navy accent */
+.admin-body .alert-warning .btn-warning {
+    background: var(--admin-gradient) !important;
+}
+
+/* bg-warning cards */
+.admin-body .bg-warning {
+    background: var(--admin-glass-bg) !important;
+}
+
+/* All icon text-danger classes become navy accent */
+.admin-body h2 i.text-danger,
+.admin-body .card-header i.text-danger,
+.admin-body .admin-section i.text-danger {
+    color: var(--admin-accent) !important;
+}
+
+/* Btn-outline-success for refresh buttons */
+.admin-body .btn-outline-success {
+    color: var(--admin-success) !important;
+    border-color: var(--admin-success) !important;
+    background: transparent !important;
+}
+
+.admin-body .btn-outline-success:hover {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    color: white !important;
+    border-color: var(--admin-success) !important;
+}
+
+/* Badge bg-warning override */
+.admin-body .badge.bg-warning {
+    background: rgba(37, 99, 235, 0.15) !important;
+    color: var(--admin-accent) !important;
+}
+
+/* Navbar badge override */
+.admin-body .navbar-nav .badge.bg-warning {
+    background: var(--admin-accent) !important;
+    color: white !important;
+}
+
+/* Card header with navy gradient */
+.admin-body .card-header.bg-danger,
+.admin-body .card-header.bg-primary {
+    background: var(--admin-gradient) !important;
+    color: white !important;
+    border: none;
+}
+
+.admin-body .card-header.bg-danger h5,
+.admin-body .card-header.bg-primary h5 {
+    color: white !important;
+    margin: 0;
+}
+
+/* Table action buttons */
+.admin-body .btn-sm {
+    padding: 6px 12px;
+    font-size: 0.8125rem;
+    border-radius: 6px;
+}
+
+.admin-body .btn-group .btn {
+    margin-right: 0;
+}
+
+/* Empty state styling */
+.admin-body .text-muted {
+    color: var(--admin-gray-500) !important;
+}
+
+/* Input groups */
+.admin-body .input-group .btn {
+    border-radius: 0 var(--admin-radius-sm) var(--admin-radius-sm) 0;
+}
+
+.admin-body .input-group .form-control {
+    border-radius: var(--admin-radius-sm) 0 0 var(--admin-radius-sm);
+}

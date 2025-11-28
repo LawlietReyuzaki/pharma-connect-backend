@@ -6,31 +6,29 @@
     <title>Payment Management - Red Dot Pharmacy Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Use shared admin CSS -->
+    <link href="{{ url_for('static', filename='css/admin.css') }}" rel="stylesheet">
+    
     <style>
-        :root {
-            --primary-red: #dc3545;
-            --dark-red: #c82333;
-        }
-        
-        body {
-            background-color: #f8f9fa;
-            min-height: 100vh;
-        }
-        
-        .navbar {
-            background: linear-gradient(135deg, var(--primary-red), var(--dark-red));
-        }
-        
+        /* Payment-specific extensions */
         .payment-card {
-            border: none;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            transition: all 0.3s ease;
+            background: var(--admin-glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--admin-glass-border);
+            border-radius: 16px;
+            box-shadow: var(--admin-glass-shadow);
+            transition: all 0.25s ease;
         }
         
         .payment-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+            transform: translateY(-4px);
+            box-shadow: var(--admin-shadow-hover), var(--admin-glow);
+            border-color: rgba(37, 99, 235, 0.25);
         }
         
         .payment-logo {
@@ -40,80 +38,59 @@
             object-fit: contain;
         }
         
-        .status-badge {
-            font-size: 0.75rem;
-            padding: 0.35em 0.65em;
-        }
-        
-        .form-switch .form-check-input {
-            width: 3em;
-            height: 1.5em;
-        }
-        
-        .form-switch .form-check-input:checked {
-            background-color: #28a745;
-            border-color: #28a745;
-        }
-        
-        .btn-edit {
-            background-color: #007bff;
-            border-color: #007bff;
-        }
-        
-        .btn-edit:hover {
-            background-color: #0056b3;
-            border-color: #0056b3;
-        }
-        
         .account-info {
-            background-color: #f8f9fa;
-            border-radius: 8px;
+            background: rgba(30, 58, 95, 0.04);
+            border: 1px solid var(--admin-gray-200);
+            border-radius: 12px;
             padding: 1rem;
             margin-top: 1rem;
         }
         
         .account-info .label {
-            font-size: 0.75rem;
-            color: #6c757d;
+            font-size: 0.7rem;
+            color: var(--admin-gray-500);
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            font-weight: 600;
         }
         
         .account-info .value {
             font-size: 1rem;
-            font-weight: 500;
-            color: #212529;
+            font-weight: 600;
+            color: var(--admin-gray-800);
         }
         
         .page-header {
-            background: white;
+            background: var(--admin-glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             padding: 1.5rem 0;
             margin-bottom: 2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border-bottom: 1px solid var(--admin-glass-border);
+            box-shadow: var(--admin-glass-shadow);
+        }
+        
+        .page-header h2 {
+            font-family: 'Poppins', 'Inter', sans-serif;
+            font-weight: 700;
+            color: var(--admin-gray-800);
+        }
+        
+        .page-header h2 i {
+            color: var(--admin-accent);
         }
         
         .inactive-card {
             opacity: 0.6;
         }
         
-        .edit-form {
-            display: none;
-        }
-        
-        .edit-form.active {
-            display: block;
-        }
-        
-        .view-mode {
-            display: block;
-        }
-        
-        .view-mode.hidden {
-            display: none;
-        }
+        .edit-form { display: none; }
+        .edit-form.active { display: block; }
+        .view-mode { display: block; }
+        .view-mode.hidden { display: none; }
     </style>
 </head>
-<body>
+<body class="admin-body">
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
