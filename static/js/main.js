@@ -1956,6 +1956,102 @@ class RedDotPharmacy {
         modal.show();
     }
 
+    async viewAppointmentDetails(appointmentId) {
+        if (!this.authToken) {
+            this.showError('Please login to view appointment details');
+            return;
+        }
+
+        try {
+            this.showLoading();
+            
+            const response = await fetch(`/api/appointments/${appointmentId}`, {
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.displayAppointmentDetailsModal(data.appointment);
+            } else {
+                throw new Error('Failed to load appointment details');
+            }
+        } catch (error) {
+            console.error('Error loading appointment details:', error);
+            this.showError('Failed to load appointment details.');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    displayAppointmentDetailsModal(appointment) {
+        const statusColor = this.getAppointmentStatusColor(appointment.status);
+        const meetLinkHtml = appointment.google_meet_link ? 
+            `<div class="alert alert-success mt-3">
+                <i class="fas fa-video me-2"></i>
+                <strong>Google Meet Link:</strong>
+                <a href="${appointment.google_meet_link}" target="_blank" class="ms-2">
+                    ${appointment.google_meet_link}
+                </a>
+            </div>` : '';
+
+        const modalHtml = `
+            <div class="modal fade" id="appointmentDetailsModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class="fas fa-calendar-check text-danger me-2"></i>Appointment Details
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <strong>Doctor:</strong> ${appointment.doctor?.name || 'N/A'}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Email:</strong> ${appointment.doctor?.email || 'N/A'}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Date & Time:</strong> ${new Date(appointment.start_time).toLocaleString()}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Symptoms:</strong> ${appointment.symptoms || 'Not specified'}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Notes:</strong> ${appointment.note || 'No additional notes'}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Status:</strong> 
+                                <span class="badge bg-${statusColor}">${appointment.status?.toUpperCase() || 'PENDING'}</span>
+                            </div>
+                            ${meetLinkHtml}
+                        </div>
+                        <div class="modal-footer">
+                            ${appointment.google_meet_link && appointment.status === 'scheduled' ? 
+                                `<a href="${appointment.google_meet_link}" class="btn btn-success" target="_blank">
+                                    <i class="fas fa-video me-1"></i>Join Google Meet
+                                </a>` : ''}
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal
+        const existingModal = document.getElementById('appointmentDetailsModal');
+        if (existingModal) existingModal.remove();
+        
+        // Add modal to body
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('appointmentDetailsModal'));
+        modal.show();
+    }
+
     // ============ UTILITY METHODS ============
     
     getOrderStatusColor(status) {

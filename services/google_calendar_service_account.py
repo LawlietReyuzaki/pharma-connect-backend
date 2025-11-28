@@ -328,8 +328,8 @@ This is an automated message from Red Dot Pharmacy.""",
             logging.warning(f"Failed to create event in patient's calendar: {patient_email}")
         
         if not result['meet_link']:
-            result['meet_link'] = self._generate_jitsi_fallback(appointment_data.get('appointment_id'))
-            logging.info(f"Using Jitsi Meet fallback: {result['meet_link']}")
+            logging.error("Failed to generate Google Meet link - no fallback available")
+            result['error'] = "Google Calendar integration required. Please ensure domain-wide delegation is configured."
         
         return result
     
@@ -402,15 +402,13 @@ This is an automated message from Red Dot Pharmacy.""",
         return f"https://meet.jit.si/{room_name}"
     
     def _create_fallback_result(self, event_data):
-        """Create a fallback result when Google Calendar fails"""
-        appointment_id = event_data.get('appointment_id', uuid.uuid4().hex[:8])
-        
+        """Create a result when Google Calendar fails - NO FALLBACK, return error"""
         return {
-            'event_id': f"fallback_{appointment_id}",
-            'meet_link': self._generate_jitsi_fallback(appointment_id),
+            'event_id': None,
+            'meet_link': None,
             'html_link': None,
             'success': False,
-            'fallback': True
+            'error': 'Google Calendar integration failed. Please check domain-wide delegation setup.'
         }
     
     def reinitialize(self):

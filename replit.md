@@ -73,11 +73,12 @@ Preferred communication style: Simple, everyday language.
   - Status tracking (pending → approved → scheduled → ongoing → completed)
 
 ### Video Consultation
-- **Jitsi Meet** integration for video consultations (no API keys required, works instantly)
-- Video call links generated automatically when appointments are approved
+- **Google Meet ONLY** for video consultations (no Jitsi fallback)
+- Appointments require Google Calendar integration to work
+- Calendar events created in BOTH doctor's and patient's Google Calendars automatically
+- Google Meet links generated automatically when appointments are scheduled
 - **Time slot system** prevents double-booking
-- **Appointment approval workflow** managed by admin
-- Note: Google Calendar integration was dismissed by user - using Jitsi Meet as reliable alternative
+- **Appointment workflow**: Patient selects doctor → selects time slot → appointment created → calendar events + Meet link generated
 
 ### Order Management
 - **Shopping cart** with local storage persistence
@@ -129,7 +130,7 @@ Preferred communication style: Simple, everyday language.
 - **Chart.js** - Data visualization for admin dashboard
 
 ### Video & Calendar Integration
-- **Google Calendar Service Account Integration** for automatic calendar event creation
+- **Google Calendar Service Account Integration** (REQUIRED) for automatic calendar event creation
   - Creates events in BOTH doctor's and patient's Google Calendars
   - Auto-generates Google Meet video conference links
   - Sends automatic email notifications to both parties
@@ -137,7 +138,7 @@ Preferred communication style: Simple, everyday language.
   - **Key stored in**: `service_account_key.json` file (preferred) or `GOOGLE_SERVICE_ACCOUNT_KEY` secret
   - Requires domain-wide delegation enabled in Google Workspace Admin Console
   - Service account needs "Make changes and manage sharing" permission
-- **Jitsi Meet** - Fallback video conferencing when Google Calendar is unavailable
+- **NO FALLBACK** - Appointments will fail if Google Calendar is not properly configured
 - Video call links generated automatically when appointments are created
 - Links are deterministic and unique per appointment
 - **Diagnostic endpoint**: `GET /api/appointments/check-calendar-setup` to verify configuration

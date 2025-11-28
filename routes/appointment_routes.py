@@ -173,12 +173,11 @@ def create_appointment():
                     logging.info(f"✅ Created event via Doctor OAuth: {meet_link}")
         
         if not meet_link:
-            meet_link = meet_service.create_meet_room(
-                appointment_id=appointment.id,
-                doctor_name=doctor.name,
-                patient_name=current_user.name
-            )
-            logging.info(f"ℹ️ Using Jitsi Meet fallback: {meet_link}")
+            db.session.rollback()
+            return jsonify({
+                "error": "Could not create Google Meet link. Please ensure Google Calendar is properly configured with domain-wide delegation.",
+                "details": "The appointment requires Google Calendar integration to generate Google Meet links."
+            }), 503
         
         appointment.google_meet_link = meet_link
         db.session.commit()
@@ -539,12 +538,12 @@ def schedule_appointment():
                 logging.info(f"✅ Created Google Calendar events with Meet link: {meet_link}")
         
         if not meet_link:
-            meet_link = meet_service.create_meet_room(
-                appointment_id=appointment.id,
-                doctor_name=doctor.name,
-                patient_name=patient.name
-            )
-            logging.info(f"ℹ️ Using Jitsi fallback: {meet_link}")
+            db.session.rollback()
+            return jsonify({
+                "success": False,
+                "error": "Could not create Google Meet link. Google Calendar integration is required.",
+                "details": "Please ensure the service account has domain-wide delegation enabled and can access user calendars."
+            }), 503
         
         appointment.google_meet_link = meet_link
         db.session.commit()
@@ -562,7 +561,7 @@ def schedule_appointment():
                 "end": end_time.isoformat(),
                 "reason": reason,
                 "status": appointment.status,
-                "calendarIntegrated": calendar_result.get('success') if calendar_result else False
+                "calendarIntegrated": True
             }
         }), 201
         
