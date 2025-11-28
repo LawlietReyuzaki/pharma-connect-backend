@@ -1,95 +1,127 @@
-# Red Dot Pharmacy Admin Panel - Design Guidelines
+# Red Dot Pharmacy - Navy Blue Glassmorphism Design Guidelines
 
 ## Design Approach
-**Framework**: Bootstrap 5 Healthcare Admin Dashboard
-**Inspiration**: Modern medical portals (Epic MyChart, Athenahealth) with enterprise admin patterns
-**Principles**: Data clarity, efficient workflows, professional medical aesthetic
+**Theme**: Navy Blue with Glassmorphism Effects
+**Framework**: Bootstrap 5 with Custom CSS
+**Inspiration**: Modern healthcare apps with frosted glass UI elements
+**Principles**: Clean, professional, accessible, modern aesthetics
+
+## Color Palette
+
+### Primary Colors
+- **Navy Blue**: #1e3a5f (Primary brand color)
+- **Navy Dark**: #0f2744 (Darker variant for headers, footers)
+- **Navy Light**: #e8f0f8 (Light backgrounds, highlights)
+- **Accent Blue**: #2563eb (Buttons, interactive elements)
+- **Accent Light**: #3b82f6 (Hover states, glows)
+
+### Neutral Colors
+- **Gray 50**: #f8fafc (Lightest backgrounds)
+- **Gray 100**: #f1f5f9 (Section backgrounds)
+- **Gray 200**: #e2e8f0 (Borders, dividers)
+- **Gray 300**: #cbd5e1 (Disabled states)
+- **Gray 400**: #94a3b8 (Placeholder text)
+- **Gray 500**: #64748b (Secondary text)
+- **Gray 600**: #475569 (Body text)
+- **Gray 700**: #334155 (Headings)
+- **Gray 800**: #1e293b (Dark text)
+- **Gray 900**: #0f172a (Darkest text, footer)
+
+### Semantic Colors
+- **Success**: #10b981 (Green - confirmations, in-stock)
+- **Warning**: #f59e0b (Amber - alerts, pending)
+- **Danger**: #ef4444 (Red - errors, out-of-stock)
+- **Info**: #0ea5e9 (Cyan - informational)
+
+## Glassmorphism Effects
+
+### Glass Card
+```css
+background: rgba(255, 255, 255, 0.7);
+backdrop-filter: blur(12px);
+-webkit-backdrop-filter: blur(12px);
+border: 1px solid rgba(255, 255, 255, 0.3);
+box-shadow: 0 8px 32px rgba(30, 58, 95, 0.15);
+```
+
+### Glass Card Hover
+```css
+background: rgba(255, 255, 255, 0.85);
+border-color: rgba(37, 99, 235, 0.3);
+box-shadow: 0 12px 32px rgba(30, 58, 95, 0.18), 0 0 40px rgba(37, 99, 235, 0.15);
+```
+
+### Dark Glass (Headers, Modals)
+```css
+background: rgba(30, 58, 95, 0.85);
+backdrop-filter: blur(16px);
+```
 
 ## Typography
-- **Primary Font**: Inter (Google Fonts) - clean, highly legible for data
+- **Primary Font**: Inter (Google Fonts) - clean, modern sans-serif
+- **Display Font**: Poppins (Google Fonts) - headings, titles
 - **Hierarchy**:
-  - Page Titles: 28px, font-weight 600
-  - Section Headers: 20px, font-weight 600
-  - Table Headers: 14px, font-weight 700, uppercase, letter-spacing 0.5px
-  - Body/Data: 15px, font-weight 400
-  - Helper Text: 13px, font-weight 400
+  - Page Titles: 2.75rem (44px), font-weight 800
+  - Section Headers: 1.5rem (24px), font-weight 700
+  - Card Titles: 1.125rem (18px), font-weight 600
+  - Body Text: 1rem (16px), font-weight 400
+  - Helper Text: 0.875rem (14px), font-weight 400
 
 ## Layout System
-**Spacing Primitives**: Tailwind equivalents of Bootstrap's spacing (0.25rem increments)
-- Primary rhythm: 16px (1rem), 24px (1.5rem), 32px (2rem)
-- Component padding: 20px standard, 32px for cards
-- Section spacing: 40px between major sections
+- **Spacing Scale**: 4px base unit (0.25rem increments)
+- **Component Padding**: 20-32px standard
+- **Section Padding**: 80-100px vertical
+- **Border Radius**: 
+  - Small: 8px
+  - Medium: 12px
+  - Large: 16px
+  - XL: 24px
+  - Full: 9999px (pills, badges)
 
-## Core Layout Structure
+## Component Styles
 
-### Sidebar Navigation (Fixed Left)
-- Width: 260px on desktop, collapsible to 70px icon-only
-- Contains: Logo at top, navigation menu (Dashboard, Doctors, Availability, Patients, Reports), logout at bottom
-- Icons: Font Awesome (fa-calendar-check, fa-user-md, fa-chart-line, etc.)
-- Active state: Bold text with subtle background indicator
+### Buttons
+- **Primary**: Navy gradient background, white text
+- **Secondary**: Transparent with navy border
+- **Hover**: Lift effect (translateY -2px), enhanced shadow with glow
 
-### Main Content Area
-- Left margin: 260px (accounts for sidebar)
-- Max-width: 1400px with auto margins for ultra-wide screens
-- Top bar: Breadcrumb navigation + page title + primary action button (right-aligned)
-- Content padding: 32px all sides
+### Cards
+- **Background**: Glass effect (70% white with blur)
+- **Border**: 1px subtle white/glass border
+- **Hover**: Enhanced glass, blue glow effect
+- **Shadow**: Soft navy-tinted shadows
 
-## Component Library
+### Form Elements
+- **Inputs**: 2px border, rounded corners
+- **Focus State**: Navy border with blue glow ring
+- **Labels**: 600 weight, gray-700 color
 
-### Data Table (Doctor Schedule Display)
-- Full-width responsive table with alternating row backgrounds
-- **Columns**: Doctor Name | Specialty | Day of Week | Time Range | Status | Actions
-- Column widths: Doctor (20%), Specialty (15%), Day (12%), Time (20%), Status (10%), Actions (10%)
-- Row height: 56px for comfortable scanning
-- Status badges: Small rounded pills (Available/Unavailable/On Leave)
-- Action buttons: Icon-only for edit (fa-edit) and delete (fa-trash-alt), 36px × 36px, positioned together with 8px gap
-- Pagination: Bottom-right, showing "10 of 243 entries" with prev/next controls
+### Navigation
+- **Navbar**: Navy gradient with blur
+- **Links**: White/translucent, smooth transitions
+- **Active State**: Subtle white background
 
-### Forms (Add/Edit Availability)
-**Modal or Card-Based Form**:
-- Doctor Selection: Searchable dropdown with avatar + name + specialty
-- Day Selector: Radio button group or button group (Mon-Sun) in horizontal layout
-- Time Range: Two time pickers side-by-side (Start Time | End Time) with colon separator visual
-- Notes field: Textarea (3 rows, optional context)
-- Action buttons: Primary "Save Availability" + Secondary "Cancel" (right-aligned, 16px gap)
-- Form field spacing: 24px vertical gap between fields
-- Label positioning: Above inputs, 8px margin-bottom
+## Animations
+- **Transition Fast**: 0.15s ease (micro-interactions)
+- **Transition Base**: 0.25s ease (standard transitions)
+- **Transition Slow**: 0.4s ease (larger movements)
+- **Hover Lift**: translateY(-4px to -8px)
+- **Glow Pulse**: Subtle blue glow animations on hero elements
 
-### Quick Add Widget (Dashboard Integration)
-- Compact card: 340px width
-- Contains: Mini form with doctor dropdown + day + single time range
-- "Quick Add" button at bottom, full-width
-- Background: Slightly elevated card with 4px border-left accent
+## Icons
+**Font Awesome 6**: Consistent icon system
+- Navigation: 18px
+- Buttons: 16px
+- Inline: 14px
 
-### Filter Controls
-- Horizontal bar above table with inline filters:
-  - Doctor filter (dropdown)
-  - Day filter (multi-select chips)
-  - Date range picker
-  - Search input (right-aligned, 280px width)
-- 16px spacing between filter elements
+## Responsive Breakpoints
+- Desktop: 1200px+
+- Tablet: 768px - 1199px
+- Mobile: < 768px
 
-### Empty States
-- When no schedules: Centered illustration area (200px height) with "No availability schedules found" + "Add New Schedule" CTA button below
-- Icon: fa-calendar-plus at 48px size
-
-## Responsive Behavior
-- **Desktop (≥992px)**: Full sidebar + table with all columns
-- **Tablet (768-991px)**: Collapsed icon-only sidebar, condensed table (hide Specialty column)
-- **Mobile (<768px)**: Off-canvas sidebar, card-based schedule view instead of table (each schedule = card with stacked info)
-
-## Data Visualization
-- Weekly calendar grid view toggle: Alternative to table showing doctor availability in calendar format
-- Grid: 7 columns (days) with time slots as rows
-- Doctor assignments shown as colored blocks within time slots
-- Toggle button: Top-right of main content area (Table View | Calendar View)
-
-## Icons Implementation
-**Font Awesome CDN** (v6):
-- Navigation: fa-calendar-check, fa-user-md, fa-users, fa-chart-line, fa-cog
-- Actions: fa-edit, fa-trash-alt, fa-plus-circle, fa-filter
-- Status: fa-check-circle, fa-clock, fa-user-times
-- Size: 18px for navigation, 16px for action buttons, 14px for inline status
-
-## Images
-**No hero image required** - This is a functional admin panel, not a marketing page. Focus on data density and workflow efficiency.
+## Best Practices
+1. Always use glass effects on cards over gradient/colored backgrounds
+2. Maintain contrast ratios for accessibility (WCAG AA)
+3. Use subtle shadows to create depth hierarchy
+4. Add blue glow on interactive element focus/hover
+5. Keep animations subtle and performant
