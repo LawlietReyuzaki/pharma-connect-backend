@@ -34,11 +34,19 @@ Preferred communication style: Simple, everyday language.
 - Token verification middleware for protected endpoints
 
 ### Medical Chatbot System
+- **Google Gemini 2.0 Flash** AI model for intelligent medical assistance
 - **Medical guardrails** with red-flag pattern matching in English and Urdu
-- **OpenAI integration** as optional LLM fallback for complex queries
-- **Bilingual support** (English/Urdu) with automatic language detection
-- **Voice integration** using Web Speech API for speech-to-text and text-to-speech
+- **Comprehensive safety features** with emergency response for critical symptoms
+- **Bilingual support** (English/Urdu) with automatic language detection (>30% Urdu = Urdu response)
+- **Voice integration** using Web Speech API for speech-to-text and Google TTS for text-to-speech
 - **Session management** for conversation context tracking
+- **Chat logging** to database for analysis and improvement
+- **Endpoints**:
+  - `POST /api/chat/medical-chat` - Main chatbot endpoint with safety guardrails
+  - `POST /api/chat/transcribe-urdu` - Urdu voice transcription
+  - `POST /api/chat/transcribe-english` - English voice transcription
+  - `POST /api/chat/speak-urdu` - Text-to-speech for Urdu
+- **UI**: `/assistant` page with medical-themed chat interface
 
 ### Frontend Architecture
 - **Flask templates** with Jinja2 for server-side rendering

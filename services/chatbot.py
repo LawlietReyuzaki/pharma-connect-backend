@@ -11,16 +11,29 @@ import uuid
 from datetime import datetime
 
 gemini_model = None
+genai = None
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini")
 GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-pro")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 GEMINI_TEMPERATURE = float(os.getenv("GEMINI_TEMPERATURE", "0.7"))
 
 if GEMINI_API_KEY:
     try:
-        import google.generativeai as genai
+        import google.generativeai as genai_module
+        genai = genai_module
         genai.configure(api_key=GEMINI_API_KEY)
-        gemini_model = genai.GenerativeModel(GEMINI_MODEL)
+        
+        safety_settings = [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+        ]
+        
+        gemini_model = genai.GenerativeModel(
+            GEMINI_MODEL,
+            safety_settings=safety_settings
+        )
         logging.info(f"Gemini model initialized: {GEMINI_MODEL}")
     except Exception as e:
         logging.error(f"Failed to initialize Gemini client: {e}")
@@ -286,7 +299,30 @@ def generate_response(text, prefer_urdu=None, session_id=None, lang="auto"):
                 generation_config=generation_config
             )
             
-            ai_message = response.text.strip() if response.text else ""
+            ai_message = ""
+            
+            try:
+                if response.candidates and len(response.candidates) > 0:
+                    candidate = response.candidates[0]
+                    if hasattr(candidate, 'content') and candidate.content.parts:
+                        ai_message = "".join(part.text for part in candidate.content.parts if hasattr(part, 'text'))
+                        ai_message = ai_message.strip()
+                    
+                    if hasattr(candidate, 'finish_reason'):
+                        finish_reason = candidate.finish_reason
+                        if finish_reason == 2:
+                            logging.warning("Response blocked by safety filters, using fallback")
+                            ai_message = ""
+                        elif finish_reason == 3:
+                            logging.warning("Response recitation blocked, using fallback")
+                            ai_message = ""
+                
+                if not ai_message and hasattr(response, 'text') and response.text:
+                    ai_message = response.text.strip()
+                    
+            except Exception as parse_error:
+                logging.error(f"Error parsing Gemini response: {parse_error}")
+                ai_message = ""
             
             if not ai_message:
                 ai_message = get_offline_response(detected_lang)
