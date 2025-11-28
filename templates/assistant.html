@@ -52,7 +52,7 @@
                 <div class="chat-container">
                     <div class="card shadow-lg border-0">
                         <!-- Chat Header -->
-                        <div class="card-header bg-danger text-white">
+                        <div class="card-header chat-header-navy text-white">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="d-flex align-items-center">
                                     <i class="fas fa-robot fa-2x me-3"></i>
@@ -130,10 +130,10 @@
                                               id="messageInput" 
                                               placeholder="Type your medical question here... / یہاں اپنا طبی سوال ٹائپ کریں..."
                                               rows="2"></textarea>
-                                    <button class="btn btn-outline-danger" type="button" id="voiceButton" onclick="toggleVoiceInput()">
+                                    <button class="btn btn-outline-navy" type="button" id="voiceButton" onclick="toggleVoiceInput()">
                                         <i class="fas fa-microphone" id="voiceIcon"></i>
                                     </button>
-                                    <button class="btn btn-danger" type="button" id="sendButton" onclick="sendMessage()">
+                                    <button class="btn btn-navy" type="button" id="sendButton" onclick="sendMessage()">
                                         <i class="fas fa-paper-plane"></i>
                                     </button>
                                 </div>
@@ -169,17 +169,17 @@
     <div class="container">
         <div class="row text-center">
             <div class="col-md-4 mb-3">
-                <a href="{{ url_for('shop') }}" class="btn btn-outline-danger btn-lg w-100">
+                <a href="{{ url_for('shop') }}" class="btn btn-outline-navy btn-lg w-100">
                     <i class="fas fa-pills me-2"></i>Browse Medicines
                 </a>
             </div>
             <div class="col-md-4 mb-3">
-                <a href="{{ url_for('consultation') }}" class="btn btn-outline-danger btn-lg w-100">
+                <a href="{{ url_for('consultation') }}" class="btn btn-outline-navy btn-lg w-100">
                     <i class="fas fa-video me-2"></i>Book Consultation
                 </a>
             </div>
             <div class="col-md-4 mb-3">
-                <a href="tel:1122" class="btn btn-danger btn-lg w-100">
+                <a href="tel:1122" class="btn btn-emergency btn-lg w-100">
                     <i class="fas fa-phone me-2"></i>Emergency: 1122
                 </a>
             </div>
@@ -509,8 +509,8 @@ function stopVoiceInput() {
     const voiceButton = document.getElementById('voiceButton');
     const voiceIcon = document.getElementById('voiceIcon');
     
-    voiceButton.classList.remove('btn-danger');
-    voiceButton.classList.add('btn-outline-danger');
+    voiceButton.classList.remove('btn-navy-active');
+    voiceButton.classList.add('btn-outline-navy');
     voiceIcon.className = 'fas fa-microphone';
     updateChatStatus('Ready to help you');
 }
@@ -917,7 +917,7 @@ function speakMessage(button, text) {
 .typing-dots span {
     width: 8px;
     height: 8px;
-    background-color: #dc3545;
+    background-color: #1e3a5f;
     border-radius: 50%;
     animation: typing-bounce 1.4s infinite ease-in-out both;
 }
@@ -970,9 +970,9 @@ function speakMessage(button, text) {
 }
 
 .sample-question-inline:hover {
-    background: #e9ecef;
-    border-color: #dc3545;
-    color: #dc3545;
+    background: #e8f0f8;
+    border-color: #1e3a5f;
+    color: #1e3a5f;
     transform: translateY(-1px);
 }
 
@@ -987,10 +987,10 @@ function speakMessage(button, text) {
 }
 
 .sample-questions .question-card:hover {
-    background: #f8f9fa;
-    border-color: #dc3545;
+    background: #e8f0f8;
+    border-color: #1e3a5f;
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(30, 58, 95, 0.15);
 }
 
 .chat-messages {
@@ -1008,7 +1008,7 @@ function speakMessage(button, text) {
 }
 
 .message-bubble.user {
-    background: #dc3545;
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%);
     color: white;
     margin-left: auto;
 }
@@ -1030,7 +1030,7 @@ function speakMessage(button, text) {
 }
 
 .bot-avatar {
-    background: #dc3545;
+    background: linear-gradient(135deg, #2563eb 0%, #1e3a5f 100%);
     color: white;
 }
 
@@ -1044,7 +1044,7 @@ function speakMessage(button, text) {
     border-radius: 20px;
 }
 
-#voiceButton.btn-danger {
+#voiceButton.btn-navy-active {
     animation: pulse 1.5s infinite;
 }
 
@@ -1059,7 +1059,59 @@ function speakMessage(button, text) {
 }
 
 .bg-gradient-primary {
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%);
+}
+
+/* Navy Blue Theme Button Classes */
+.chat-header-navy {
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%);
+    border: none;
+}
+
+.btn-navy {
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%);
+    border: none;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.btn-navy:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1e3a5f 100%);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(30, 58, 95, 0.3);
+}
+
+.btn-outline-navy {
+    border: 2px solid #1e3a5f;
+    color: #1e3a5f;
+    background: transparent;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-navy:hover {
+    background: #1e3a5f;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.btn-navy-active {
+    background: linear-gradient(135deg, #2563eb 0%, #1e3a5f 100%);
+    border: none;
+    color: white;
+}
+
+.btn-emergency {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    border: none;
+    color: white;
+}
+
+.btn-emergency:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
 }
 
 .play-audio {
