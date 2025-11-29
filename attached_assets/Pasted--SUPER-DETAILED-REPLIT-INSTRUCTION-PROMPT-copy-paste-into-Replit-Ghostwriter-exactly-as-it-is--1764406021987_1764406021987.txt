@@ -1,0 +1,253 @@
+✅ SUPER DETAILED REPLIT INSTRUCTION PROMPT
+
+(copy → paste into Replit Ghostwriter exactly as it is)
+
+PROMPT TO REPLIT GHOSTWRITER (DO NOT SKIP ANYTHING):
+
+I already have a working chatbot project in Replit with the following features:
+
+Gemini API integration
+
+Text-to-Speech (TTS)
+
+Speech-to-Text (STT)
+
+Chat UI that displays messages
+
+A Python backend or Node backend (whichever exists — DO NOT REMOVE IT)
+
+Your job is to modify the existing project WITHOUT breaking any existing code, and extend it with the new logic described below.
+
+Follow every step exactly, do not change filenames unless told, and do not delete any existing logic.
+
+🚨 PART A — DO NOT TOUCH / DO NOT BREAK
+
+These existing functionalities must stay exactly the same:
+
+Existing chatbot UI
+
+Existing voice recording system
+
+Existing speech-to-text pipeline
+
+Existing text-to-speech output
+
+Existing Gemini response rendering
+
+Existing API keys storage system
+
+Existing message display system
+
+If a file already exists:
+
+DO NOT REPLACE IT ENTIRELY
+
+Only MODIFY the parts I tell you to modify
+
+Keep all original imports and logic
+
+🚨 PART B — NEW FEATURES TO ADD
+
+Add the following features into the project without breaking voice chat:
+
+1. Add Wikipedia + Wikimedia Commons Fetching (server-side)
+
+Modify my server code (Python) as follows:
+
+Create a new file named:
+
+wikipedia_utils.py
+
+Inside it, add these functions:
+
+wiki_search_top_title(query)
+
+fetch_wiki_summary(title)
+
+fetch_wiki_images(title, max_images=4)
+
+collect_wikipedia_resources(query)
+
+get_commons_metadata(file_title)
+
+These functions must:
+
+✔ Search Wikipedia for the best matching page
+✔ Fetch the page summary
+✔ Fetch image file titles
+✔ Fetch the image URLs
+✔ Fetch attribution (artist, license, license URL, credit)
+✔ Return a Python dictionary:
+
+{
+  "title": "...",
+  "page_url": "...",
+  "summary": "...",
+  "images": [
+    {
+      "url": "...",
+      "license": "...",
+      "license_url": "...",
+      "artist": "...",
+      "credit": "Wikimedia Commons"
+    }
+  ]
+}
+
+2. Modify your backend endpoint (DO NOT CREATE NEW ONE)
+
+Where your chatbot backend receives the user query (example: /ask, /chat, /message, /api/chat):
+
+MODIFY it to:
+
+Extract the incoming user question
+
+Call the function
+
+wiki_data = collect_wikipedia_resources(user_question)
+
+
+Build a context string:
+
+"User asked: {question}
+
+Wikipedia Page: {wiki_data.title}
+Summary: {wiki_data.summary}
+Images with Attribution:
+- {url} (license: {license}, artist: {artist})
+...
+Use this information as high-quality context."
+
+
+Append this context to the Gemini prompt BEFORE sending to Gemini
+
+Keep your existing voice transcription and TTS code unchanged
+
+Extend the backend JSON response to include:
+
+{
+  "answer": "...",
+  "wiki": { ...whole wiki info... }
+}
+
+🚨 PART C — FRONTEND CHANGES (Replit Webview or HTML/JS project)
+1. DO NOT DELETE ANY FRONTEND FILES.
+
+Only add components.
+
+2. Add a new section under the chat response:
+
+A “Wikipedia Sources” section must appear under each Gemini answer.
+
+Example layout:
+
+-------------------------
+MODEL ANSWER BUBBLE
+-------------------------
+
+Wikipedia Sources:
+[Card 1] [Card 2] [Card 3] ...
+
+Each card contains:
+- Image thumbnail
+- Artist / author name
+- License name
+- Clickable license URL
+- "Source: Wikimedia Commons"
+-------------------------
+
+3. UI Implementation Instructions
+
+Create a new JS/HTML/CSS component (depending on your frontend format):
+
+File:
+static/js/wikiDisplay.js (or appropriate location for your project)
+
+Implement:
+
+Function:
+function renderWikiResults(wikiData) { ... }
+
+
+This function must:
+
+✔ Accept the wiki dictionary from backend
+✔ Create styled image cards
+✔ Display license & attribution under each image
+✔ Insert the cards under the chatbot answer
+✔ Support multiple images
+✔ Clear previous results on new message
+
+🚨 PART D — MAINTAIN EXISTING TTS + STT
+
+Whatever Replit bot you create MUST:
+
+✔ Still record voice
+✔ Still convert voice → text
+✔ Still send it to backend
+✔ Still receive the text answer
+✔ Still read it aloud using TTS
+✔ Still show the textual answer
+
+Your job is to add the Wikipedia part ON TOP of what is already working.
+
+🚨 PART E — HOW REPLIT SHOULD MODIFY CODE
+
+Ghostwriter must follow these rules:
+
+1. When editing backend:
+
+ONLY ADD new imports, do NOT remove old ones
+
+Add wiki integration logic INSIDE the existing handler
+
+Keep Gemini prompt logic valid
+
+Keep STT/TTS logic unchanged
+
+2. When editing frontend:
+
+DO NOT remove existing DOM elements
+
+Only add new elements below answer bubble
+
+Make image grid responsive
+
+Keep all previous JS functions
+
+3. When adding new files:
+
+Create them under the same directory structure
+
+Do NOT rename existing files
+
+Do NOT remove anything
+
+🚨 PART F — WHAT YOUR FINAL RESULT MUST DO
+
+After modifications, my Replit chatbot must:
+
+✔ Accept voice or text input
+✔ Process STT (existing system)
+✔ Fetch Wikipedia summary
+✔ Fetch 1–4 images + metadata from Wikimedia
+✔ Build context and pass to Gemini
+✔ Display Gemini’s answer
+✔ Display Wikipedia images + license info
+✔ Speak the Gemini answer using TTS
+✔ Keep everything responsive and clean
+🚨 PART G — FORMAT OF FINAL ANSWER
+
+Replit must output:
+
+The exact code changes, clearly separated
+
+The new files in full
+
+The modified lines with explanations
+
+The full new blocks where required
+
+NO summaries
+
+NO skipping steps

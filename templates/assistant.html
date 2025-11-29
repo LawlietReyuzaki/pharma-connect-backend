@@ -7,6 +7,8 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <!-- Urdu-friendly fonts -->
 <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Wikipedia Display Component -->
+<script src="{{ url_for('static', filename='js/wikiDisplay.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -540,7 +542,7 @@ async function sendMessage() {
     showTypingIndicator();
     
     try {
-        // Send to new /medical-chat endpoint
+        // Send to /medical-chat endpoint with Wikipedia integration
         const response = await fetch('/api/chat/medical-chat', {
             method: 'POST',
             headers: {
@@ -549,7 +551,8 @@ async function sendMessage() {
             body: JSON.stringify({
                 message: message,
                 lang: 'auto',
-                session_id: sessionId
+                session_id: sessionId,
+                include_wiki: true
             })
         });
         
@@ -567,8 +570,8 @@ async function sendMessage() {
                 langButton.textContent = currentLanguage === 'en' ? 'English' : 'اردو';
             }
             
-            // Add bot response with timestamp from server
-            addMessageToChat('bot', data.message, data.timestamp);
+            // Add bot response with timestamp and wiki data
+            addMessageToChat('bot', data.message, data.timestamp, data.wiki);
             
             // Show warning if flagged as emergency
             if (data.flagged) {
@@ -653,7 +656,7 @@ function formatMessage(message) {
 }
 
 // Function to add message to chat
-function addMessageToChat(sender, message, serverTimestamp = null) {
+function addMessageToChat(sender, message, serverTimestamp = null, wikiData = null) {
     const chatMessages = document.getElementById('chatMessages');
     const messageDiv = document.createElement('div');
     const timestamp = formatTimestamp(serverTimestamp);
@@ -687,9 +690,23 @@ function addMessageToChat(sender, message, serverTimestamp = null) {
                             <i class="fas fa-volume-up"></i>
                         </button>
                     </div>
+                    <div class="wiki-container"></div>
                 </div>
             </div>
         `;
+        
+        // Render Wikipedia sources if available
+        if (wikiData && wikiData.title && typeof renderWikiResults === 'function') {
+            const wikiContainer = messageDiv.querySelector('.wiki-container');
+            if (wikiContainer) {
+                try {
+                    renderWikiResults(wikiData, wikiContainer);
+                    console.log('Wikipedia sources rendered:', wikiData.title);
+                } catch (wikiError) {
+                    console.error('Error rendering wiki results:', wikiError);
+                }
+            }
+        }
     } else {
         // User message: Keep bubble style
         messageDiv.className = 'user-message mb-3 message-animate';

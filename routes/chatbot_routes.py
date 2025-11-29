@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, send_file
 from services.chatbot import generate_response, log_chat_interaction, detect_language, get_chat_history as get_history
+from services.wikipedia_utils import collect_wikipedia_resources, build_wiki_context, extract_medical_keywords
 import speech_recognition as sr
 import uuid
 import logging
@@ -16,7 +17,7 @@ bp = Blueprint("chatbot", __name__)
 @bp.route("/medical-chat", methods=["POST"])
 def medical_chat():
     """
-    POST /medical-chat - Medical assistant chatbot with safety guardrails
+    POST /medical-chat - Medical assistant chatbot with safety guardrails + Wikipedia integration
     
     Request body:
     {
@@ -33,7 +34,8 @@ def medical_chat():
         "needs_doctor": false,
         "timestamp": "ISO timestamp",
         "session_id": "uuid",
-        "disclaimer": "safety notice"
+        "disclaimer": "safety notice",
+        "wiki": { ... Wikipedia data with images and attribution ... }
     }
     """
     try:
@@ -54,11 +56,30 @@ def medical_chat():
         lang = data.get("lang", "auto")
         session_id = data.get("session_id", str(uuid.uuid4()))
         user_id = data.get("user_id")
+        include_wiki = data.get("include_wiki", True)
         
         detected_lang = detect_language(message) if lang == "auto" else lang
         
+        wiki_data = None
+        wiki_context = ""
+        
+        if include_wiki:
+            try:
+                search_query = extract_medical_keywords(message)
+                wiki_data = collect_wikipedia_resources(search_query)
+                if wiki_data and wiki_data.get("success"):
+                    wiki_context = build_wiki_context(wiki_data)
+                    logging.info(f"Wikipedia context added for: {wiki_data.get('title')}")
+            except Exception as wiki_error:
+                logging.warning(f"Wikipedia fetch failed (non-blocking): {wiki_error}")
+                wiki_data = None
+        
+        enhanced_message = message
+        if wiki_context:
+            enhanced_message = f"{message}\n\n{wiki_context}"
+        
         response_data = generate_response(
-            text=message,
+            text=enhanced_message,
             session_id=session_id,
             lang=lang
         )
@@ -78,7 +99,7 @@ def medical_chat():
             "یہ AI طبی تشخیص فراہم نہیں کرتا۔ درست رہنمائی کے لیے ڈاکٹر سے مشورہ کریں۔"
         )
         
-        return jsonify({
+        response_json = {
             "success": True,
             "message": response_data['message'],
             "language": response_data.get('language', detected_lang),
@@ -87,7 +108,17 @@ def medical_chat():
             "timestamp": response_data.get('timestamp', datetime.now().isoformat()),
             "session_id": session_id,
             "disclaimer": disclaimer
-        })
+        }
+        
+        if wiki_data and wiki_data.get("success"):
+            response_json["wiki"] = {
+                "title": wiki_data.get("title"),
+                "page_url": wiki_data.get("page_url"),
+                "summary": wiki_data.get("summary", "")[:300] if wiki_data.get("summary") else "",
+                "images": wiki_data.get("images", [])[:4]
+            }
+        
+        return jsonify(response_json)
         
     except Exception as e:
         logging.error(f"Medical chat error: {e}")
@@ -103,10 +134,9 @@ URDU_VOICE_ID = "86cad650-a467-486c-bc86-15d1615084e0"
 
 @bp.route("/", methods=["POST"])
 def chat():
-    """Main chatbot endpoint"""
+    """Main chatbot endpoint with Wikipedia integration"""
     try:
         print("Chat endpoint called")
-        # print(request.get_json())
         data = request.get_json()
         if not data:
             return jsonify({"error": "No data provided"}), 400
@@ -115,20 +145,31 @@ def chat():
         if not message:
             return jsonify({"error": "Message is required"}), 400
         
-        # Get or create session ID
         session_id = data.get("session_id", str(uuid.uuid4()))
         prefer_urdu = data.get("language") == "ur"
-        user_id = data.get("user_id")  # Optional, from authenticated users
+        user_id = data.get("user_id")
+        include_wiki = data.get("include_wiki", True)
         
-        # Generate response
+        wiki_data = None
+        wiki_context = ""
+        
+        if include_wiki:
+            try:
+                search_query = extract_medical_keywords(message)
+                wiki_data = collect_wikipedia_resources(search_query)
+                if wiki_data and wiki_data.get("success"):
+                    wiki_context = build_wiki_context(wiki_data)
+            except Exception as wiki_error:
+                logging.warning(f"Wikipedia fetch failed: {wiki_error}")
+        
+        enhanced_message = f"{message}\n\n{wiki_context}" if wiki_context else message
+        
         response_data = generate_response(
-            text=message,
+            text=enhanced_message,
             prefer_urdu=prefer_urdu,
             session_id=session_id
         )
-        # print(response_data)
         
-        # Log the interaction
         log_chat_interaction(
             session_id=session_id,
             user_message=message,
@@ -137,14 +178,24 @@ def chat():
             flagged=response_data['flagged']
         )
         
-        return jsonify({
+        response_json = {
             "success": True,
             "session_id": session_id,
             "message": response_data['message'],
             "flagged": response_data['flagged'],
             "needs_doctor": response_data['needs_doctor'],
             "suggested_medicines": response_data['suggested_medicines']
-        })
+        }
+        
+        if wiki_data and wiki_data.get("success"):
+            response_json["wiki"] = {
+                "title": wiki_data.get("title"),
+                "page_url": wiki_data.get("page_url"),
+                "summary": wiki_data.get("summary", "")[:300] if wiki_data.get("summary") else "",
+                "images": wiki_data.get("images", [])[:4]
+            }
+        
+        return jsonify(response_json)
         
     except Exception as e:
         logging.error(f"Chatbot error: {e}")
