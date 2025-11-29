@@ -334,6 +334,7 @@ def transcribe_audio_common(audio_file, language_code):
     """
     Common function to transcribe audio files
     Handles WebM, OGG, and other formats by converting to WAV
+    Enhanced for better Urdu recognition
     """
     import tempfile
     from pydub import AudioSegment
@@ -361,23 +362,57 @@ def transcribe_audio_common(audio_file, language_code):
         logging.info(f"Saved audio to: {temp_input.name}")
         
         sound = AudioSegment.from_file(temp_input.name)
-        sound = sound.set_frame_rate(16000).set_channels(1).set_sample_width(2)
+        
+        is_urdu = language_code.startswith('ur')
+        if is_urdu:
+            sound = sound + 3
+            sound = sound.set_frame_rate(16000).set_channels(1).set_sample_width(2)
+            sound = sound.normalize()
+        else:
+            sound = sound.set_frame_rate(16000).set_channels(1).set_sample_width(2)
+        
         sound.export(temp_wav.name, format='wav')
-        logging.info(f"Converted to WAV: {temp_wav.name}")
+        logging.info(f"Converted to WAV: {temp_wav.name}, duration: {len(sound)}ms")
+        
+        if len(sound) < 500:
+            logging.warning(f"Audio too short: {len(sound)}ms")
+            return {"success": False, "error": "Recording too short. Please speak for at least 1 second."}
         
         recognizer = sr.Recognizer()
+        recognizer.energy_threshold = 300
+        recognizer.dynamic_energy_threshold = True
+        
         with sr.AudioFile(temp_wav.name) as source:
-            recognizer.adjust_for_ambient_noise(source, duration=0.2)
+            if len(sound) > 1000:
+                recognizer.adjust_for_ambient_noise(source, duration=0.1)
             audio = recognizer.record(source)
         
-        text = recognizer.recognize_google(audio, language=language_code)
-        logging.info(f"Transcribed text: {text}")
+        language_attempts = [language_code]
+        if is_urdu:
+            if language_code == "ur-PK":
+                language_attempts.append("ur")
+            else:
+                language_attempts.append("ur-PK")
         
-        return {"success": True, "transcript": text}
+        last_error = None
+        for lang in language_attempts:
+            try:
+                text = recognizer.recognize_google(audio, language=lang)
+                logging.info(f"Transcribed text ({lang}): {text}")
+                return {"success": True, "transcript": text}
+            except sr.UnknownValueError as e:
+                logging.warning(f"Speech recognition failed for {lang}")
+                last_error = e
+                continue
+            except sr.RequestError as e:
+                logging.error(f"Speech recognition service error for {lang}: {e}")
+                last_error = e
+                break
         
-    except sr.UnknownValueError:
-        logging.warning("Speech recognition could not understand audio")
-        return {"success": False, "error": "Could not understand the audio. Please speak clearly and try again."}
+        if isinstance(last_error, sr.UnknownValueError):
+            return {"success": False, "error": "Could not understand the audio. Please speak clearly and try again."}
+        else:
+            return {"success": False, "error": f"Speech recognition service error: {str(last_error)}"}
         
     except sr.RequestError as e:
         logging.error(f"Speech recognition service error: {e}")
