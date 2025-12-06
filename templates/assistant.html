@@ -105,6 +105,17 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="message-actions">
+                            <button class="msg-action-btn" onclick="speakMessage(this, 'Hello! I am your medical assistant. Ask me health questions in English or Urdu.')" title="Listen">
+                                <i class="fas fa-volume-up"></i>
+                            </button>
+                            <button class="msg-action-btn" onclick="translateMessage(this, 'Hello! I am your medical assistant. Ask me health questions in English or Urdu.')" title="Translate">
+                                <i class="fas fa-language"></i>
+                            </button>
+                            <button class="msg-action-btn" onclick="copyMessage('Hello! I am your medical assistant. Ask me health questions in English or Urdu.')" title="Copy">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
                         <div class="message-time">
                             <i class="fas fa-clock"></i> Just now
                         </div>
@@ -1149,23 +1160,38 @@ function clearChatHistory() {
 }
 
 .msg-action-btn {
-    width: 28px;
-    height: 28px;
-    background: #f1f5f9;
-    border: none;
-    border-radius: 6px;
-    color: #64748b;
+    width: 32px;
+    height: 32px;
+    background: #e2e8f0;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    color: #475569;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 13px;
     transition: all 0.2s;
 }
 
 .msg-action-btn:hover {
-    background: #e2e8f0;
-    color: #1e3a5f;
+    background: #1e3a5f;
+    color: white;
+    border-color: #1e3a5f;
+    transform: translateY(-1px);
+}
+
+/* Special styling for translate button */
+.msg-action-btn[title="Translate"] {
+    background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
+    border-color: #7dd3fc;
+    color: #0369a1;
+}
+
+.msg-action-btn[title="Translate"]:hover {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    color: white;
+    border-color: #0ea5e9;
 }
 
 .msg-action-btn .playing {
