@@ -1,0 +1,102 @@
+You are an expert React + TypeScript engineer.
+
+Your task:
+Integrate a NEW Landing Page into an ALREADY EXISTING according to the .txt file  that we have provided to you React 19 + Tailwind SPA called “PharmaPlatform”.
+
+Critical Requirements:
+1. DO NOT modify, delete, replace, rewrite, or restructure ANY existing files.  
+2. DO NOT touch existing business logic, types, dashboards, legacy files, or routes.  
+3. You may ONLY:
+   - Add NEW components
+   - Add NEW .tsx files
+   - Add import lines (APPEND ONLY) to App.tsx
+   - Add one new `case 'landing'` if it does not exist
+4. Everything must remain backward compatible.
+
+Goal:
+Add a new landing page that appears BEFORE the main app.  
+The app already uses SPA routing via:
+
+    const [currentPage, setCurrentPage] = useState<Page>('landing');
+
+This must stay unchanged.
+
+Integration Rules:
+- Landing page must be shown when currentPage === 'landing'
+- Buttons like “Register Pharmacy” must call: onNavigate('register')
+- “Admin Access” must call: onNavigate('admin-login')
+
+Follow the official project architecture:
+
+Files to CREATE (new only):
+src/components/Landing/
+ ├── Header.tsx
+ ├── Hero.tsx
+ ├── Features.tsx
+ ├── CustomDomain.tsx
+ ├── Pricing.tsx
+ ├── Footer.tsx
+ ├── LandingPage.tsx   <-- Main wrapper for the landing page
+
+Styling:
+- Light Mode  
+- Tailwind + CSS variables  
+- Navy + Royal Blue palette:
+  - Navy 900 #0f2744  
+  - Navy 800 #1e3a5f  
+  - Royal Blue #3B82F6  
+  - Slate 50 #F8FAFC  
+
+Existing Types (DO NOT EDIT):
+Page = 'landing' | 'register' | 'admin-login' | 'admin-dashboard'
+NavItem
+Feature
+PharmacyProfile
+PharmacyGCost
+
+Existing Routing (DO NOT EDIT OR REWRITE):
+Use ONLY:
+    case 'landing': return <LandingPage onNavigate={setCurrentPage} />
+
+If the case exists, DO NOT re-create it.  
+If not, append it at the bottom of the switch.
+
+Component Requirements:
+
+1. Header.tsx  
+   - Responsive Nav  
+   - Uses NavItem[]  
+   - Menu links scroll to sections (#hero, #features, #pricing)  
+   - “Admin Access” triggers onNavigate('admin-login')
+
+2. Hero.tsx  
+   - Main headline of PharmaPlatform  
+   - CTA: “Register Pharmacy” → onNavigate('register')
+
+3. Features.tsx  
+   - Maps over Feature[] from constants.ts  
+   - Icons loaded dynamically from lucide-react
+
+4. CustomDomain.tsx  
+   - Explains custom pharmacy domain + web app + admin dashboard
+
+5. Pricing.tsx  
+   - Two pricing cards: Free Trial + Standard
+
+6. Footer.tsx  
+   - Clean footer  
+   - “Admin Login” → onNavigate('admin-login')
+
+7. LandingPage.tsx  
+   - Combines all sections  
+   - Exports a single landing page component  
+   - Accepts: onNavigate: (page: Page) => void
+
+Deliverables:
+- Provide FULL code for EACH file separately  
+- DO NOT modify ANY existing codebase  
+- DO NOT break existing admin dashboard or routing  
+- DO NOT change old folder names  
+- Ensure landing page appears first without restructuring the app  
+
+Generate all new files now.

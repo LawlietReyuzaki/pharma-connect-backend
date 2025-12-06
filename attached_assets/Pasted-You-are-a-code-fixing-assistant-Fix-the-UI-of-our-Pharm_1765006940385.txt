@@ -1,0 +1,54 @@
+You are a code-fixing assistant.  
+Fix the UI of our Pharmacy Chatbot page exactly like ChatGPT’s interface.
+
+### 1. Header Overlap Fix
+- The red “Pharmacy” header must never overlap the chatbot window.
+- Add proper margin-top or padding so the chatbot container starts BELOW the header.
+- Header should stay fixed at top but NOT cover any part of chatbot or sidebar.
+- On mobile and desktop both layouts must stay correct.
+
+### 2. ChatGPT-Style Sound Toggle Button (Perfect Fix)
+Replace our buggy sound button with a sound toggle identical to ChatGPT:
+- One icon for **Sound On**
+- One icon for **Sound Off**
+- Smooth toggle animation
+- Button must sit inside the input-bar (right side)
+- Must not jump, break layout, or overlap text field
+- Should work independently from the send button
+- Use the same toggle logic as ChatGPT:
+  - If sound is ON → show "volume-up" icon  
+  - If sound is OFF → show "volume-mute" icon  
+- Make sure the button state is saved while chatting.
+
+### 3. WebCrawler Results Panel (ChatGPT-Style Left Sidebar)
+Create a LEFT SIDEBAR exactly like ChatGPT:
+- Width: **300px fixed** on desktop
+- Shows ONLY the WebCrawler English results
+- Scrollable vertically
+- Should not overlap chatbot area
+- Chatbot should automatically resize to remaining space
+- On mobile → the sidebar becomes collapsible (like ChatGPT mobile UI)
+
+### 4. Chatbot Full Page Dedicated View
+- The entire screen (except header + left panel) is the chatbot area
+- Chat window must auto-expand to full height
+- Input box must stick at bottom
+- Messages must never overflow behind UI elements
+- Use flex/grid responsive layout
+
+### 5. Styling Rules
+- Clean, modern design similar to ChatGPT
+- No element should float or overlap
+- Smooth responsive resizing
+- Keep pharmacy theme colors but maintain ChatGPT-style structure
+
+### 6. Output Required
+Generate **complete working code** (React OR HTML/CSS/JS depending on our existing project).  
+Do NOT delete old functions—only fix layout, sound toggle, and sidebar structure.
+
+### GOAL:
+A clean ChatGPT-like Chatbot UI:
+✔ Non-overlapping header  
+✔ ChatGPT-style sound toggle button  
+✔ Left WebCrawler sidebar (scrollable)  
+✔ Full responsive chatbot  

@@ -1,0 +1,51 @@
+You are an expert React + TypeScript developer.
+
+Goal:
+Enhance the PharmaPlatform chatbot to make **TTS (Text-to-Speech) work correctly in both English and Urdu**.
+
+Requirements:
+1. **Language Detection & Selection**
+   - Automatically detect the message language (EN/UR) or allow user toggle.
+   - English messages → English TTS
+   - Urdu messages → Urdu TTS
+
+2. **Audio Playback**
+   - Play any chat message (original or translated) as audio.
+   - Include a play/pause button or mute toggle.
+   - Audio must preserve Markdown formatting in the message.
+
+3. **Integration**
+   - Must integrate safely into existing Chat.tsx without breaking current SPA routing.
+   - Add new components only:
+       - src/components/Chat/TranslationAudio.tsx
+       - src/components/Chat/VoiceControl.tsx
+   - Use Tailwind for styling.
+   - Use TypeScript strict typing.
+
+4. **Translation**
+   - Messages can be translated EN ↔ UR.
+   - Audio should read out the translated message correctly in selected language.
+
+5. **TTS Engine**
+   - Use a TTS solution (Web Speech API or any JS TTS library) that supports Urdu.
+   - Ensure fallback if browser does not support Urdu voices.
+   - Provide a clean, modern button interface for playback.
+
+Deliverables:
+1. Full code for TranslationAudio.tsx (toggle EN ↔ UR)
+2. Full code for VoiceControl.tsx (play audio for any language)
+3. Integration instructions for Chat.tsx
+   - How to import and insert both components
+   - Ensure state flows correctly between original message, translated message, and audio
+
+Constraints:
+- Do NOT modify or break existing components, landing page, or admin dashboard.
+- Everything must be compatible with current React 19 + TypeScript + Tailwind SPA.
+
+Outcome:
+- Chatbot messages can be translated EN ↔ UR.
+- TTS works correctly for **both English and Urdu**.
+- Users can play audio for any message, in any language.
+- Old chat features continue to work without change.
+
+Generate full code for both components and integration instructions now.
