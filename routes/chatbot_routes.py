@@ -114,7 +114,7 @@ def medical_chat():
             response_json["wiki"] = {
                 "title": wiki_data.get("title"),
                 "page_url": wiki_data.get("page_url"),
-                "summary": wiki_data.get("summary", "")[:1000] if wiki_data.get("summary") else "",
+                "summary": wiki_data.get("summary", "")[:2500] if wiki_data.get("summary") else "",
                 "images": wiki_data.get("images", [])[:4]
             }
         
