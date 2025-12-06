@@ -1,0 +1,51 @@
+You are a code-generation assistant. 
+Fix the UI and layout problems of our Pharmacy Chatbot page as described below.
+
+### 🔧 TASKS (Fix All Issues)
+
+1. **Header Issue Fix**
+   - The red "Pharmacy" header should NOT overlap the chatbot area.
+   - Move the header to the top normally.
+   - Ensure the chatbot container starts BELOW the header with proper padding/margin.
+   - On mobile the header must stay fixed, NOT overlap.
+
+2. **Chatbot Interface Correction**
+   - The full page is dedicated to the chatbot, so the chatbot should take 
+     100% width and height of the page.
+   - Chat window should auto-expand to full available space.
+   - Input bar should stick at the bottom with proper spacing.
+   - Chat bubbles should NOT overflow or go behind UI.
+
+3. **Sound Button (On/Off) Fix**
+   - Add a proper sound toggle button for TTS/Voice.
+   - Should show "Sound ON" and "Sound OFF" icon clearly.
+   - Must not break layout on mobile or desktop.
+   - Must work independent from the send button.
+
+4. **Left Side Web Crawler Result Panel**
+   - The English WebCrawler results should appear in a LEFT sidebar.
+   - Sidebar rules:
+       - Width: 300px fixed (desktop)
+       - Collapsible on mobile
+       - Scrollable results
+       - Should not overlap the chatbot
+       - Chatbot should automatically resize to the remaining space.
+
+5. **General UI Improvements**
+   - Use responsive grid/flex layout
+   - Keep design clean, modern, pharmacy theme
+   - Dark header + light body OR pharmacy colors allowed
+   - Ensure no element jumps over the chatbot window
+   - Improve spacing, padding, and readability
+
+### 🔥 OUTPUT REQUIRED
+Generate corrected and fully working code (React or HTML/CSS/JS based on existing project type).  
+Do NOT delete previous features, only fix the layout and UI conflicts.
+
+### 🎯 GOAL
+A clean, non-overlapping, responsive Chatbot Page:
+- Header at top
+- Left side WebCrawler results panel
+- Full chatbot interface on the right
+- Functional sound toggle button
+- No UI overlapping anywhere
