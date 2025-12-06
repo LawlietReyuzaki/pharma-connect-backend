@@ -487,6 +487,95 @@ def transcribe_english_audio():
         }), 500
 
 
+@bp.route("/translate", methods=["POST"])
+def translate_text():
+    """
+    Endpoint to translate text between English and Urdu
+    Accepts: JSON with 'text' and 'target_lang' (en or ur)
+    Returns: JSON with translated text
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided", "success": False}), 400
+        
+        text = data.get("text", "").strip()
+        target_lang = data.get("target_lang", "ur")  # Default translate to Urdu
+        
+        if not text:
+            return jsonify({"error": "Text is required", "success": False}), 400
+        
+        # Use Gemini for translation
+        import google.generativeai as genai
+        
+        api_key = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
+        if not api_key:
+            return jsonify({"error": "Translation service not configured", "success": False}), 500
+        
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        
+        if target_lang == 'ur':
+            prompt = f"Translate the following English text to Urdu. Only provide the translation, no explanations:\n\n{text}"
+        else:
+            prompt = f"Translate the following Urdu text to English. Only provide the translation, no explanations:\n\n{text}"
+        
+        response = model.generate_content(prompt)
+        translated = response.text.strip()
+        
+        return jsonify({
+            "success": True,
+            "original": text,
+            "translated": translated,
+            "target_lang": target_lang
+        })
+        
+    except Exception as e:
+        logging.error(f"Translation error: {e}")
+        return jsonify({
+            "error": "Translation failed",
+            "success": False
+        }), 500
+
+
+@bp.route("/speak-english", methods=["POST"])
+def speak_english():
+    """
+    Endpoint to convert English text to speech
+    Accepts: JSON with 'text' field containing English text
+    Returns: Audio file
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        text = data.get("text", "").strip()
+        if not text:
+            return jsonify({"error": "Text is required"}), 400
+        
+        # Generate speech using gTTS
+        tts = gTTS(text=text, lang='en')
+        
+        audio_buffer = io.BytesIO()
+        tts.write_to_fp(audio_buffer)
+        audio_buffer.seek(0)
+        
+        return send_file(
+            audio_buffer,
+            mimetype='audio/mpeg',
+            as_attachment=True,
+            download_name=f"speech_{int(time.time())}.mp3"
+        )
+        
+    except Exception as e:
+        logging.error(f"English TTS error: {e}")
+        return jsonify({
+            "error": "Failed to process text-to-speech request",
+            "success": False
+        }), 500
+
+
 @bp.route("/speak-urdu", methods=["POST"])
 def speak_urdu():
     """

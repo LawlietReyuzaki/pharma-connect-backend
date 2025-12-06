@@ -349,6 +349,9 @@ function addMessageToChat(sender, message, wikiInfo = null) {
                     <button class="msg-action-btn" onclick="speakMessage(this, \`${escapeForJs(message)}\`)" title="Listen">
                         <i class="fas fa-volume-up"></i>
                     </button>
+                    <button class="msg-action-btn" onclick="translateMessage(this, \`${escapeForJs(message)}\`)" title="Translate">
+                        <i class="fas fa-language"></i>
+                    </button>
                     <button class="msg-action-btn" onclick="copyMessage(\`${escapeForJs(message)}\`)" title="Copy">
                         <i class="fas fa-copy"></i>
                     </button>
@@ -511,13 +514,79 @@ function speakMessage(button, text) {
 
 function copyMessage(text) {
     navigator.clipboard.writeText(text).then(() => {
-        // Show brief feedback
-        const toast = document.createElement('div');
-        toast.className = 'copy-toast';
-        toast.textContent = 'Copied!';
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 2000);
+        showToast('Copied!');
     });
+}
+
+// Translation function
+async function translateMessage(button, text) {
+    const icon = button.querySelector('i');
+    const messageContent = button.closest('.message-content');
+    const textContainer = messageContent.querySelector('.message-text');
+    
+    // Detect if text is Urdu or English
+    const isUrdu = /[\u0600-\u06FF]/.test(text);
+    const targetLang = isUrdu ? 'en' : 'ur';
+    
+    // Show loading state
+    icon.className = 'fas fa-spinner fa-spin';
+    button.disabled = true;
+    
+    try {
+        const response = await fetch('/api/chat/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                text: text,
+                target_lang: targetLang
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Add translation below original
+            const existingTranslation = messageContent.querySelector('.translation-box');
+            if (existingTranslation) {
+                existingTranslation.remove();
+            }
+            
+            const translationDiv = document.createElement('div');
+            translationDiv.className = 'translation-box';
+            translationDiv.innerHTML = `
+                <div class="translation-header">
+                    <i class="fas fa-language"></i>
+                    <span>Translation (${targetLang === 'ur' ? 'Urdu' : 'English'})</span>
+                    <button class="close-translation" onclick="this.parentElement.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="translation-text ${targetLang === 'ur' ? 'urdu-content' : ''}">${formatBotMessage(data.translated)}</div>
+            `;
+            
+            // Insert after message actions
+            const actionsDiv = messageContent.querySelector('.message-actions');
+            actionsDiv.insertAdjacentElement('afterend', translationDiv);
+            
+            showToast('Translated!');
+        } else {
+            showToast('Translation failed');
+        }
+    } catch (error) {
+        console.error('Translation error:', error);
+        showToast('Translation error');
+    } finally {
+        icon.className = 'fas fa-language';
+        button.disabled = false;
+    }
+}
+
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'copy-toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
 }
 
 // Utility functions
@@ -1344,6 +1413,65 @@ function clearChatHistory() {
     border-radius: 8px;
     font-size: 13px;
     z-index: 9999;
+}
+
+/* Translation Box */
+.translation-box {
+    margin-top: 12px;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border: 1px solid #7dd3fc;
+    border-radius: 12px;
+    padding: 12px 16px;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.translation-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: #0369a1;
+    font-weight: 500;
+}
+
+.translation-header i {
+    color: #0ea5e9;
+}
+
+.close-translation {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.close-translation:hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: #1e293b;
+}
+
+.translation-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #0f172a;
+}
+
+.translation-text.urdu-content {
+    font-family: 'Noto Sans Arabic', 'Noto Nastaliq Urdu', sans-serif;
+    font-size: 16px;
+    line-height: 1.9;
+    direction: rtl;
+    text-align: right;
     animation: fadeInUp 0.3s ease;
 }
 
