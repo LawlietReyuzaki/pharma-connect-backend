@@ -3,6 +3,26 @@
 {% block title %}AI Assistant - Red Dot Pharmacy{% endblock %}
 
 {% block extra_head %}
+<!-- Hide footer, navbar, and other page elements for full-screen chatbot -->
+<style>
+    /* Hide base template elements */
+    footer, .navbar, .mt-5 { display: none !important; }
+    
+    /* Full viewport chatbot - no page scroll */
+    html, body { 
+        overflow: hidden !important; 
+        height: 100vh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* Main content takes full height */
+    main.container, .container { 
+        max-width: 100% !important; 
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+</style>
 <!-- Marked.js for Markdown rendering -->
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <!-- Urdu-friendly fonts -->
@@ -1048,10 +1068,35 @@ function clearChatHistory() {
 .messages-area {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 24px;
     display: flex;
     flex-direction: column;
     gap: 24px;
+    /* Smooth independent scrolling */
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    /* Custom scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+.messages-area::-webkit-scrollbar {
+    width: 6px;
+}
+
+.messages-area::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.messages-area::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.messages-area::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 
 .message {
