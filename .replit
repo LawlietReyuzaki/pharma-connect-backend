@@ -2,7 +2,7 @@ modules = ["python-3.11", "postgresql-16"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["ffmpeg", "ffmpeg-full", "openssl", "postgresql", "unzip"]
+packages = ["ffmpeg", "ffmpeg-full", "openssl", "postgresql"]
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -34,10 +34,6 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 32917
-externalPort = 3003
-
-[[ports]]
 localPort = 38591
 externalPort = 3000
 
@@ -48,6 +44,10 @@ externalPort = 3002
 [[ports]]
 localPort = 45085
 externalPort = 3001
+
+[[ports]]
+localPort = 45895
+externalPort = 3003
 
 [agent]
 integrations = ["flask_google_oauth==1.0.0", "python_openai==1.0.0", "python_database==1.0.0"]
