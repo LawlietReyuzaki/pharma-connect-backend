@@ -302,12 +302,14 @@ async function sendMessage() {
             addMessageToChat('bot', botMessage, data.wiki);
             
             // Update sidebar with Wikipedia info
-            if (data.wiki && data.wiki.images) {
+            if (data.wiki) {
+                const wikiImages = data.wiki.images || [];
+                const firstImage = wikiImages[0];
                 updateWikiSidebar([{
                     title: data.wiki.title,
                     summary: data.wiki.summary,
-                    image: data.wiki.images[0]?.thumbnail,
-                    url: data.wiki.url
+                    image: firstImage?.thumbnail || firstImage?.url || firstImage,
+                    url: data.wiki.page_url
                 }]);
             }
             
