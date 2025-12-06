@@ -341,9 +341,9 @@ function updateWikiSidebar(wikiInfo) {
         html += `
             <div class="wiki-card">
                 ${item.image ? `<img src="${item.image}" alt="${item.title}" class="wiki-image">` : ''}
-                <h4 class="wiki-title">${item.title}</h4>
-                <p class="wiki-summary">${item.summary ? item.summary.substring(0, 150) + '...' : ''}</p>
-                ${item.url ? `<a href="${item.url}" target="_blank" class="wiki-link"><i class="fas fa-external-link-alt"></i> Read more</a>` : ''}
+                <h4 class="wiki-title"><i class="fab fa-wikipedia-w"></i> ${item.title}</h4>
+                <div class="wiki-summary">${item.summary || 'No summary available.'}</div>
+                ${item.url ? `<a href="${item.url}" target="_blank" class="wiki-link"><i class="fas fa-external-link-alt"></i> Read more on Wikipedia</a>` : ''}
             </div>
         `;
     });
@@ -1033,10 +1033,23 @@ function clearChatHistory() {
 }
 
 .wiki-summary {
-    font-size: 12px;
-    color: #64748b;
-    line-height: 1.5;
-    margin: 0 0 12px 0;
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.7;
+    margin: 0 0 16px 0;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 8px;
+    text-align: justify;
+}
+
+.wiki-summary::-webkit-scrollbar {
+    width: 4px;
+}
+
+.wiki-summary::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 2px;
 }
 
 .wiki-link {
