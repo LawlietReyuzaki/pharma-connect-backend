@@ -1049,6 +1049,9 @@ function clearChatHistory() {
     flex-direction: column;
     background: #ffffff;
     min-width: 0;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
 }
 
 @media (min-width: 992px) {
@@ -1355,6 +1358,10 @@ function clearChatHistory() {
     padding: 16px 24px 24px;
     background: #ffffff;
     border-top: 1px solid #e5e5e5;
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    z-index: 100;
 }
 
 .input-wrapper {
