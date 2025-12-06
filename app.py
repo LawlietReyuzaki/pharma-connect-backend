@@ -1,7 +1,7 @@
 import os
 import logging
 from functools import wraps
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
@@ -91,8 +91,10 @@ def create_app():
         return render_template("assistant.html")
     
     @app.route("/platform")
-    def platform():
-        return render_template("platform.html")
+    @app.route("/platform/<path:path>")
+    def platform(path=None):
+        # Serve the React PharmaPlatform app
+        return send_from_directory('static/pharmaplatform', 'index.html')
     
     @app.errorhandler(403)
     def forbidden(error):

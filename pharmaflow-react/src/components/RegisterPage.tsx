@@ -10,8 +10,9 @@ interface RegisterPageProps {
 const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    alert("Registration Successful! (Simulation)");
-    onNavigate('landing');
+    alert("Registration Successful! Redirecting to your pharmacy dashboard...");
+    // Redirect to the Flask app (Red Dot Pharmacy) admin dashboard after registration
+    window.location.href = '/admin';
   };
 
   return (
