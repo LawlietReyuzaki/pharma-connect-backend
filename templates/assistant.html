@@ -298,24 +298,31 @@ async function sendMessage() {
         removeTypingIndicator();
         
         if (data.success) {
-            addMessageToChat('bot', data.response, data.wiki_info);
+            const botMessage = data.message || data.response;
+            addMessageToChat('bot', botMessage, data.wiki);
             
             // Update sidebar with Wikipedia info
-            if (data.wiki_info && data.wiki_info.length > 0) {
-                updateWikiSidebar(data.wiki_info);
+            if (data.wiki && data.wiki.images) {
+                updateWikiSidebar([{
+                    title: data.wiki.title,
+                    summary: data.wiki.summary,
+                    image: data.wiki.images[0]?.thumbnail,
+                    url: data.wiki.url
+                }]);
             }
             
             // Auto-play response if not muted
-            if (!isMuted && data.response) {
-                const type = data.detected_language === 'ur' ? 'urdu' : 'english';
-                playAudio(type, data.response);
+            if (!isMuted && botMessage) {
+                const type = data.language === 'ur' ? 'urdu' : 'english';
+                playAudio(type, botMessage);
             }
         } else {
-            addMessageToChat('bot', 'Sorry, I encountered an error. Please try again.');
+            addMessageToChat('bot', data.error || 'Sorry, I encountered an error. Please try again.');
         }
     } catch (error) {
+        console.error('Chat error:', error);
         removeTypingIndicator();
-        addMessageToChat('bot', 'Connection error. Please check your internet and try again.');
+        addMessageToChat('bot', 'Unable to connect to the server. Please try again.');
     }
     
     saveChatHistory();
