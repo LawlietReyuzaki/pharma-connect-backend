@@ -1,0 +1,910 @@
+{% extends "base.html" %}
+
+{% block title %}PharmaPlatform - Pharmacy Management Platform{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ============================================
+   PHARMAPLATFORM LANDING PAGE STYLES
+   Navy + Royal Blue Theme
+   ============================================ */
+
+/* Override navbar for platform page */
+.platform-page .navbar {
+    background: linear-gradient(135deg, #0f2744 0%, #1e3a5f 100%) !important;
+}
+
+/* Hero Section */
+.platform-hero {
+    position: relative;
+    padding: 140px 0 100px;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.platform-hero::before {
+    content: '';
+    position: absolute;
+    top: 10%;
+    left: 10%;
+    width: 300px;
+    height: 300px;
+    background: rgba(30, 58, 95, 0.05);
+    border-radius: 50%;
+    filter: blur(100px);
+    pointer-events: none;
+}
+
+.platform-hero::after {
+    content: '';
+    position: absolute;
+    top: 30%;
+    right: 10%;
+    width: 400px;
+    height: 400px;
+    background: rgba(59, 130, 246, 0.05);
+    border-radius: 50%;
+    filter: blur(100px);
+    pointer-events: none;
+}
+
+.hero-title {
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: #0f2744;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 1.5rem;
+}
+
+.hero-title span {
+    color: #3B82F6;
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    color: #64748b;
+    max-width: 600px;
+    margin: 0 auto 2.5rem;
+    line-height: 1.7;
+}
+
+.hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%);
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 4px 20px rgba(30, 58, 95, 0.25);
+    transition: all 0.3s ease;
+}
+
+.hero-cta:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(30, 58, 95, 0.35);
+    color: white;
+}
+
+.hero-features {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.hero-feature {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #64748b;
+    font-size: 0.95rem;
+}
+
+.hero-feature i {
+    color: #3B82F6;
+}
+
+/* Features Section */
+.platform-features {
+    padding: 100px 0;
+    background: #f8fafc;
+}
+
+.section-header {
+    text-align: center;
+    margin-bottom: 4rem;
+}
+
+.section-title {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: #0f2744;
+    margin-bottom: 1rem;
+}
+
+.section-subtitle {
+    font-size: 1.1rem;
+    color: #64748b;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.feature-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 2rem;
+    height: 100%;
+    transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+    border-color: #3B82F6;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    transform: translateY(-4px);
+}
+
+.feature-icon {
+    width: 56px;
+    height: 56px;
+    background: #f1f5f9;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.feature-card:hover .feature-icon {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.feature-icon i {
+    font-size: 1.5rem;
+    color: #3B82F6;
+}
+
+.feature-card h4 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #0f2744;
+    margin-bottom: 0.75rem;
+}
+
+.feature-card p {
+    color: #64748b;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Custom Domain Section */
+.platform-domain {
+    padding: 100px 0;
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.domain-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 3rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.domain-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 400px;
+    height: 400px;
+    background: rgba(30, 58, 95, 0.03);
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+}
+
+.domain-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0f2744;
+    margin-bottom: 1.5rem;
+}
+
+.domain-subtitle {
+    font-size: 1.1rem;
+    color: #64748b;
+    margin-bottom: 2rem;
+    line-height: 1.7;
+}
+
+.domain-feature {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.domain-feature-icon {
+    width: 36px;
+    height: 36px;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.domain-feature-icon i {
+    color: #3B82F6;
+    font-size: 1rem;
+}
+
+.domain-feature h5 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #0f2744;
+    margin-bottom: 0.25rem;
+}
+
+.domain-feature p {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Browser Mockup */
+.browser-mockup {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    transform: rotate(1deg);
+    transition: transform 0.5s ease;
+}
+
+.browser-mockup:hover {
+    transform: rotate(0deg);
+}
+
+.browser-header {
+    background: #f1f5f9;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.browser-dots {
+    display: flex;
+    gap: 6px;
+}
+
+.browser-dots span {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.browser-dots span:nth-child(1) { background: #f87171; }
+.browser-dots span:nth-child(2) { background: #fbbf24; }
+.browser-dots span:nth-child(3) { background: #34d399; }
+
+.browser-url {
+    flex: 1;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.browser-content {
+    padding: 3rem;
+    text-align: center;
+    min-height: 250px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.browser-icon {
+    width: 64px;
+    height: 64px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.browser-icon i {
+    font-size: 1.75rem;
+    color: #3B82F6;
+}
+
+.browser-content h4 {
+    color: #0f2744;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.browser-content p {
+    color: #64748b;
+    font-size: 0.95rem;
+}
+
+/* Pricing Section */
+.platform-pricing {
+    padding: 100px 0;
+    background: #f8fafc;
+}
+
+.pricing-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    position: relative;
+    transition: all 0.3s ease;
+    max-width: 450px;
+    margin: 0 auto;
+}
+
+.pricing-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+}
+
+.pricing-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #1e3a5f, #3B82F6);
+}
+
+.pricing-header {
+    padding: 2.5rem;
+    text-align: center;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.pricing-header h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f2744;
+    margin-bottom: 1rem;
+}
+
+.pricing-amount {
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: #3B82F6;
+}
+
+.pricing-amount span {
+    font-size: 1rem;
+    font-weight: 400;
+    color: #94a3b8;
+}
+
+.pricing-note {
+    font-size: 0.9rem;
+    color: #94a3b8;
+    margin-top: 0.5rem;
+}
+
+.pricing-body {
+    padding: 2.5rem;
+}
+
+.pricing-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem;
+}
+
+.pricing-features li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    color: #475569;
+    font-size: 0.95rem;
+}
+
+.pricing-features li i {
+    color: #3B82F6;
+    font-size: 1.1rem;
+}
+
+.pricing-cta {
+    display: block;
+    width: 100%;
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%);
+    color: white;
+    padding: 1rem;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(30, 58, 95, 0.25);
+    transition: all 0.3s ease;
+}
+
+.pricing-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(30, 58, 95, 0.35);
+    color: white;
+}
+
+/* How It Works Section */
+.platform-steps {
+    padding: 100px 0;
+    background: #ffffff;
+}
+
+.step-card {
+    text-align: center;
+    padding: 2rem 1.5rem;
+}
+
+.step-number {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #1e3a5f 0%, #3B82F6 100%);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 auto 1.5rem;
+}
+
+.step-card h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #0f2744;
+    margin-bottom: 0.75rem;
+}
+
+.step-card p {
+    color: #64748b;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Platform Footer */
+.platform-footer {
+    background: linear-gradient(135deg, #0f2744 0%, #1e3a5f 100%);
+    padding: 60px 0 30px;
+    color: white;
+}
+
+.platform-footer h5 {
+    color: #3B82F6;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.platform-footer p {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.footer-links li {
+    margin-bottom: 0.75rem;
+}
+
+.footer-links a {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.footer-links a:hover {
+    color: #3B82F6;
+}
+
+.footer-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 3rem;
+    padding-top: 2rem;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .hero-title {
+        font-size: 2.5rem;
+    }
+    
+    .domain-card {
+        padding: 2rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .platform-hero {
+        padding: 120px 0 60px;
+    }
+    
+    .hero-title {
+        font-size: 2rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1rem;
+    }
+    
+    .hero-features {
+        gap: 1rem;
+    }
+    
+    .section-title {
+        font-size: 1.75rem;
+    }
+    
+    .browser-mockup {
+        transform: none;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="platform-page">
+
+<!-- Hero Section -->
+<section class="platform-hero" id="hero">
+    <div class="container">
+        <div class="text-center position-relative" style="z-index: 10;">
+            <h1 class="hero-title">
+                Pharmacy Management<br>
+                <span>Platform</span>
+            </h1>
+            <p class="hero-subtitle">
+                Register your pharmacy and manage medicines, doctors, chatbot & appointments.
+                The complete digital solution for modern healthcare.
+            </p>
+            <a href="/admin/auth/register" class="hero-cta">
+                Register Pharmacy <i class="fas fa-arrow-right ms-2"></i>
+            </a>
+            
+            <div class="hero-features">
+                <div class="hero-feature">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Instant Setup</span>
+                </div>
+                <div class="hero-feature">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Free Sub-domain</span>
+                </div>
+                <div class="hero-feature">
+                    <i class="fas fa-check-circle"></i>
+                    <span>No Credit Card Required</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="platform-features" id="features">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Our Services</h2>
+            <p class="section-subtitle">
+                Everything you need to run a modern, digital-first pharmacy.
+            </p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-lg-4 col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h4>AI Chatbot</h4>
+                    <p>Every pharmacy gets its own custom chatbot + domain + API access. Automate patient queries instantly with bilingual support.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-boxes"></i>
+                    </div>
+                    <h4>Inventory Management</h4>
+                    <p>Manage medicines, stock, expiry & reports. Keep track of every pill with real-time updates and low-stock alerts.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <h4>Doctor Appointments</h4>
+                    <p>Manage doctors, schedules & patients. Integrated video consultations with Google Meet and calendar sync.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <h4>Online Orders</h4>
+                    <p>Accept medicine orders online with multiple payment methods. Track orders and manage deliveries seamlessly.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h4>Analytics Dashboard</h4>
+                    <p>Track sales, appointments, and customer engagement with comprehensive analytics and reporting tools.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h4>Mobile Responsive</h4>
+                    <p>Your pharmacy website works perfectly on all devices. Patients can browse and order from anywhere.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Custom Domain Section -->
+<section class="platform-domain" id="custom-domain">
+    <div class="container">
+        <div class="domain-card">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-6">
+                    <h2 class="domain-title">Custom Domain Feature</h2>
+                    <p class="domain-subtitle">
+                        Each pharmacy gets its own sub-domain + web app + management dashboard.
+                        Establish a professional online presence instantly.
+                    </p>
+                    
+                    <div class="domain-feature">
+                        <div class="domain-feature-icon">
+                            <i class="fas fa-globe"></i>
+                        </div>
+                        <div>
+                            <h5>Custom Sub-domain</h5>
+                            <p>pharmacy-name.platform.com</p>
+                        </div>
+                    </div>
+                    
+                    <div class="domain-feature">
+                        <div class="domain-feature-icon">
+                            <i class="fas fa-th-large"></i>
+                        </div>
+                        <div>
+                            <h5>Patient Web App</h5>
+                            <p>Mobile-friendly booking & ordering interface</p>
+                        </div>
+                    </div>
+                    
+                    <div class="domain-feature">
+                        <div class="domain-feature-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div>
+                            <h5>Secure Admin Dashboard</h5>
+                            <p>Manage everything from a secure panel</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6">
+                    <div class="browser-mockup">
+                        <div class="browser-header">
+                            <div class="browser-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                            <div class="browser-url">
+                                https://your-pharmacy.pharma-platform.com
+                            </div>
+                        </div>
+                        <div class="browser-content">
+                            <div class="browser-icon">
+                                <i class="fas fa-globe"></i>
+                            </div>
+                            <h4>Your Pharmacy Name</h4>
+                            <p>Welcome to our digital storefront.</p>
+                            <div class="d-flex gap-2 justify-content-center mt-3">
+                                <div style="height: 8px; width: 80px; background: #e2e8f0; border-radius: 4px;"></div>
+                                <div style="height: 8px; width: 50px; background: #e2e8f0; border-radius: 4px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="platform-steps" id="how-it-works">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">How It Works</h2>
+            <p class="section-subtitle">
+                Get your pharmacy online in just 4 simple steps.
+            </p>
+        </div>
+        
+        <div class="row">
+            <div class="col-lg-3 col-md-6">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h4>Register Pharmacy</h4>
+                    <p>Sign up and create your digital pharmacy profile in minutes.</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h4>Import Inventory</h4>
+                    <p>Upload your product list or add medicines one by one.</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h4>Configure AI</h4>
+                    <p>Customize the chatbot to answer patient questions in Urdu & English.</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <h4>Go Live</h4>
+                    <p>Start accepting orders and appointments online immediately.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Pricing Section -->
+<section class="platform-pricing" id="pricing">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Simple Pricing</h2>
+            <p class="section-subtitle">
+                Transparent costs. No hidden fees.
+            </p>
+        </div>
+        
+        <div class="pricing-card">
+            <div class="pricing-header">
+                <h3>Platform Access</h3>
+                <div class="pricing-amount">
+                    Free<span> Trial</span>
+                </div>
+                <p class="pricing-note">Then flexible monthly plans</p>
+            </div>
+            <div class="pricing-body">
+                <ul class="pricing-features">
+                    <li>
+                        <i class="fas fa-check-circle"></i>
+                        All Features Included
+                    </li>
+                    <li>
+                        <i class="fas fa-check-circle"></i>
+                        Unlimited Doctors
+                    </li>
+                    <li>
+                        <i class="fas fa-check-circle"></i>
+                        AI Chatbot Integration
+                    </li>
+                    <li>
+                        <i class="fas fa-check-circle"></i>
+                        Custom Sub-domain
+                    </li>
+                    <li>
+                        <i class="fas fa-check-circle"></i>
+                        Video Consultations
+                    </li>
+                    <li>
+                        <i class="fas fa-check-circle"></i>
+                        Order Management
+                    </li>
+                </ul>
+                <a href="/admin/auth/register" class="pricing-cta">
+                    Get Started Free
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Platform Footer -->
+<section class="platform-footer">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <h5><i class="fas fa-circle text-danger me-2"></i>PharmaPlatform</h5>
+                <p>The complete pharmacy management solution for modern healthcare providers.</p>
+            </div>
+            <div class="col-lg-2 col-md-4 mb-4">
+                <h6 class="text-white mb-3">Platform</h6>
+                <ul class="footer-links">
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#pricing">Pricing</a></li>
+                    <li><a href="#how-it-works">How It Works</a></li>
+                </ul>
+            </div>
+            <div class="col-lg-2 col-md-4 mb-4">
+                <h6 class="text-white mb-3">Support</h6>
+                <ul class="footer-links">
+                    <li><a href="/assistant">AI Assistant</a></li>
+                    <li><a href="#">Documentation</a></li>
+                    <li><a href="#">Contact Us</a></li>
+                </ul>
+            </div>
+            <div class="col-lg-2 col-md-4 mb-4">
+                <h6 class="text-white mb-3">Admin</h6>
+                <ul class="footer-links">
+                    <li><a href="/admin">Admin Login</a></li>
+                    <li><a href="/admin/auth/register">Register Pharmacy</a></li>
+                </ul>
+            </div>
+            <div class="col-lg-2 mb-4">
+                <h6 class="text-white mb-3">Customer</h6>
+                <ul class="footer-links">
+                    <li><a href="/">Shop Medicines</a></li>
+                    <li><a href="/consultation">Consultations</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p class="mb-0">&copy; 2024 PharmaPlatform. All rights reserved.</p>
+        </div>
+    </div>
+</section>
+
+</div>
+{% endblock %}

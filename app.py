@@ -90,6 +90,10 @@ def create_app():
     def assistant():
         return render_template("assistant.html")
     
+    @app.route("/platform")
+    def platform():
+        return render_template("platform.html")
+    
     @app.errorhandler(403)
     def forbidden(error):
         return render_template("403.html"), 403
