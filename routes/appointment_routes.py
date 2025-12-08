@@ -185,8 +185,16 @@ def create_appointment():
         logging.info(f"📧 Notification to {current_user.email}: Appointment booked with {doctor.name} at {start_time.strftime('%Y-%m-%d %H:%M')}. Meet link: {meet_link}")
         logging.info(f"📧 Notification to {doctor.email}: New appointment from {current_user.name} for {start_time.strftime('%Y-%m-%d %H:%M')}. Meet link: {meet_link}")
         
+        doctor_event_id = None
+        if calendar_result and calendar_result.get('doctor_event'):
+            doctor_event_id = calendar_result['doctor_event'].get('event_id')
+        
         return jsonify({
+            "status": "success",
             "success": True,
+            "doctor_calendar_event_id": doctor_event_id,
+            "google_meet_link": meet_link,
+            "appointment_time": appointment.starts_at.isoformat(),
             "appointment": {
                 "id": appointment.id,
                 "doctor_name": doctor.name,
@@ -548,9 +556,16 @@ def schedule_appointment():
         appointment.google_meet_link = meet_link
         db.session.commit()
         
+        doctor_event_id = None
+        if calendar_result and calendar_result.get('doctor_event'):
+            doctor_event_id = calendar_result['doctor_event'].get('event_id')
+        
         return jsonify({
+            "status": "success",
             "success": True,
-            "meetLink": meet_link,
+            "doctor_calendar_event_id": doctor_event_id,
+            "google_meet_link": meet_link,
+            "appointment_time": start_time.isoformat(),
             "appointment": {
                 "id": appointment.id,
                 "doctorName": doctor.name,
