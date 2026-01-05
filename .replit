@@ -58,7 +58,7 @@ localPort = 45301
 externalPort = 5000
 
 [agent]
-integrations = ["flask_google_oauth==1.0.0", "python_openai==1.0.0", "python_database==1.0.0"]
+integrations = ["flask_google_oauth:1.0.0", "python_openai:1.0.0", "python_database:1.0.0"]
 
 [userenv]
 
