@@ -302,7 +302,7 @@ async function sendMessage() {
         
         if (data.success) {
             const botMessage = data.message || data.response;
-            addMessageToChat('bot', botMessage, data.wiki);
+            addMessageToChat('bot', botMessage, data.wiki, data.medicines);
             
             // Update sidebar with Wikipedia info
             if (data.wiki) {
@@ -359,8 +359,36 @@ function updateWikiSidebar(wikiInfo) {
     }
 }
 
+// Generate medicine cards HTML
+function generateMedicineCards(medicines) {
+    if (!medicines || medicines.length === 0) return '';
+    
+    let cardsHtml = '<div class="medicine-cards-container">';
+    medicines.forEach(med => {
+        const imageUrl = med.image_url || '/static/images/default-medicine.png';
+        cardsHtml += `
+            <div class="medicine-card">
+                <div class="medicine-image">
+                    <img src="${imageUrl}" alt="${med.name}" onerror="this.src='/static/images/default-medicine.png'">
+                </div>
+                <div class="medicine-info">
+                    <h4 class="medicine-name">${med.name}</h4>
+                    <p class="medicine-price">Rs. ${med.price}</p>
+                    ${med.manufacturer ? `<p class="medicine-manufacturer">${med.manufacturer}</p>` : ''}
+                    ${med.ingredients ? `<p class="medicine-ingredients"><small>${med.ingredients}</small></p>` : ''}
+                    <span class="medicine-status ${med.status === 'in_stock' ? 'in-stock' : 'out-of-stock'}">
+                        ${med.status === 'in_stock' ? 'In Stock' : 'Out of Stock'}
+                    </span>
+                </div>
+            </div>
+        `;
+    });
+    cardsHtml += '</div>';
+    return cardsHtml;
+}
+
 // Add message to chat
-function addMessageToChat(sender, message, wikiInfo = null) {
+function addMessageToChat(sender, message, wikiInfo = null, medicines = null) {
     const container = document.getElementById('chatMessages');
     const isUser = sender === 'user';
     const isUrdu = /[\u0600-\u06FF]/.test(message);
@@ -382,12 +410,14 @@ function addMessageToChat(sender, message, wikiInfo = null) {
         `;
     } else {
         const formattedMessage = formatBotMessage(message);
+        const medicineCardsHtml = generateMedicineCards(medicines);
         messageDiv.innerHTML = `
             <div class="message-avatar">
                 <i class="fas fa-robot"></i>
             </div>
             <div class="message-content">
                 <div class="message-text">${formattedMessage}</div>
+                ${medicineCardsHtml}
                 <div class="message-actions">
                     <button class="msg-action-btn" onclick="speakMessage(this, \`${escapeForJs(message)}\`)" title="Listen">
                         <i class="fas fa-volume-up"></i>
@@ -1315,6 +1345,114 @@ function clearChatHistory() {
     display: flex;
     align-items: center;
     gap: 4px;
+}
+
+/* ============================================
+   MEDICINE CARDS STYLING
+   ============================================ */
+.medicine-cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.medicine-card {
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    width: calc(50% - 8px);
+    min-width: 200px;
+    max-width: 280px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.medicine-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(30, 58, 95, 0.15);
+}
+
+.medicine-image {
+    width: 100%;
+    height: 140px;
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.medicine-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.medicine-info {
+    padding: 12px;
+}
+
+.medicine-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e3a5f;
+    margin: 0 0 6px 0;
+    line-height: 1.3;
+}
+
+.medicine-price {
+    font-size: 16px;
+    font-weight: 700;
+    color: #059669;
+    margin: 0 0 4px 0;
+}
+
+.medicine-manufacturer {
+    font-size: 12px;
+    color: #64748b;
+    margin: 0 0 4px 0;
+}
+
+.medicine-ingredients {
+    font-size: 11px;
+    color: #94a3b8;
+    margin: 0 0 8px 0;
+}
+
+.medicine-status {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.medicine-status.in-stock {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.medicine-status.out-of-stock {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+@media (max-width: 600px) {
+    .medicine-card {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .medicine-image {
+        height: 120px;
+    }
 }
 
 .user-message .message-content {

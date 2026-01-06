@@ -10,7 +10,7 @@ from typing import List, Dict, Optional
 def search_medicines(query: str, limit: int = 5) -> List[Dict]:
     """
     Search medicines by name, ingredients, or description.
-    Returns a list of matching medicine dictionaries.
+    Returns a list of matching medicine dictionaries with image_url.
     """
     try:
         from app import db
@@ -32,6 +32,12 @@ def search_medicines(query: str, limit: int = 5) -> List[Dict]:
         
         results = []
         for med in medicines:
+            image_path = med.image_path or ''
+            if image_path and not image_path.startswith('/'):
+                image_url = f"/static/uploads/medicines/{image_path}"
+            else:
+                image_url = image_path if image_path else '/static/images/default-medicine.png'
+            
             results.append({
                 'id': med.id,
                 'name': med.name,
@@ -42,7 +48,8 @@ def search_medicines(query: str, limit: int = 5) -> List[Dict]:
                 'size': extract_size(med.description) if med.description else '',
                 'prescription_required': False,
                 'description': med.description or '',
-                'image': med.image_path or '',
+                'image': image_path,
+                'image_url': image_url,
                 'status': med.status or 'in_stock',
                 'stock_quantity': med.stock_quantity or 0
             })
@@ -69,6 +76,12 @@ def get_medicine_by_name(name: str) -> Optional[Dict]:
         if not medicine:
             return None
         
+        image_path = medicine.image_path or ''
+        if image_path and not image_path.startswith('/'):
+            image_url = f"/static/uploads/medicines/{image_path}"
+        else:
+            image_url = image_path if image_path else '/static/images/default-medicine.png'
+        
         return {
             'id': medicine.id,
             'name': medicine.name,
@@ -79,7 +92,8 @@ def get_medicine_by_name(name: str) -> Optional[Dict]:
             'size': extract_size(medicine.description) if medicine.description else '',
             'prescription_required': False,
             'description': medicine.description or '',
-            'image': medicine.image_path or '',
+            'image': image_path,
+            'image_url': image_url,
             'status': medicine.status or 'in_stock',
             'stock_quantity': medicine.stock_quantity or 0
         }
@@ -188,6 +202,12 @@ def search_medicines_for_condition(condition: str, limit: int = 5) -> List[Dict]
         
         results = []
         for med in medicines:
+            image_path = med.image_path or ''
+            if image_path and not image_path.startswith('/'):
+                image_url = f"/static/uploads/medicines/{image_path}"
+            else:
+                image_url = image_path if image_path else '/static/images/default-medicine.png'
+            
             results.append({
                 'id': med.id,
                 'name': med.name,
@@ -198,7 +218,8 @@ def search_medicines_for_condition(condition: str, limit: int = 5) -> List[Dict]
                 'size': extract_size(med.description) if med.description else '',
                 'prescription_required': False,
                 'description': med.description or '',
-                'image': med.image_path or '',
+                'image': image_path,
+                'image_url': image_url,
                 'status': med.status or 'in_stock',
                 'stock_quantity': med.stock_quantity or 0
             })
@@ -213,6 +234,7 @@ def search_medicines_for_condition(condition: str, limit: int = 5) -> List[Dict]
 def build_medicine_context(medicines: List[Dict]) -> str:
     """
     Build a context string from medicine data for the AI prompt.
+    Includes image_url for each medicine.
     """
     if not medicines:
         return ""
@@ -220,8 +242,15 @@ def build_medicine_context(medicines: List[Dict]) -> str:
     context_parts = ["[MEDICINE DATA FROM RED DOT PHARMACY DATABASE]"]
     
     for med in medicines:
+        image_path = med.get('image', '')
+        if image_path and not image_path.startswith('/'):
+            image_url = f"/static/uploads/medicines/{image_path}"
+        else:
+            image_url = image_path if image_path else '/static/images/default-medicine.png'
+        
         context_parts.append(f"\n--- Medicine: {med['name']} ---")
         context_parts.append(f"Price: Rs. {med['price']}")
+        context_parts.append(f"Image URL: {image_url}")
         
         if med.get('manufacturer'):
             context_parts.append(f"Manufacturer: {med['manufacturer']}")
@@ -242,7 +271,7 @@ def build_medicine_context(medicines: List[Dict]) -> str:
         context_parts.append(f"Availability: {med.get('status', 'in_stock')}")
     
     context_parts.append("\n[END OF MEDICINE DATA]")
-    context_parts.append("\nIMPORTANT: Use ONLY this medicine data in your response. Do not make up any medicine information.")
+    context_parts.append("\nIMPORTANT: Use ONLY this medicine data in your response. Include the Image URL when mentioning medicines.")
     
     return "\n".join(context_parts)
 
@@ -250,19 +279,28 @@ def build_medicine_context(medicines: List[Dict]) -> str:
 def format_medicine_response(medicines: List[Dict], lang: str = "en") -> List[Dict]:
     """
     Format medicines for display in chatbot response.
-    Includes image paths for frontend display.
+    Includes image_url for frontend display.
     """
     formatted = []
     
     for med in medicines:
+        image_path = med.get('image', '')
+        if image_path and not image_path.startswith('/'):
+            image_url = f"/static/uploads/medicines/{image_path}"
+        else:
+            image_url = image_path if image_path else '/static/images/default-medicine.png'
+        
         formatted.append({
+            'type': 'medicine',
             'id': med.get('id'),
             'name': med.get('name', ''),
             'price': med.get('price', 0),
+            'manufacturer': med.get('manufacturer', ''),
             'form': med.get('form', ''),
             'ingredients': med.get('ingredients', ''),
-            'image': med.get('image', ''),
+            'image_url': image_url,
             'status': med.get('status', 'in_stock'),
+            'description': med.get('description', ''),
             'description_short': (med.get('description', '')[:150] + '...') if med.get('description') and len(med.get('description', '')) > 150 else med.get('description', '')
         })
     
