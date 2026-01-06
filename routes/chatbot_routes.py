@@ -110,6 +110,9 @@ def medical_chat():
             "disclaimer": disclaimer
         }
         
+        if response_data.get('medicines'):
+            response_json["medicines"] = response_data['medicines']
+        
         if wiki_data and wiki_data.get("success"):
             response_json["wiki"] = {
                 "title": wiki_data.get("title"),
@@ -186,6 +189,9 @@ def chat():
             "needs_doctor": response_data['needs_doctor'],
             "suggested_medicines": response_data['suggested_medicines']
         }
+        
+        if response_data.get('medicines'):
+            response_json["medicines"] = response_data['medicines']
         
         if wiki_data and wiki_data.get("success"):
             response_json["wiki"] = {

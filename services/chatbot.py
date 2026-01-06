@@ -234,7 +234,7 @@ def get_guardrail_response(lang):
 
 def generate_response(text, prefer_urdu=None, session_id=None, lang="auto"):
     """
-    Generate chatbot response with medical guardrails
+    Generate chatbot response with medical guardrails and RAG-based medicine retrieval
     
     Args:
         text: User message
@@ -242,7 +242,7 @@ def generate_response(text, prefer_urdu=None, session_id=None, lang="auto"):
         session_id: Session identifier for logging
         lang: Language preference ("auto", "en", "ur")
     
-    Returns: dict with message, flagged, needs_doctor, language, timestamp
+    Returns: dict with message, flagged, needs_doctor, language, timestamp, medicines
     """
     if lang == "auto":
         detected_lang = detect_language(text)
@@ -256,6 +256,31 @@ def generate_response(text, prefer_urdu=None, session_id=None, lang="auto"):
     
     timestamp = datetime.now().isoformat()
     
+    retrieved_medicines = []
+    medicine_context = ""
+    try:
+        from services.medicine_rag import (
+            find_medicines_in_text, 
+            search_medicines, 
+            search_medicines_for_condition,
+            build_medicine_context,
+            format_medicine_response
+        )
+        
+        retrieved_medicines = find_medicines_in_text(text)
+        
+        if not retrieved_medicines:
+            retrieved_medicines = search_medicines(text, limit=3)
+        
+        if not retrieved_medicines:
+            retrieved_medicines = search_medicines_for_condition(text, limit=3)
+        
+        if retrieved_medicines:
+            medicine_context = build_medicine_context(retrieved_medicines)
+            logging.info(f"RAG: Retrieved {len(retrieved_medicines)} medicines for query")
+    except Exception as rag_error:
+        logging.warning(f"RAG retrieval failed (non-blocking): {rag_error}")
+    
     if needs_escalation(text):
         response_msg = get_emergency_response(detected_lang)
         return {
@@ -263,6 +288,7 @@ def generate_response(text, prefer_urdu=None, session_id=None, lang="auto"):
             'flagged': True,
             'needs_doctor': True,
             'suggested_medicines': [],
+            'medicines': format_medicine_response(retrieved_medicines, detected_lang) if retrieved_medicines else [],
             'language': detected_lang,
             'timestamp': timestamp,
             'session_id': session_id or str(uuid.uuid4())
@@ -275,6 +301,7 @@ def generate_response(text, prefer_urdu=None, session_id=None, lang="auto"):
             'flagged': False,
             'needs_doctor': True,
             'suggested_medicines': [],
+            'medicines': format_medicine_response(retrieved_medicines, detected_lang) if retrieved_medicines else [],
             'language': detected_lang,
             'timestamp': timestamp,
             'session_id': session_id or str(uuid.uuid4())
@@ -286,6 +313,9 @@ def generate_response(text, prefer_urdu=None, session_id=None, lang="auto"):
                 system_prompt = MEDICAL_SYSTEM_PROMPT_URDU
             else:
                 system_prompt = MEDICAL_SYSTEM_PROMPT
+            
+            if medicine_context:
+                system_prompt += f"\n\n{medicine_context}"
             
             full_prompt = f"{system_prompt}\n\nUser: {text}\n\nAssistant:"
             
@@ -331,11 +361,19 @@ def generate_response(text, prefer_urdu=None, session_id=None, lang="auto"):
                 disclaimer = DISCLAIMER_UR if detected_lang == "ur" else DISCLAIMER_EN
                 ai_message = f"{ai_message}\n\n{disclaimer}"
             
+            formatted_medicines = []
+            try:
+                from services.medicine_rag import format_medicine_response
+                formatted_medicines = format_medicine_response(retrieved_medicines, detected_lang) if retrieved_medicines else []
+            except:
+                pass
+            
             return {
                 'message': ai_message,
                 'flagged': False,
                 'needs_doctor': False,
                 'suggested_medicines': [],
+                'medicines': formatted_medicines,
                 'language': detected_lang,
                 'timestamp': timestamp,
                 'session_id': session_id or str(uuid.uuid4())
@@ -344,11 +382,19 @@ def generate_response(text, prefer_urdu=None, session_id=None, lang="auto"):
         except Exception as e:
             logging.error(f"Gemini API error: {e}")
     
+    formatted_medicines = []
+    try:
+        from services.medicine_rag import format_medicine_response
+        formatted_medicines = format_medicine_response(retrieved_medicines, detected_lang) if retrieved_medicines else []
+    except:
+        pass
+    
     return {
         'message': get_offline_response(detected_lang),
         'flagged': False,
         'needs_doctor': True,
         'suggested_medicines': [],
+        'medicines': formatted_medicines,
         'language': detected_lang,
         'timestamp': timestamp,
         'session_id': session_id or str(uuid.uuid4())

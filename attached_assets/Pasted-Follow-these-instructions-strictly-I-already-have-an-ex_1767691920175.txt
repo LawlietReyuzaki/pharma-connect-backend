@@ -1,0 +1,74 @@
+Follow these instructions strictly.
+
+I already have an existing chatbot in my Pharmacy website.
+Your task is to UPGRADE it into a RAG-based chatbot using the existing medicines data.
+DO NOT modify UI, layout, routes, styles, or existing chatbot interface.
+
+--------------------------------------------------
+DATA SOURCE (IMPORTANT):
+Medicine data already exists in the app and is stored in the following format:
+
+- id
+- name
+- price
+- manufacturer
+- ingredients
+- form
+- size
+- prescription_required
+- description
+- image
+
+The "image" field contains the image filename.
+All images are stored in a folder named /images
+Image filenames range from 1.jpeg to 10.png
+
+--------------------------------------------------
+RAG REQUIREMENTS:
+- Use Retrieval-Augmented Generation (RAG)
+- Retrieve data ONLY from existing medicine records
+- Do NOT hallucinate medicine data
+- Do NOT fetch data from external sources unless already configured
+
+--------------------------------------------------
+CHATBOT CAPABILITIES:
+The chatbot must be able to:
+1. Search medicines by name
+2. Answer questions about:
+   - Price
+   - Manufacturer
+   - Ingredients
+   - Form & Size
+   - Prescription requirement
+   - Description
+3. Answer disease-related queries using medicine descriptions
+4. Recommend medicines ONLY from existing data
+5. Fetch and display medicine images when a medicine is mentioned
+
+--------------------------------------------------
+IMAGE HANDLING (MANDATORY):
+- When a medicine is returned in response:
+  - Fetch its image from /images folder
+  - Use the filename from the "image" field
+  - Display the image along with medicine details
+- Do NOT rename or modify images
+- Do NOT generate placeholder images
+
+--------------------------------------------------
+SCOPE LIMITATIONS (STRICT):
+- NO changes to:
+  - Existing database schema
+  - Existing chatbot UI
+  - Authentication
+  - Admin panel
+- ONLY extend chatbot intelligence using RAG
+
+--------------------------------------------------
+EXPECTED OUTPUT:
+- Chatbot gives accurate medicine information
+- Chatbot shows correct images
+- Responses are clear, structured, and safe
+- No breaking changes to the app
+
+If anything is unclear, STOP and ask before proceeding.
+Do not assume.
