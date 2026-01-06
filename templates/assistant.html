@@ -38,6 +38,9 @@
     <header class="chatgpt-header">
         <div class="header-content">
             <div class="header-left">
+                <a href="/" class="back-btn" title="Back to Home">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
                 <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">
                     <i class="fas fa-bars"></i>
                 </button>
@@ -744,6 +747,28 @@ function clearChatHistory() {
     display: flex;
     align-items: center;
     gap: 16px;
+}
+
+.back-btn {
+    width: 40px;
+    height: 40px;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    text-decoration: none;
+    font-size: 16px;
+}
+
+.back-btn:hover {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    text-decoration: none;
 }
 
 .sidebar-toggle {
