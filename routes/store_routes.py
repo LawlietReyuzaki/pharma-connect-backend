@@ -18,23 +18,15 @@ def list_medicines():
         limit = int(request.args.get('limit', 50))
         offset = int(request.args.get('offset', 0))
         
-        # Build subquery to count products per category
-        category_counts = db.session.query(
-            Medicine.category,
-            func.count(Medicine.id).label('cat_count')
-        ).group_by(Medicine.category).subquery()
-        
-        # Build main query with category count join
-        query = db.session.query(Medicine, category_counts.c.cat_count).outerjoin(
-            category_counts, Medicine.category == category_counts.c.category
-        )
+        # Build query
+        query = Medicine.query
         
         # Apply filters
         if status:
-            query = query.filter(Medicine.status == status)
+            query = query.filter_by(status=status)
         
         if category:
-            query = query.filter(Medicine.category == category)
+            query = query.filter_by(category=category)
         
         if search:
             search_term = f"%{search}%"
@@ -49,16 +41,12 @@ def list_medicines():
         # Get total count for pagination
         total_count = query.count()
         
-        # Sort by category product count (highest first), then by name
-        results = query.order_by(
-            category_counts.c.cat_count.desc().nullslast(),
-            Medicine.name.asc()
-        ).offset(offset).limit(limit).all()
+        # Sort by stock quantity descending (highest first)
+        medicines = query.order_by(Medicine.stock_quantity.desc()).offset(offset).limit(limit).all()
         
-        # Format response - extract Medicine objects from query results
+        # Format response
         medicine_list = []
-        for result in results:
-            med = result[0]  # First element is the Medicine object
+        for med in medicines:
             medicine_list.append({
                 "id": med.id,
                 "name": med.name,
