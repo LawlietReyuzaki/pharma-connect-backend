@@ -611,7 +611,7 @@ function createMiniMedicineCard(medicine) {
 }
 
 // Filter by category and show single category view
-function filterShopByCategory(category) {
+async function filterShopByCategory(category) {
     currentShopCategory = category;
     
     // Switch to products section
@@ -629,9 +629,22 @@ function filterShopByCategory(category) {
         titleEl.innerHTML = `<i class="${icon} text-danger me-2"></i>${category}`;
     }
     
-    // Filter and display medicines
-    const filteredMedicines = allMedicines.filter(med => (med.category || 'General') === category);
-    displayShopMedicines(filteredMedicines);
+    // Show loading
+    const grid = document.getElementById('medicinesGrid');
+    if (grid) {
+        grid.innerHTML = `<div class="col-12 text-center py-5"><div class="spinner-border text-danger"></div><p class="mt-2">Loading ${category} products...</p></div>`;
+    }
+    
+    // Fetch medicines from server for this category
+    try {
+        const response = await fetch(`/api/store/medicines?category=${encodeURIComponent(category)}&limit=500`);
+        const data = await response.json();
+        const filteredMedicines = data.medicines || [];
+        displayShopMedicines(filteredMedicines);
+    } catch (error) {
+        console.error('Error fetching category medicines:', error);
+        displayShopMedicines([]);
+    }
     
     // Scroll to products section
     document.getElementById('productsSection').scrollIntoView({ behavior: 'smooth' });
