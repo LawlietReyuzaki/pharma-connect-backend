@@ -444,10 +444,14 @@ async function initializeShop() {
             countElement.textContent = `${allMedicines.length}+`;
         }
         
-        // Load categories
+        // Load categories with counts from server
         const categoriesResponse = await fetch('/api/store/categories');
         const categoriesData = await categoriesResponse.json();
         allCategories = categoriesData.categories || [];
+        window.categoryCounts = {};
+        (categoriesData.categories_with_counts || []).forEach(c => {
+            window.categoryCounts[c.name] = c.count;
+        });
         
         // Render category cards
         renderCategoryCards();
@@ -471,12 +475,8 @@ function renderCategoryCards() {
     const container = document.getElementById('categoryCardsGrid');
     if (!container) return;
     
-    // Count medicines per category
-    const categoryCounts = {};
-    allMedicines.forEach(med => {
-        const cat = med.category || 'General';
-        categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
-    });
+    // Use server-side category counts
+    const categoryCounts = window.categoryCounts || {};
     
     // Generate category cards HTML
     let cardsHtml = allCategories.map(category => {
@@ -511,7 +511,10 @@ function renderAllCategoriesView() {
     const container = document.getElementById('categorySectionsContainer');
     if (!container) return;
     
-    // Group medicines by category
+    // Use server-side category counts
+    const serverCounts = window.categoryCounts || {};
+    
+    // Group medicines by category (for display purposes)
     const groupedMedicines = {};
     allCategories.forEach(cat => {
         groupedMedicines[cat] = [];
@@ -530,6 +533,7 @@ function renderAllCategoriesView() {
     
     allCategories.forEach(category => {
         const medicines = groupedMedicines[category] || [];
+        const totalCount = serverCounts[category] || medicines.length;
         const icon = categoryIcons[category] || 'fas fa-pills';
         const color = categoryColors[category] || '#6c757d';
         
@@ -542,7 +546,7 @@ function renderAllCategoriesView() {
                         </div>
                         <div>
                             <h5 class="mb-0 fw-bold">${category}</h5>
-                            <small class="text-muted">${medicines.length} ${medicines.length === 1 ? 'product' : 'products'} available</small>
+                            <small class="text-muted">${totalCount} ${totalCount === 1 ? 'product' : 'products'} available</small>
                         </div>
                     </div>
                     ${medicines.length > 4 ? `

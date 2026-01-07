@@ -249,10 +249,9 @@ def delete_medicine(medicine_id):
 
 @bp.route("/categories", methods=["GET"])
 def get_categories():
-    """Get list of medicine categories - only returns categories with products"""
+    """Get list of medicine categories with product counts"""
     try:
-        # Get categories with product counts (only categories that have products)
-        from sqlalchemy import func
+        # Get categories with product counts
         categories_with_counts = db.session.query(
             Medicine.category,
             func.count(Medicine.id).label('count')
@@ -260,23 +259,28 @@ def get_categories():
             Medicine.category.isnot(None),
             Medicine.category != "",
             Medicine.status == 'in_stock'
-        ).group_by(Medicine.category).all()
+        ).group_by(Medicine.category).order_by(func.count(Medicine.id).desc()).all()
         
-        # Only include categories that have at least 1 product
-        category_list = [cat[0] for cat in categories_with_counts if cat[0] and cat[1] > 0]
-        
-        # Remove duplicates (case-insensitive) - keep the first occurrence
+        # Build response with counts, remove duplicates (case-insensitive)
         seen = set()
-        unique_categories = []
-        for cat in category_list:
-            cat_lower = cat.lower().strip()
-            if cat_lower not in seen:
-                seen.add(cat_lower)
-                unique_categories.append(cat)
+        categories_data = []
+        for cat, count in categories_with_counts:
+            if cat and count > 0:
+                cat_lower = cat.lower().strip()
+                if cat_lower not in seen:
+                    seen.add(cat_lower)
+                    categories_data.append({
+                        "name": cat,
+                        "count": count
+                    })
+        
+        # Also return just names for backwards compatibility
+        category_names = [c["name"] for c in categories_data]
         
         return jsonify({
             "success": True,
-            "categories": sorted(unique_categories)
+            "categories": sorted(category_names),
+            "categories_with_counts": categories_data
         })
         
     except Exception as e:
