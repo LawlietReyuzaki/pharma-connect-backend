@@ -1,0 +1,72 @@
+Follow these instructions strictly and do nothing outside this scope.
+
+I will upload:
+1) A data file (Excel or CSV) with medicine records in the EXACT format shown below
+2)  A file contains  product images named from 1.jpeg to 7239.png
+your ONLY task is to add these medicines to the existing /shop section of my Pharmacy web app.
+DO NOT modify any existing UI, layout, routes, components, logic, database schema, or styles.
+3) i have extracted images files are in the Files panel on the left side of your Replit workspace:
+--------------------------------------------------
+DATA FORMAT (DO NOT CHANGE):
+Columns:
+- id
+- name
+- price
+- manufacturer
+- ingredients
+- form
+- size
+- prescription_required
+- description
+- image
+
+Each row = one product.
+
+--------------------------------------------------
+IMAGE RULES (VERY IMPORTANT):
+- Images are provided in a  Files panel on the left side of your Replit workspace:
+- Image names are exactly as mentioned in the "image" column (e.g. 1.jpeg, 2.png, 3.png, etc).
+- Each product uses ONLY the image mentioned in its row.
+- Do NOT rename, compress, resize, or optimize images.
+- Store images using the app’s existing image handling method.
+- Correctly link each image to its product in /shop.
+
+--------------------------------------------------
+IMPORT RULES:
+- Import ALL rows exactly as provided.
+- Do NOT change text, spelling, formatting, or descriptions.
+- If a field is empty, keep it empty.
+- Do NOT auto-generate missing data.
+- Do NOT translate or rewrite descriptions.
+- Prices must remain numeric as provided.
+- Prescription field must remain exactly as given.
+
+--------------------------------------------------
+SCOPE LIMITATIONS (STRICT):
+- ONLY add products to /shop section.
+- NO changes to:
+  - Homepage
+  - Admin panel
+  - Authentication
+  - Categories
+  - Orders
+  - Database structure
+  - Existing APIs
+- NO refactoring or cleanup of existing code.
+
+--------------------------------------------------
+EXPECTED RESULT:
+- All medicines appear in /shop.
+- Each product shows:
+  - Name
+  - Price
+  - Manufacturer
+  - Ingredients
+  - Form
+  - Size
+  - Prescription info
+  - Full description
+  - Correct image
+
+If any mismatch or ambiguity occurs, STOP and ask before proceeding.
+Do not make assumptions.
