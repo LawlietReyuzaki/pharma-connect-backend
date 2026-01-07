@@ -149,26 +149,29 @@ def extract_medicine_keywords(text: str) -> List[str]:
 def find_medicines_in_text(text: str) -> List[Dict]:
     """
     Find all medicines mentioned in the text by matching against database.
+    Optimized for speed - uses direct search instead of loading all names.
     """
     try:
-        all_names = get_all_medicine_names()
         found_medicines = []
-        text_lower = text.lower()
-        
-        for name in all_names:
-            name_parts = name.lower().split()
-            if any(part in text_lower for part in name_parts if len(part) > 3):
-                medicine = get_medicine_by_name(name)
-                if medicine:
-                    found_medicines.append(medicine)
+        seen_ids = set()
         
         keywords = extract_medicine_keywords(text)
-        for keyword in keywords:
+        
+        words = text.split()
+        for word in words:
+            if len(word) > 3 and word.lower() not in {'what', 'about', 'tell', 'give', 'information', 'this', 'that', 'have', 'need', 'want'}:
+                if word not in keywords:
+                    keywords.append(word)
+        
+        for keyword in keywords[:8]:
             if len(keyword) > 3:
-                matches = search_medicines(keyword, limit=2)
+                matches = search_medicines(keyword, limit=3)
                 for match in matches:
-                    if match not in found_medicines:
+                    if match['id'] not in seen_ids:
+                        seen_ids.add(match['id'])
                         found_medicines.append(match)
+                        if len(found_medicines) >= 5:
+                            return found_medicines
         
         return found_medicines[:5]
         
