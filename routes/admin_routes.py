@@ -493,8 +493,8 @@ def list_medicines():
         # Get total count for pagination
         total_count = query.count()
         
-        # Apply pagination
-        medicines = query.order_by(Medicine.created_at.desc()).offset(offset).limit(limit).all()
+        # Sort by name ascending and apply pagination
+        medicines = query.order_by(Medicine.name.asc()).offset(offset).limit(limit).all()
         
         # Format response
         medicine_list = []
