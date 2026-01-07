@@ -4,6 +4,7 @@ from services.auth import require_auth, get_current_user, require_role
 from routes.admin_auth_routes import get_current_admin, require_admin
 from models import User, Medicine, Appointment, Order, OrderItem, ChatLog, TimeSlot, DoctorAvailability, PaymentMethod, Admin, BankingDetails
 from app import db
+from sqlalchemy import func
 import logging
 import hashlib
 import os
@@ -470,15 +471,23 @@ def list_medicines():
         limit = int(request.args.get('limit', 50))
         offset = int(request.args.get('offset', 0))
         
-        # Build query
-        query = Medicine.query
+        # Build subquery to count products per category
+        category_counts = db.session.query(
+            Medicine.category,
+            func.count(Medicine.id).label('cat_count')
+        ).group_by(Medicine.category).subquery()
+        
+        # Build main query with category count join
+        query = db.session.query(Medicine, category_counts.c.cat_count).outerjoin(
+            category_counts, Medicine.category == category_counts.c.category
+        )
         
         # Apply filters
         if status:
-            query = query.filter_by(status=status)
+            query = query.filter(Medicine.status == status)
         
         if category:
-            query = query.filter_by(category=category)
+            query = query.filter(Medicine.category == category)
         
         if search:
             search_term = f"%{search}%"
@@ -493,12 +502,16 @@ def list_medicines():
         # Get total count for pagination
         total_count = query.count()
         
-        # Sort by product ID ascending and apply pagination
-        medicines = query.order_by(Medicine.id.asc()).offset(offset).limit(limit).all()
+        # Sort by category product count (highest first), then by name
+        results = query.order_by(
+            category_counts.c.cat_count.desc().nullslast(),
+            Medicine.name.asc()
+        ).offset(offset).limit(limit).all()
         
-        # Format response
+        # Format response - extract Medicine objects from query results
         medicine_list = []
-        for med in medicines:
+        for result in results:
+            med = result[0]  # First element is the Medicine object
             medicine_list.append({
                 "id": med.id,
                 "name": med.name,
