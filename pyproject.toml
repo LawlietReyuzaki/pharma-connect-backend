@@ -26,4 +26,5 @@ dependencies = [
     "gtts>=2.5.4",
     "pydub>=0.25.1",
     "google-generativeai>=0.8.5",
+    "gdown>=5.2.0",
 ]

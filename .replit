@@ -42,3 +42,6 @@ integrations = ["flask_google_oauth:1.0.0", "python_openai:1.0.0", "python_datab
 LLM_PROVIDER = "gemini"
 GEMINI_MODEL = "gemini-2.0-flash"
 GEMINI_TEMPERATURE = "0.7"
+
+[objectStorage]
+defaultBucketID = "replit-objstore-b5744c04-bb28-45a9-89d9-f1271ac706bb"
