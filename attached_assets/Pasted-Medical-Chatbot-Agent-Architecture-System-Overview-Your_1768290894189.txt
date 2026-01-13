@@ -1,0 +1,410 @@
+Medical Chatbot Agent Architecture
+🏗️ System Overview
+Your medical chatbot now uses a multi-agent architecture with specialized agents for different tasks:
+User Query
+    ↓
+┌─────────────────────────────────────┐
+│   Query Classifier                  │
+│   (Intent Detection)                │
+└─────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────┐
+│   Smart RAG Orchestrator            │
+│   (Master Coordinator)              │
+└─────────────────────────────────────┘
+    ↓                    ↓
+[Database Agent]   [Wikipedia Medical Agent]
+    ↓                    ↓
+[Image Validator]   [Content Quality Scorer]
+    ↓
+[AI Response Generator (Gemini)]
+
+🤖 Agent Breakdown
+1. Query Classifier (Intent Agent)
+File: query_classifier.py
+Purpose: Understands what the user is asking for
+Capabilities:
+
+Detects query type (medication/disease/symptom)
+Extracts medical entities (medicine names, diseases)
+Determines which data sources to use
+Decides if images should be fetched
+
+Example:
+pythonfrom services.query_classifier import QueryClassifier
+
+classifier = QueryClassifier()
+result = classifier.classify("Panadol for fever")
+
+# Result:
+{
+    'type': 'medication_specific',
+    'confidence': 0.9,
+    'entities': {
+        'medications': ['panadol'],
+        'diseases': ['fever']
+    },
+    'should_search_db': True,
+    'should_fetch_images': True,
+    'image_subject': 'panadol'
+}
+
+2. Smart RAG Orchestrator (Master Agent)
+File: smart_rag_orchestrator.py
+Purpose: Coordinates all retrieval operations
+Capabilities:
+
+Routes queries to appropriate agents
+Enforces database-first policy
+Validates retrieved data
+Builds context for AI
+Prevents irrelevant content
+
+Example:
+pythonfrom services.smart_rag_orchestrator import smart_retrieve
+
+result = smart_retrieve("medicine for headache", "en")
+
+# Result:
+{
+    'medications': [list of medicines from DB],
+    'wiki_context': None,  # DB had results, no Wiki needed
+    'images': [validated medicine images],
+    'context_type': 'database',
+    'should_show_images': True
+}
+
+3. Wikipedia Medical Agent (NEW!)
+File: wikipedia_medical_agent.py
+Purpose: Intelligent Wikipedia information retrieval
+Capabilities:
+
+Query analysis and validation
+Medical relevance filtering
+Content quality scoring
+Caching for performance
+Safety checks (blocks non-medical content)
+TEXT ONLY (no images)
+
+Example:
+pythonfrom services.wikipedia_medical_agent import fetch_medical_wikipedia
+
+result = fetch_medical_wikipedia("diabetes")
+
+# Result:
+{
+    'title': 'Diabetes mellitus',
+    'summary': '...',
+    'page_url': 'https://...',
+    'topic_type': 'disease',
+    'quality_score': 0.85,  # High quality
+    'is_reliable': True,
+    'cached': False
+}
+Intelligence Features:
+
+Query Validation
+
+python   # BLOCKS these queries:
+   - "buy cheap medicine"
+   - "best home remedies"
+   - "natural cures"
+   
+   # ALLOWS these queries:
+   - "diabetes treatment"
+   - "aspirin medication"
+   - "fever symptoms"
+
+Topic Detection
+
+python   # Automatically detects:
+   - Medication queries → searches "medicine + medication"
+   - Disease queries → searches "disease + condition"
+   - Symptom queries → contextualizes appropriately
+   - Anatomy queries → BLOCKS (needs images we don't provide)
+
+Quality Scoring
+
+python   # Scores 0.0 to 1.0 based on:
+   ✅ Medical terminology present
+   ✅ Sufficient content length
+   ✅ Wikipedia quality markers
+   ❌ Spam/commercial content
+   
+   # Only returns content with score > 0.4
+
+Caching
+
+python   # Caches results to avoid repeated API calls
+   agent.get_stats()
+   # {'cache_hit_rate': '85.3%', 'cached_pages': 42}
+
+4. Database Agent (Medicine RAG)
+File: medicine_rag.py (existing, enhanced)
+Purpose: Search and retrieve medication data from database
+Capabilities:
+
+Name-based search
+Ingredient/chemical search
+Condition/symptom search
+Fuzzy matching
+
+Integration:
+python# Called by Smart RAG Orchestrator
+results = search_medicines("panadol", limit=5)
+
+5. Image Validation Agent
+File: query_classifier.py (functions)
+Purpose: Validates medication images before display
+Capabilities:
+
+Checks image exists in database
+Validates local path (no external URLs)
+Ensures filename matches medication
+Blocks irrelevant keywords
+
+Rules:
+python✅ ALLOWED:
+- panadol.jpg (matches "Panadol" medicine)
+- aspirin_500mg.png (matches "Aspirin 500mg")
+
+❌ BLOCKED:
+- fever_anatomy.jpg (disease image)
+- body_diagram.png (anatomy)
+- wikipedia_logo.svg (logo)
+- external-url.com/image.jpg (external URL)
+
+6. AI Response Generator
+File: chatbot_with_smart_rag.py
+Purpose: Generates natural language responses using Gemini
+Capabilities:
+
+Builds context from all agents
+Applies safety guardrails
+Formats medicine information
+Adds medical disclaimers
+Supports English and Urdu
+
+
+🔄 Complete Flow Example
+Query: "Tell me about Panadol"
+Step 1: Query Classifier
+├─ Detected: "medication_specific"
+├─ Entities: medications=["panadol"]
+└─ Action: search_db=True, fetch_images=True
+
+Step 2: Smart RAG Orchestrator
+├─ Calls Database Agent
+│  ├─ Searches: "panadol"
+│  └─ Found: 2 medicines
+│
+├─ Calls Image Validator
+│  ├─ Validates: "panadol.jpg"
+│  └─ Result: ✅ Valid (local, matches name)
+│
+└─ Output: medications=[...], images=[...], context_type="database"
+
+Step 3: AI Response Generator
+├─ Builds context from DB data
+├─ Generates response via Gemini
+└─ Adds medical disclaimer
+
+Final Response:
+"Panadol is a painkiller containing paracetamol, available in tablets..."
+[Medicine Card with Image]
+⚠️ Disclaimer: Consult a doctor...
+Query: "What is diabetes?"
+Step 1: Query Classifier
+├─ Detected: "disease_info"
+├─ Entities: diseases=["diabetes"]
+└─ Action: search_db=True, crawl_wiki=True, fetch_images=False
+
+Step 2: Smart RAG Orchestrator
+├─ Calls Database Agent
+│  ├─ Searches: "diabetes"
+│  └─ Found: 0 medicines (it's a disease, not medicine)
+│
+├─ Calls Wikipedia Medical Agent
+│  ├─ Analyzes: "diabetes"
+│  ├─ Topic: DISEASE
+│  ├─ Quality: 0.87 (high)
+│  └─ Fetches: TEXT ONLY
+│
+└─ Output: wiki_context="[summary]", images=[], context_type="wikipedia_text"
+
+Step 3: AI Response Generator
+├─ Uses Wikipedia context
+├─ NO IMAGES (disease query)
+└─ Generates educational response
+
+Final Response:
+"Diabetes is a metabolic condition..."
+(Text only, NO images)
+⚠️ Disclaimer: This is not a diagnosis...
+
+📊 Agent Communication Matrix
+From AgentTo AgentData PassedQuery ClassifierRAG OrchestratorClassification resultRAG OrchestratorDatabase AgentSearch queryRAG OrchestratorWikipedia AgentMedical topicRAG OrchestratorImage ValidatorMedicine dataDatabase AgentRAG OrchestratorMedicine recordsWikipedia AgentRAG OrchestratorText summary + metadataImage ValidatorRAG OrchestratorValidated image URLsRAG OrchestratorAI GeneratorComplete context
+
+🎯 Agent Decision Tree
+User Query
+    │
+    ├─ Contains medicine name?
+    │   YES → Database Agent → Image Validator → AI Response
+    │   NO ↓
+    │
+    ├─ Asking about medicine for condition?
+    │   YES → Database Agent (condition search) → AI Response
+    │   NO ↓
+    │
+    ├─ Asking about disease/condition?
+    │   YES → Database Agent first
+    │         └─ If empty → Wikipedia Agent (TEXT ONLY)
+    │   NO ↓
+    │
+    └─ General health question?
+        YES → Wikipedia Agent (if medical) OR Offline Response
+
+🛡️ Safety Layers by Agent
+Query Classifier
+
+✅ Detects emergency keywords → immediate escalation
+✅ Blocks prescription requests → guardrail response
+✅ Filters unsafe patterns
+
+Wikipedia Medical Agent
+
+✅ Validates medical relevance
+✅ Blocks non-medical topics
+✅ Scores content quality
+✅ Prevents anatomy queries (need images)
+✅ Sanitizes search queries
+
+Image Validator
+
+✅ Blocks external URLs
+✅ Validates filename relevance
+✅ Checks file extensions
+✅ Blocks disease/anatomy images
+
+RAG Orchestrator
+
+✅ Database-first enforcement
+✅ Context type tracking
+✅ Duplicate prevention
+✅ Result aggregation
+
+AI Response Generator
+
+✅ Adds medical disclaimers
+✅ Formats safety warnings
+✅ Handles API failures gracefully
+
+
+💡 Key Advantages of Agent Architecture
+
+Separation of Concerns
+
+Each agent has one clear responsibility
+Easy to debug and maintain
+
+
+Intelligent Routing
+
+Queries go to the right agent automatically
+No wasted API calls
+
+
+Quality Control
+
+Multiple validation layers
+Content scoring and filtering
+
+
+Performance
+
+Caching at agent level
+Parallel operations where possible
+
+
+Safety
+
+Medical guardrails throughout
+No irrelevant content leaks through
+
+
+Extensibility
+
+Easy to add new agents (e.g., drug interaction checker)
+Agents can be swapped independently
+
+
+
+
+🔧 Using the Agents
+Option 1: Use High-Level Interface (Recommended)
+pythonfrom services.chatbot_with_smart_rag import generate_response
+
+# Everything is handled automatically
+response = generate_response("Panadol for fever", lang="en")
+Option 2: Use Orchestrator Directly
+pythonfrom services.smart_rag_orchestrator import smart_retrieve
+
+# Get structured retrieval data
+result = smart_retrieve("fever medicine", "en")
+
+# Access specific parts
+medicines = result['medications']
+images = result['images']
+wiki_text = result['wiki_context']
+Option 3: Use Individual Agents
+python# Query Classification
+from services.query_classifier import QueryClassifier
+classifier = QueryClassifier()
+classification = classifier.classify("query")
+
+# Wikipedia Agent
+from services.wikipedia_medical_agent import fetch_medical_wikipedia
+wiki_data = fetch_medical_wikipedia("diabetes")
+
+# Database Agent
+from services.medicine_rag import search_medicines
+medicines = search_medicines("aspirin")
+
+📈 Agent Performance Metrics
+After deployment, monitor:
+python# Wikipedia Agent stats
+from services.wikipedia_medical_agent import get_wiki_agent
+agent = get_wiki_agent()
+stats = agent.get_stats()
+
+# Example output:
+{
+    'total_fetches': 127,
+    'cache_hits': 108,
+    'cache_hit_rate': '85.0%',
+    'cached_pages': 42
+}
+
+🚀 Future Agent Enhancements
+Potential new agents to add:
+
+Drug Interaction Agent - Check medicine combinations
+Dosage Calculator Agent - Safe dosage recommendations
+Symptom Analyzer Agent - Better symptom matching
+Multilingual Agent - Enhanced Urdu support
+Pharmacy Inventory Agent - Real-time stock checking
+Price Comparison Agent - Compare medicine prices
+
+
+✅ Summary
+YES, I created a Wikipedia Agent!
+The wikipedia_medical_agent.py is a fully intelligent agent that:
+
+✅ Validates queries before fetching
+✅ Scores content quality
+✅ Caches results
+✅ Blocks irrelevant content
+✅ Provides TEXT ONLY (no images)
+✅ Integrates with Smart RAG Orchestrator
+
+It's a production-ready, intelligent agent that makes your Wikipedia integration safe and efficient!
