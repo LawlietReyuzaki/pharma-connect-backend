@@ -1,0 +1,1087 @@
+# 🏥 Medical RAG Agent - Integration Instructions for Your Existing Replit Project
+
+## 📋 PREREQUISITES
+- You already have a database with medications
+- You already have a Replit project running
+- You need to integrate the intelligent RAG system
+
+---
+
+## 🔧 STEP 1: Install Dependencies
+
+Run in Replit **Shell**:
+
+```bash
+pip install google-generativeai aiohttp
+```
+
+---
+
+## 🔑 STEP 2: Add Gemini API Key
+
+1. Click the **🔒 Secrets** (lock icon) in Replit sidebar
+2. Add new secret:
+   - **Key**: `GEMINI_API_KEY`
+   - **Value**: `your_gemini_api_key_here`
+
+---
+
+## 📁 STEP 3: Create Agent Folder
+
+In Replit **Shell**:
+
+```bash
+mkdir -p agent
+```
+
+---
+
+## 📝 STEP 4: Create Agent Files
+
+Create these files inside the `agent/` folder:
+
+### File 1: `agent/__init__.py`
+
+```python
+from .gemini_client import GeminiClient
+from .query_classifier import QueryClassifier, QueryType, QueryIntent
+from .wikipedia_crawler import WikipediaCrawler
+from .image_validator import ImageValidator
+from .rag_engine import MedicalRAGEngine
+
+__all__ = [
+    'GeminiClient', 'QueryClassifier', 'QueryType', 'QueryIntent',
+    'WikipediaCrawler', 'ImageValidator', 'MedicalRAGEngine'
+]
+```
+
+---
+
+### File 2: `agent/gemini_client.py`
+
+```python
+"""
+Gemini LLM Client - Query Understanding & Medical Mapping
+"""
+import os
+import json
+import re
+from typing import Dict, List, Any
+import google.generativeai as genai
+
+
+class GeminiClient:
+    def __init__(self):
+        self.api_key = os.environ.get("GEMINI_API_KEY")
+        self._connected = False
+        
+        if self.api_key:
+            try:
+                genai.configure(api_key=self.api_key)
+                self.model = genai.GenerativeModel('gemini-1.5-flash')
+                self._connected = True
+                print("✅ Gemini API connected")
+            except Exception as e:
+                print(f"⚠️ Gemini connection failed: {e}")
+    
+    def is_connected(self) -> bool:
+        return self._connected
+    
+    async def extract_medical_keyword(self, query: str) -> Dict[str, Any]:
+        """
+        Extract clean medical subject from user query
+        
+        Example:
+            "what are main symptoms of disease syphilis" → {"extracted_keyword": "syphilis"}
+        """
+        prompt = f"""You are a medical query parser. Extract the PRIMARY medical subject.
+
+Query: "{query}"
+
+Respond ONLY in JSON:
+{{
+    "extracted_keyword": "<single medical term>",
+    "query_type": "<medication|disease|symptom|general>",
+    "intent": "<lookup|explanation|treatment|side_effects>",
+    "confidence": <0.0-1.0>
+}}
+
+Examples:
+- "what are main symptoms of disease syphilis" → {{"extracted_keyword": "syphilis", "query_type": "disease", "intent": "explanation", "confidence": 0.95}}
+- "Panadol 500mg" → {{"extracted_keyword": "panadol", "query_type": "medication", "intent": "lookup", "confidence": 0.98}}
+- "medicine for fever" → {{"extracted_keyword": "fever", "query_type": "symptom", "intent": "treatment", "confidence": 0.9}}
+"""
+        
+        if not self._connected:
+            return self._fallback_extraction(query)
+        
+        try:
+            response = self.model.generate_content(prompt)
+            json_match = re.search(r'\{[^}]+\}', response.text.strip(), re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+            return self._fallback_extraction(query)
+        except Exception as e:
+            print(f"Gemini error: {e}")
+            return self._fallback_extraction(query)
+    
+    async def map_disease_to_medications(self, disease: str) -> List[str]:
+        """Map disease/symptom to medication ingredients"""
+        prompt = f"""Map this condition to common medication INGREDIENTS (generic names, not brands).
+
+Condition: "{disease}"
+
+Rules:
+1. List only generic ingredient names
+2. Maximum 5 ingredients
+3. Order by common usage
+
+Respond ONLY as JSON array: ["ingredient1", "ingredient2", "ingredient3"]
+"""
+        
+        if not self._connected:
+            return self._fallback_disease_mapping(disease)
+        
+        try:
+            response = self.model.generate_content(prompt)
+            json_match = re.search(r'\[[^\]]+\]', response.text.strip())
+            if json_match:
+                return json.loads(json_match.group())
+            return self._fallback_disease_mapping(disease)
+        except:
+            return self._fallback_disease_mapping(disease)
+    
+    async def generate_wiki_query(self, keyword: str, query_type: str) -> str:
+        """Generate safe Wikipedia search query - NO IMAGES"""
+        forbidden = ['image', 'picture', 'photo', 'anatomy', 'diagram']
+        
+        if not self._connected:
+            return f"{keyword} {query_type} medical information"
+        
+        try:
+            prompt = f"""Generate a Wikipedia search query for medical info.
+Keyword: "{keyword}", Type: "{query_type}"
+NEVER include: images, pictures, anatomy, diagrams
+Respond with ONLY the search query string."""
+            
+            response = self.model.generate_content(prompt)
+            query = response.text.strip().strip('"\'')
+            
+            if any(term in query.lower() for term in forbidden):
+                return f"{keyword} {query_type} medical information"
+            return query
+        except:
+            return f"{keyword} {query_type} medical information"
+    
+    async def summarize_wiki_content(self, content: str, keyword: str) -> str:
+        """Summarize Wikipedia content - medical focus only"""
+        if not self._connected:
+            return content[:1000] + "..." if len(content) > 1000 else content
+        
+        try:
+            prompt = f"""Summarize this medical content about "{keyword}".
+Focus ONLY on: indications, usage, side effects, symptoms, treatment.
+Remove any image references. Max 500 words.
+
+Content: {content[:4000]}"""
+            
+            response = self.model.generate_content(prompt)
+            return response.text.strip()
+        except:
+            return content[:1000]
+    
+    def _fallback_extraction(self, query: str) -> Dict[str, Any]:
+        """Fallback when Gemini unavailable"""
+        stop_words = {'what', 'are', 'is', 'the', 'main', 'symptoms', 'of', 'for', 
+                      'disease', 'medicine', 'drug', 'tablet', 'capsule', 'how', 'can', 'i'}
+        words = [w for w in query.lower().split() if w not in stop_words and len(w) > 2]
+        
+        query_type = "general"
+        if any(w in query.lower() for w in ['symptom', 'disease', 'infection', 'condition']):
+            query_type = "disease"
+        elif any(w in query.lower() for w in ['mg', 'ml', 'tablet', 'capsule', 'dose']):
+            query_type = "medication"
+        elif any(w in query.lower() for w in ['pain', 'fever', 'cough', 'cold', 'headache']):
+            query_type = "symptom"
+        
+        return {
+            "extracted_keyword": words[0] if words else query.split()[0],
+            "query_type": query_type,
+            "intent": "lookup",
+            "confidence": 0.6
+        }
+    
+    def _fallback_disease_mapping(self, disease: str) -> List[str]:
+        """Fallback disease to medication mapping"""
+        mappings = {
+            "fever": ["paracetamol", "ibuprofen"],
+            "pain": ["paracetamol", "ibuprofen", "aspirin"],
+            "headache": ["paracetamol", "ibuprofen"],
+            "infection": ["amoxicillin", "azithromycin"],
+            "cold": ["paracetamol", "phenylephrine"],
+            "cough": ["dextromethorphan", "guaifenesin"],
+            "allergy": ["cetirizine", "loratadine"],
+            "inflammation": ["ibuprofen", "diclofenac"],
+        }
+        
+        for key, meds in mappings.items():
+            if key in disease.lower():
+                return meds
+        return ["paracetamol"]
+```
+
+---
+
+### File 3: `agent/query_classifier.py`
+
+```python
+"""
+Query Classifier - Intelligent medical query classification
+"""
+import re
+from typing import Dict, Any
+from dataclasses import dataclass
+from enum import Enum
+
+
+class QueryType(Enum):
+    MEDICATION = "medication"
+    DISEASE = "disease"
+    SYMPTOM = "symptom"
+    GENERAL = "general"
+
+
+class QueryIntent(Enum):
+    LOOKUP = "lookup"
+    EXPLANATION = "explanation"
+    TREATMENT = "treatment"
+    SIDE_EFFECTS = "side_effects"
+
+
+@dataclass
+class ClassifiedQuery:
+    original_query: str
+    extracted_keyword: str
+    query_type: QueryType
+    intent: QueryIntent
+    confidence: float
+    normalized_keyword: str
+    requires_wiki: bool = False
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "original_query": self.original_query,
+            "extracted_keyword": self.extracted_keyword,
+            "query_type": self.query_type.value,
+            "intent": self.intent.value,
+            "confidence": self.confidence,
+            "normalized_keyword": self.normalized_keyword,
+            "requires_wiki": self.requires_wiki
+        }
+
+
+class QueryClassifier:
+    def __init__(self, gemini_client):
+        self.gemini = gemini_client
+    
+    async def classify(self, query: str) -> ClassifiedQuery:
+        """Main classification method using Gemini"""
+        extraction = await self.gemini.extract_medical_keyword(query)
+        
+        keyword = extraction.get("extracted_keyword", "")
+        query_type_str = extraction.get("query_type", "general")
+        intent_str = extraction.get("intent", "lookup")
+        confidence = extraction.get("confidence", 0.5)
+        
+        normalized = self.normalize_medication_name(keyword)
+        query_type = self._map_query_type(query_type_str)
+        intent = self._map_intent(intent_str)
+        requires_wiki = self._should_fetch_wiki(query_type, intent, query)
+        
+        return ClassifiedQuery(
+            original_query=query,
+            extracted_keyword=keyword,
+            query_type=query_type,
+            intent=intent,
+            confidence=confidence,
+            normalized_keyword=normalized,
+            requires_wiki=requires_wiki
+        )
+    
+    def normalize_medication_name(self, name: str) -> str:
+        """
+        Normalize medication name for database lookup
+        - Lowercase
+        - Remove mg/ml units
+        - Remove form words (tablet, capsule, etc.)
+        """
+        if not name:
+            return ""
+        
+        normalized = name.lower().strip()
+        
+        # Remove dosage patterns (500mg, 250ml, etc.)
+        normalized = re.sub(r'\d+\s*(mg|ml|mcg|g|iu|%)', '', normalized)
+        
+        # Remove form words
+        for word in ['tablet', 'tablets', 'capsule', 'capsules', 'syrup', 
+                     'injection', 'cream', 'ointment', 'drops', 'gel']:
+            normalized = normalized.replace(word, '')
+        
+        # Remove special characters
+        normalized = re.sub(r'[^\w\s-]', '', normalized)
+        return ' '.join(normalized.split()).strip()
+    
+    def _map_query_type(self, type_str: str) -> QueryType:
+        mapping = {
+            "medication": QueryType.MEDICATION,
+            "disease": QueryType.DISEASE,
+            "symptom": QueryType.SYMPTOM,
+        }
+        return mapping.get(type_str.lower(), QueryType.GENERAL)
+    
+    def _map_intent(self, intent_str: str) -> QueryIntent:
+        mapping = {
+            "lookup": QueryIntent.LOOKUP,
+            "explanation": QueryIntent.EXPLANATION,
+            "treatment": QueryIntent.TREATMENT,
+            "side_effects": QueryIntent.SIDE_EFFECTS,
+        }
+        return mapping.get(intent_str.lower(), QueryIntent.LOOKUP)
+    
+    def _should_fetch_wiki(self, query_type: QueryType, intent: QueryIntent, query: str) -> bool:
+        """Determine if Wikipedia fetch is needed"""
+        if query_type in [QueryType.DISEASE, QueryType.SYMPTOM]:
+            if intent in [QueryIntent.EXPLANATION, QueryIntent.SIDE_EFFECTS]:
+                return True
+        
+        keywords = ['what is', 'explain', 'tell me about', 'symptoms of', 'side effects']
+        return any(kw in query.lower() for kw in keywords)
+    
+    def validate_medical_term(self, term: str) -> bool:
+        """Validate term is safe (not injection attack)"""
+        blocked = [r'http[s]?://', r'<.*?>', r'[{}]', r'SELECT|INSERT|DELETE']
+        for pattern in blocked:
+            if re.search(pattern, term, re.IGNORECASE):
+                return False
+        return 2 < len(term) < 100
+```
+
+---
+
+### File 4: `agent/image_validator.py`
+
+```python
+"""
+Image Validator - LOCAL IMAGES ONLY (NON-NEGOTIABLE)
+"""
+import os
+import re
+from pathlib import Path
+from typing import Optional, Set
+from dataclasses import dataclass
+
+
+@dataclass
+class ImageValidationResult:
+    is_valid: bool
+    path: Optional[str]
+    reason: str
+
+
+class ImageValidator:
+    """
+    🔒 STRICT RULES:
+    1. Images ONLY from local images folder
+    2. Valid extensions: jpg, jpeg, png, gif, webp
+    3. FORBIDDEN: Wikipedia images, disease images, external URLs
+    """
+    
+    VALID_EXTENSIONS: Set[str] = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
+    
+    FORBIDDEN_PATTERNS = [
+        r'wikipedia', r'wikimedia', r'anatomy', r'diagram',
+        r'disease', r'symptom', r'http[s]?://', r'www\.',
+        r'upload\.', r'\.com/', r'\.org/'
+    ]
+    
+    def __init__(self, images_dir: str = "static/images"):
+        """
+        Initialize with YOUR images directory path
+        
+        Args:
+            images_dir: Path to your local images folder
+        """
+        self.images_dir = images_dir
+        self._cache: dict = {}
+    
+    def validate(self, medication_name: str) -> ImageValidationResult:
+        """Validate and get image path for medication"""
+        if not medication_name:
+            return ImageValidationResult(False, None, "No name provided")
+        
+        normalized = self._normalize_name(medication_name)
+        
+        # Check cache
+        if normalized in self._cache:
+            path = self._cache[normalized]
+            if path:
+                return ImageValidationResult(True, path, "Found")
+            return ImageValidationResult(False, None, "Not found")
+        
+        # Find image
+        image_path = self._find_image(normalized)
+        self._cache[normalized] = image_path
+        
+        if image_path:
+            return ImageValidationResult(True, image_path, "Valid local image")
+        return ImageValidationResult(False, None, f"No image for: {normalized}")
+    
+    def validate_path(self, path: str) -> ImageValidationResult:
+        """Validate a given image path is safe"""
+        if not path:
+            return ImageValidationResult(False, None, "Empty path")
+        
+        # Block forbidden patterns (external URLs, etc.)
+        for pattern in self.FORBIDDEN_PATTERNS:
+            if re.search(pattern, path.lower()):
+                return ImageValidationResult(False, None, f"BLOCKED: {pattern}")
+        
+        # Must be local - NO external URLs
+        if path.startswith('http://') or path.startswith('https://'):
+            return ImageValidationResult(False, None, "External URLs FORBIDDEN")
+        
+        # Check extension
+        ext = os.path.splitext(path)[1].lower()
+        if ext not in self.VALID_EXTENSIONS:
+            return ImageValidationResult(False, None, f"Invalid extension: {ext}")
+        
+        # Check file exists
+        local_path = os.path.join(self.images_dir, os.path.basename(path))
+        if os.path.exists(local_path):
+            return ImageValidationResult(True, f"/{self.images_dir}/{os.path.basename(path)}", "Valid")
+        
+        return ImageValidationResult(False, None, "File not found")
+    
+    def block_external_url(self, url: str) -> bool:
+        """Returns True if URL should be BLOCKED"""
+        if not url:
+            return True
+        
+        url_lower = url.lower()
+        
+        # Block ALL external URLs
+        if url_lower.startswith('http://') or url_lower.startswith('https://'):
+            return True
+        
+        # Block forbidden patterns
+        for pattern in self.FORBIDDEN_PATTERNS:
+            if re.search(pattern, url_lower):
+                return True
+        
+        return False
+    
+    def _normalize_name(self, name: str) -> str:
+        """Normalize medication name for image lookup"""
+        normalized = name.lower().strip()
+        normalized = re.sub(r'\d+\s*(mg|ml|mcg|g|iu|%)', '', normalized)
+        for form in ['tablet', 'capsule', 'syrup', 'cream', 'gel']:
+            normalized = re.sub(rf'\b{form}s?\b', '', normalized)
+        return '_'.join(normalized.split()).strip('_')
+    
+    def _find_image(self, normalized_name: str) -> Optional[str]:
+        """Find image file in local folder"""
+        if not os.path.exists(self.images_dir):
+            return None
+        
+        # Exact match
+        for ext in self.VALID_EXTENSIONS:
+            path = os.path.join(self.images_dir, f"{normalized_name}{ext}")
+            if os.path.exists(path):
+                return f"/{self.images_dir}/{normalized_name}{ext}"
+        
+        # Partial match
+        for filename in os.listdir(self.images_dir):
+            name_part = os.path.splitext(filename)[0].lower()
+            ext = os.path.splitext(filename)[1].lower()
+            if ext in self.VALID_EXTENSIONS:
+                if name_part.startswith(normalized_name) or normalized_name.startswith(name_part):
+                    return f"/{self.images_dir}/{filename}"
+        
+        return None
+    
+    def clear_cache(self):
+        """Clear image cache"""
+        self._cache.clear()
+```
+
+---
+
+### File 5: `agent/wikipedia_crawler.py`
+
+```python
+"""
+Wikipedia Crawler - TEXT ONLY (NO IMAGES EVER)
+"""
+import re
+import aiohttp
+from typing import Optional, Dict, List
+
+
+class WikipediaCrawler:
+    """
+    🔒 STRICT RULES:
+    1. TEXT ONLY - No images, tables, infoboxes, media
+    2. Fetch ONLY: indications, usage, side effects
+    3. NEVER fetch images
+    4. Sanitize all queries
+    """
+    
+    SEARCH_URL = "https://en.wikipedia.org/w/api.php"
+    
+    # BLOCKED query terms
+    BLOCKED_TERMS = [
+        'image', 'images', 'picture', 'pictures', 'photo', 'photos',
+        'anatomy', 'diagram', 'structure', 'illustration',
+        'human body', 'body part', 'sexual', 'nude'
+    ]
+    
+    def __init__(self):
+        self.session = None
+    
+    async def _get_session(self) -> aiohttp.ClientSession:
+        if self.session is None or self.session.closed:
+            self.session = aiohttp.ClientSession(
+                headers={"User-Agent": "MedicalRAGAgent/1.0"}
+            )
+        return self.session
+    
+    def sanitize_query(self, query: str) -> Optional[str]:
+        """
+        Sanitize query - BLOCK forbidden terms
+        
+        ✅ Allowed: "Syphilis disease symptoms"
+        ❌ Blocked: "disease images", "anatomy diagram"
+        """
+        if not query or len(query) < 3:
+            return None
+        
+        query_lower = query.lower()
+        
+        # Block forbidden terms
+        for term in self.BLOCKED_TERMS:
+            if term in query_lower:
+                print(f"⚠️ BLOCKED query term: {term}")
+                return None
+        
+        return query
+    
+    async def search(self, query: str, limit: int = 3) -> List[Dict]:
+        """Search Wikipedia - returns TEXT info only"""
+        sanitized = self.sanitize_query(query)
+        if not sanitized:
+            return []
+        
+        session = await self._get_session()
+        params = {
+            "action": "query",
+            "list": "search",
+            "srsearch": sanitized,
+            "srlimit": limit,
+            "format": "json"
+        }
+        
+        try:
+            async with session.get(self.SEARCH_URL, params=params) as response:
+                if response.status != 200:
+                    return []
+                data = await response.json()
+                return [
+                    {"title": item.get("title", ""), "pageid": item.get("pageid")}
+                    for item in data.get("query", {}).get("search", [])
+                ]
+        except Exception as e:
+            print(f"Wikipedia search error: {e}")
+            return []
+    
+    async def fetch_article(self, title: str) -> Optional[str]:
+        """
+        Fetch article as PLAIN TEXT only
+        
+        Uses explaintext=True to get text without HTML/images
+        """
+        if not title:
+            return None
+        
+        session = await self._get_session()
+        params = {
+            "action": "query",
+            "titles": title,
+            "prop": "extracts",
+            "explaintext": True,  # ← PLAIN TEXT ONLY
+            "format": "json"
+        }
+        
+        try:
+            async with session.get(self.SEARCH_URL, params=params) as response:
+                if response.status != 200:
+                    return None
+                
+                data = await response.json()
+                pages = data.get("query", {}).get("pages", {})
+                
+                for page_id, page_data in pages.items():
+                    if page_id == "-1":
+                        return None
+                    extract = page_data.get("extract", "")
+                    return self._clean_content(extract)
+                return None
+        except Exception as e:
+            print(f"Wikipedia fetch error: {e}")
+            return None
+    
+    def _clean_content(self, text: str) -> str:
+        """Remove any URLs or image references from text"""
+        if not text:
+            return ""
+        
+        # Remove URLs
+        text = re.sub(r'https?://[^\s]+', '', text)
+        
+        # Remove image file references
+        text = re.sub(r'\S+\.(jpg|jpeg|png|gif|svg|webp)\b', '', text, flags=re.IGNORECASE)
+        
+        # Remove reference markers [1], [2], etc.
+        text = re.sub(r'\[\d+\]', '', text)
+        
+        # Clean whitespace
+        text = re.sub(r'\n{3,}', '\n\n', text)
+        
+        return text.strip()
+    
+    async def close(self):
+        """Close the session"""
+        if self.session and not self.session.closed:
+            await self.session.close()
+```
+
+---
+
+### File 6: `agent/rag_engine.py`
+
+```python
+"""
+Medical RAG Engine - Main Orchestrator
+
+🔒 PROCESSING RULES (CANNOT BE OVERRIDDEN):
+1. Database lookup ALWAYS happens FIRST
+2. Wikipedia ONLY if medication NOT in DB AND user asks for explanation
+3. Images ONLY from local folder
+4. NEVER hallucinate medications
+"""
+from typing import Dict, List, Any, Optional
+from dataclasses import dataclass, asdict
+
+from .gemini_client import GeminiClient
+from .query_classifier import QueryClassifier, QueryType, QueryIntent, ClassifiedQuery
+from .wikipedia_crawler import WikipediaCrawler
+from .image_validator import ImageValidator
+
+
+@dataclass
+class RAGResponse:
+    success: bool
+    query_type: str
+    extracted_keyword: str
+    medications: List[Dict]
+    wiki_info: Optional[str]
+    message: str
+    image_paths: List[str]
+    
+    def to_dict(self) -> Dict:
+        return asdict(self)
+
+
+class MedicalRAGEngine:
+    """
+    Main RAG Engine - connects all components
+    
+    You need to pass YOUR database instance when initializing
+    """
+    
+    def __init__(
+        self,
+        gemini_client: GeminiClient,
+        query_classifier: QueryClassifier,
+        medication_db,  # YOUR existing database
+        wiki_crawler: WikipediaCrawler,
+        image_validator: ImageValidator
+    ):
+        self.gemini = gemini_client
+        self.classifier = query_classifier
+        self.db = medication_db  # Your database
+        self.wiki = wiki_crawler
+        self.image_validator = image_validator
+    
+    async def process_query(self, query: str, include_wiki: bool = False) -> RAGResponse:
+        """
+        Main query processing pipeline
+        
+        Steps:
+        1. Classify query (extract keyword, determine type)
+        2. Search YOUR database FIRST (mandatory)
+        3. If disease query → map to medications via Gemini
+        4. Optionally fetch Wikipedia (TEXT ONLY)
+        5. Validate all images (local only)
+        6. Return structured response
+        """
+        
+        # Step 1: Classify
+        classification = await self.classifier.classify(query)
+        print(f"📋 Classified: {classification.to_dict()}")
+        
+        # Validate keyword
+        if not self.classifier.validate_medical_term(classification.extracted_keyword):
+            return RAGResponse(
+                success=False,
+                query_type=classification.query_type.value,
+                extracted_keyword=classification.extracted_keyword,
+                medications=[],
+                wiki_info=None,
+                message="Invalid or unsafe query detected.",
+                image_paths=[]
+            )
+        
+        # Step 2: Route by query type
+        if classification.query_type == QueryType.MEDICATION:
+            return await self._handle_medication(classification, include_wiki)
+        elif classification.query_type in [QueryType.DISEASE, QueryType.SYMPTOM]:
+            return await self._handle_disease(classification, include_wiki)
+        else:
+            return await self._handle_general(classification, include_wiki)
+    
+    async def _handle_medication(self, classification: ClassifiedQuery, include_wiki: bool) -> RAGResponse:
+        """
+        Handle medication queries
+        
+        1. Search YOUR database first
+        2. Validate images (local only)
+        3. Optionally fetch Wikipedia text
+        """
+        # Search YOUR database - implement based on your DB structure
+        medications = self._search_database(classification.normalized_keyword)
+        
+        if medications:
+            image_paths = []
+            for med in medications:
+                # Validate image is local
+                img_result = self.image_validator.validate(med.get('name', ''))
+                if img_result.is_valid:
+                    med['validated_image'] = img_result.path
+                    image_paths.append(img_result.path)
+                else:
+                    med['validated_image'] = None
+            
+            wiki_info = None
+            if include_wiki and classification.requires_wiki:
+                wiki_info = await self._fetch_wiki_safely(
+                    classification.extracted_keyword, "medication"
+                )
+            
+            return RAGResponse(
+                success=True,
+                query_type=classification.query_type.value,
+                extracted_keyword=classification.extracted_keyword,
+                medications=medications,
+                wiki_info=wiki_info,
+                message=f"Found {len(medications)} medication(s)",
+                image_paths=image_paths
+            )
+        
+        # Not found
+        return RAGResponse(
+            success=False,
+            query_type=classification.query_type.value,
+            extracted_keyword=classification.extracted_keyword,
+            medications=[],
+            wiki_info=None,
+            message=f"Medication '{classification.extracted_keyword}' not found in database.",
+            image_paths=[]
+        )
+    
+    async def _handle_disease(self, classification: ClassifiedQuery, include_wiki: bool) -> RAGResponse:
+        """
+        Handle disease/symptom queries
+        
+        1. Use Gemini to map disease → ingredients
+        2. Search YOUR database for those ingredients
+        3. NEVER fetch disease images
+        """
+        # Map disease to medication ingredients via Gemini
+        ingredients = await self.gemini.map_disease_to_medications(classification.extracted_keyword)
+        print(f"💊 Mapped ingredients: {ingredients}")
+        
+        # Search YOUR database for medications with these ingredients
+        all_medications = []
+        seen_ids = set()
+        
+        for ingredient in ingredients:
+            meds = self._search_by_ingredient(ingredient)
+            for med in meds:
+                med_id = med.get('id') or med.get('name')
+                if med_id not in seen_ids:
+                    seen_ids.add(med_id)
+                    # Validate image
+                    img_result = self.image_validator.validate(med.get('name', ''))
+                    med['validated_image'] = img_result.path if img_result.is_valid else None
+                    med['matched_ingredient'] = ingredient
+                    all_medications.append(med)
+        
+        image_paths = [m['validated_image'] for m in all_medications if m.get('validated_image')]
+        
+        # Fetch Wikipedia TEXT ONLY if needed
+        wiki_info = None
+        if include_wiki or classification.requires_wiki:
+            wiki_info = await self._fetch_wiki_safely(
+                classification.extracted_keyword, "disease"
+            )
+        
+        if all_medications:
+            return RAGResponse(
+                success=True,
+                query_type=classification.query_type.value,
+                extracted_keyword=classification.extracted_keyword,
+                medications=all_medications,
+                wiki_info=wiki_info,
+                message=f"Found {len(all_medications)} medication(s) for '{classification.extracted_keyword}'",
+                image_paths=image_paths
+            )
+        
+        return RAGResponse(
+            success=wiki_info is not None,
+            query_type=classification.query_type.value,
+            extracted_keyword=classification.extracted_keyword,
+            medications=[],
+            wiki_info=wiki_info,
+            message="No medications found. Please consult a healthcare provider.",
+            image_paths=[]
+        )
+    
+    async def _handle_general(self, classification: ClassifiedQuery, include_wiki: bool) -> RAGResponse:
+        """Handle general/unclear queries"""
+        # Try database search
+        medications = self._search_database(classification.normalized_keyword)
+        
+        if medications:
+            return await self._handle_medication(classification, include_wiki)
+        
+        wiki_info = None
+        if include_wiki:
+            wiki_info = await self._fetch_wiki_safely(
+                classification.extracted_keyword, "general"
+            )
+        
+        return RAGResponse(
+            success=wiki_info is not None,
+            query_type=classification.query_type.value,
+            extracted_keyword=classification.extracted_keyword,
+            medications=[],
+            wiki_info=wiki_info,
+            message="Could not identify medication or condition. Please be more specific.",
+            image_paths=[]
+        )
+    
+    async def _fetch_wiki_safely(self, keyword: str, query_type: str) -> Optional[str]:
+        """Fetch Wikipedia TEXT ONLY - no images"""
+        wiki_query = await self.gemini.generate_wiki_query(keyword, query_type)
+        print(f"🔍 Wiki query: {wiki_query}")
+        
+        results = await self.wiki.search(wiki_query, limit=1)
+        if not results:
+            return None
+        
+        title = results[0].get('title')
+        content = await self.wiki.fetch_article(title)
+        
+        if not content:
+            return None
+        
+        # Summarize with Gemini
+        return await self.gemini.summarize_wiki_content(content, keyword)
+    
+    # ============================================================
+    # 🔧 IMPLEMENT THESE METHODS BASED ON YOUR DATABASE STRUCTURE
+    # ============================================================
+    
+    def _search_database(self, keyword: str) -> List[Dict]:
+        """
+        Search YOUR database for medications
+        
+        IMPLEMENT THIS based on your database structure!
+        
+        Example if using SQLAlchemy:
+            return self.db.query(Medication).filter(
+                Medication.name.ilike(f"%{keyword}%")
+            ).all()
+        
+        Example if using raw SQL:
+            cursor.execute("SELECT * FROM medications WHERE name LIKE ?", (f"%{keyword}%",))
+            return cursor.fetchall()
+        """
+        # TODO: Replace with YOUR database search logic
+        if hasattr(self.db, 'search'):
+            return self.db.search(keyword)
+        elif hasattr(self.db, 'query'):
+            # SQLAlchemy style
+            return self.db.query(keyword)
+        else:
+            print("⚠️ Please implement _search_database() for your database!")
+            return []
+    
+    def _search_by_ingredient(self, ingredient: str) -> List[Dict]:
+        """
+        Search YOUR database by ingredient
+        
+        IMPLEMENT THIS based on your database structure!
+        """
+        # TODO: Replace with YOUR database search logic
+        if hasattr(self.db, 'search_by_ingredient'):
+            return self.db.search_by_ingredient(ingredient)
+        elif hasattr(self.db, 'search'):
+            return self.db.search(ingredient)
+        else:
+            print("⚠️ Please implement _search_by_ingredient() for your database!")
+            return []
+```
+
+---
+
+## 🔌 STEP 5: Integrate with Your Existing Code
+
+Add this to your **main.py** or wherever your FastAPI app is:
+
+```python
+# Add these imports at the top
+from agent import (
+    GeminiClient, 
+    QueryClassifier, 
+    WikipediaCrawler, 
+    ImageValidator, 
+    MedicalRAGEngine
+)
+
+# Initialize RAG components (add after your existing db initialization)
+gemini_client = GeminiClient()
+query_classifier = QueryClassifier(gemini_client)
+wiki_crawler = WikipediaCrawler()
+image_validator = ImageValidator(images_dir="static/images")  # Your images folder path
+
+# Create RAG engine with YOUR database
+rag_engine = MedicalRAGEngine(
+    gemini_client=gemini_client,
+    query_classifier=query_classifier,
+    medication_db=your_existing_db,  # ← YOUR DATABASE INSTANCE
+    wiki_crawler=wiki_crawler,
+    image_validator=image_validator
+)
+
+
+# Add this endpoint to your FastAPI app
+@app.post("/api/smart-query")
+async def smart_query(query: str, include_wiki: bool = False):
+    """
+    Intelligent medical query endpoint
+    Uses Gemini LLM for understanding and safe RAG
+    """
+    result = await rag_engine.process_query(query, include_wiki)
+    return result.to_dict()
+```
+
+---
+
+## 🔧 STEP 6: Customize for Your Database
+
+In `agent/rag_engine.py`, update these methods to match YOUR database:
+
+```python
+def _search_database(self, keyword: str) -> List[Dict]:
+    """
+    Replace with YOUR database search logic
+    """
+    # Example for SQLAlchemy:
+    # return self.db.session.query(Medication).filter(
+    #     Medication.name.ilike(f"%{keyword}%")
+    # ).all()
+    
+    # Example for your custom DB class:
+    # return self.db.search_medications(keyword)
+    
+    # Example for raw SQL:
+    # cursor = self.db.cursor()
+    # cursor.execute("SELECT * FROM medications WHERE name LIKE %s", (f"%{keyword}%",))
+    # return cursor.fetchall()
+    pass
+
+def _search_by_ingredient(self, ingredient: str) -> List[Dict]:
+    """
+    Replace with YOUR ingredient search logic
+    """
+    # Example:
+    # return self.db.session.query(Medication).filter(
+    #     Medication.ingredients.ilike(f"%{ingredient}%")
+    # ).all()
+    pass
+```
+
+---
+
+## ✅ STEP 7: Test the Integration
+
+```bash
+# In Replit Shell, test the endpoint:
+curl -X POST "http://localhost:8000/api/smart-query?query=panadol&include_wiki=false"
+
+# Or test disease query:
+curl -X POST "http://localhost:8000/api/smart-query?query=medicine%20for%20fever&include_wiki=true"
+```
+
+---
+
+## 🔒 SAFETY RULES SUMMARY (CANNOT BE OVERRIDDEN)
+
+| Rule | Enforcement |
+|------|-------------|
+| ✅ DB First | `rag_engine.py` always queries YOUR database first |
+| ✅ Local Images Only | `image_validator.py` blocks ALL external URLs |
+| ✅ Wikipedia Text Only | `wikipedia_crawler.py` uses `explaintext=True` |
+| ✅ Gemini Validation | All queries classified by LLM before processing |
+| ❌ No External Images | `FORBIDDEN_PATTERNS` blocks Wikipedia/external URLs |
+| ❌ No Hallucination | Only returns medications from YOUR database |
+
+---
+
+## 📁 Final File Structure
+
+```
+your-replit-project/
+├── main.py                      # Your existing app + new endpoint
+├── agent/                       # NEW folder
+│   ├── __init__.py
+│   ├── gemini_client.py
+│   ├── query_classifier.py
+│   ├── image_validator.py
+│   ├── wikipedia_crawler.py
+│   └── rag_engine.py
+├── static/images/               # Your existing images
+├── your_existing_database.db    # Your existing database
+└── ... other existing files
+```
+
+---
+
+## 🆘 Need Help?
+
+If you have issues:
+1. Share your database structure (table schema)
+2. Share your current main.py setup
+3. I'll customize the integration code for you
