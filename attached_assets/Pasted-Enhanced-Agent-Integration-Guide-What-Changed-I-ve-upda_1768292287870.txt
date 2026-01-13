@@ -1,0 +1,328 @@
+Enhanced Agent Integration Guide
+🎯 What Changed
+I've updated the Wikipedia Agent to be intelligent - it now:
+
+Extracts keywords before searching Wikipedia
+Searches medicine catalog automatically
+Combines results intelligently
+
+
+📁 Files to Update/Add
+1. Replace Previous File
+Replace:
+services/wikipedia_medical_agent.py
+With:
+services/wikipedia_medical_agent_enhanced.py
+Then rename it to:
+bashmv services/wikipedia_medical_agent_enhanced.py services/wikipedia_medical_agent.py
+2. Update Orchestrator
+The smart_rag_orchestrator.py has been already updated in the artifacts above. Make sure you're using the latest version.
+
+🚀 Quick Installation (Replit)
+Step 1: Add/Replace Files
+bash# In Replit Shell
+cd services/
+
+# Backup old agent if exists
+if [ -f "wikipedia_medical_agent.py" ]; then
+    mv wikipedia_medical_agent.py wikipedia_medical_agent_OLD.py
+fi
+
+# Add the enhanced agent
+# (copy code from artifact 'wikipedia_agent')
+touch wikipedia_medical_agent.py
+# Paste the enhanced agent code
+
+# Update orchestrator
+# (copy updated code from artifact 'smart_rag_orchestrator')
+Step 2: No Other Changes Needed!
+The enhanced agent has the same interface as before:
+
+Same function names
+Same return structure
+Just smarter internally
+
+Your existing code will work without changes!
+
+✅ Verification
+Test 1: Keyword Extraction
+python# In Replit Console
+from services.wikipedia_medical_agent import extract_keywords_only
+
+# Your exact example
+result = extract_keywords_only("what are main symptoms of disease syphilis")
+
+print(result.primary_keyword)
+# Expected: "syphilis"
+
+print(result.medicine_keywords)
+# Expected: ["syphilis"]
+
+print(result.should_search_wikipedia)
+# Expected: True
+
+print(result.should_search_medicines)
+# Expected: True
+Test 2: Full Processing
+pythonfrom services.wikipedia_medical_agent import process_medical_query
+
+result = process_medical_query("what are symptoms of syphilis")
+
+print("Wikipedia:", result['wikipedia']['title'] if result['wikipedia'] else None)
+# Expected: "Syphilis"
+
+print("Medicines:", len(result['medicines']))
+# Expected: 2-3 (if you have antibiotics in your DB)
+
+print("Keyword used:", result['extracted'].primary_keyword)
+# Expected: "syphilis"
+Test 3: Full Chatbot
+pythonfrom services.chatbot_with_smart_rag import generate_response
+
+response = generate_response(
+    "what are main symptoms of disease syphilis",
+    lang="en"
+)
+
+print("Response:", response['message'][:200])
+print("Medicines:", len(response['medicines']))
+print("Keywords:", response.get('extracted_keywords'))
+
+🎯 What Happens Now
+Before (Old Agent):
+User: "what are main symptoms of disease syphilis"
+↓
+Wikipedia Search: "what are main symptoms of disease syphilis"
+↓
+Confused search results
+↓
+May not find the right page
+After (Enhanced Agent):
+User: "what are main symptoms of disease syphilis"
+↓
+Keyword Extraction: Extracts "syphilis"
+↓
+Wikipedia Search: "syphilis" (clean keyword)
+↓
+Medicine Search: "syphilis"
+↓
+Finds: Syphilis page + Antibiotic medicines
+↓
+Combined response with treatment options
+
+🔍 New Features
+1. Pattern Recognition
+The agent now recognizes these patterns:
+python"what are symptoms of [X]" → Extracts X
+"medicine for [Y]" → Extracts Y
+"treatment for [Z]" → Extracts Z
+"what is [W]" → Extracts W
+2. Dual Search
+pythonSingle query now triggers:
+├─ Wikipedia search (with extracted keyword)
+└─ Medicine catalog search (automatic)
+3. Smart Entity Recognition
+pythonRecognizes:
+- Known diseases (diabetes, hypertension, etc.)
+- Symptoms (fever, pain, cough, etc.)
+- Medicine names (paracetamol, aspirin, etc.)
+4. Confidence Scoring
+pythonHigh confidence (0.8-1.0) → Pattern match
+Medium confidence (0.5-0.7) → Entity match
+Low confidence (<0.5) → Falls back to old method
+
+📊 Response Structure Changes
+New Field: extracted_keywords
+Responses now include:
+python{
+    'message': "...",
+    'medicines': [...],
+    'extracted_keywords': {  # NEW!
+        'primary': 'syphilis',
+        'wiki_keywords': ['syphilis'],
+        'medicine_keywords': ['syphilis'],
+        'confidence': 0.9
+    },
+    ...
+}
+New Field: combined_context
+The AI now receives richer context:
+python[INTELLIGENT QUERY ANALYSIS]
+Original Query: what are symptoms of syphilis
+Detected Topic: disease
+Extracted Keyword: syphilis
+Confidence: 0.90
+
+[WIKIPEDIA MEDICAL INFORMATION]
+Topic: Syphilis
+(Searched with keyword: 'syphilis')
+...
+
+[RECOMMENDED MEDICINES FROM RED DOT PHARMACY]
+Found 2 relevant medicines:
+...
+
+🐛 Troubleshooting
+Issue: Keyword extraction not working
+Test:
+pythonfrom services.wikipedia_medical_agent import extract_keywords_only
+
+result = extract_keywords_only("your problematic query")
+print(result.primary_keyword)
+print(result.confidence)
+Solution: Add the pattern to the agent. Edit wikipedia_medical_agent.py:
+python# Add to DISEASE_NAMES list (line ~40)
+DISEASE_NAMES = [
+    'diabetes', 'hypertension', 'your_disease', ...
+]
+
+# Or add to QUESTION_PATTERNS (line ~60)
+'symptoms': [
+    r'your custom pattern here',
+    ...
+]
+Issue: No medicines found
+Check:
+pythonfrom services.medicine_rag import search_medicines, search_medicines_for_condition
+
+# Direct search
+meds = search_medicines("diabetes")
+print(len(meds))
+
+# Condition search
+meds = search_medicines_for_condition("diabetes")
+print(len(meds))
+Solution: Ensure your database has medicines with:
+
+Matching names
+Matching descriptions
+Matching categories
+
+Issue: Wikipedia not found
+Check:
+pythonfrom services.wikipedia_utils import wiki_search_top_title
+
+title = wiki_search_top_title("diabetes")
+print(title)  # Should print "Diabetes mellitus" or similar
+Solution: The keyword might be too specific. The agent will try variations.
+
+📈 Performance Monitoring
+Check Agent Stats
+pythonfrom services.wikipedia_medical_agent import get_enhanced_wiki_agent
+
+agent = get_enhanced_wiki_agent()
+stats = agent.get_stats()
+
+print(stats)
+# {
+#     'total_fetches': 45,
+#     'cache_hits': 38,
+#     'cache_hit_rate': '84.4%',
+#     'cached_pages': 25
+# }
+Monitor Extraction Quality
+Add logging:
+pythonimport logging
+logging.basicConfig(level=logging.INFO)
+
+# Now all extractions will be logged
+from services.wikipedia_medical_agent import process_medical_query
+result = process_medical_query("your query")
+
+# Check console for:
+# INFO - Extracted - Wiki: syphilis, Medicine: ['syphilis'], Confidence: 0.90
+
+🎓 Advanced Usage
+Custom Keyword Extraction
+pythonfrom services.wikipedia_medical_agent import KeywordExtractor
+
+# Create custom extractor
+extractor = KeywordExtractor()
+
+# Add your disease names
+extractor.DISEASE_NAMES.append('your_disease')
+
+# Extract
+result = extractor.extract("query about your_disease")
+Direct Component Access
+python# Just extract keywords
+from services.wikipedia_medical_agent import extract_keywords_only
+keywords = extract_keywords_only("complex medical query")
+
+# Just search Wikipedia
+from services.wikipedia_medical_agent import get_enhanced_wiki_agent
+agent = get_enhanced_wiki_agent()
+wiki_data = agent._fetch_wikipedia("diabetes")
+
+# Just search medicines
+medicines = agent._search_medicine_catalog(["fever", "pain"])
+
+🔄 Migration from Old Agent
+No Breaking Changes!
+If you were using:
+pythonfrom services.wikipedia_medical_agent import fetch_medical_wikipedia
+It still works! But now it's smarter internally.
+New Functions Available
+python# NEW: Process query with full intelligence
+from services.wikipedia_medical_agent import process_medical_query
+result = process_medical_query("query")
+
+# NEW: Extract keywords only
+from services.wikipedia_medical_agent import extract_keywords_only
+keywords = extract_keywords_only("query")
+
+# OLD: Still works
+from services.wikipedia_medical_agent import fetch_medical_wikipedia
+wiki_data = fetch_medical_wikipedia("diabetes")
+
+✅ Final Checklist
+Before going live:
+
+ Replaced/added wikipedia_medical_agent.py with enhanced version
+ Updated smart_rag_orchestrator.py with new retrieve() method
+ Tested keyword extraction with sample queries
+ Verified Wikipedia search uses extracted keywords
+ Confirmed medicine catalog search works
+ Tested complete chatbot flow
+ Checked logs show extraction info
+ Verified no breaking changes
+ Tested with your exact example: "what are symptoms of syphilis"
+
+
+🎉 Success Indicators
+You'll know it's working when:
+
+Console logs show:
+
+   INFO - Extracted - Wiki: syphilis, Medicine: ['syphilis'], Confidence: 0.90
+   INFO - Agent found 2 medicines
+   INFO - Agent fetched Wikipedia: Syphilis
+
+Chatbot response includes:
+
+Disease information from Wikipedia
+Recommended medicines from your catalog
+Combined context
+
+
+Response object has:
+
+python   {
+       'extracted_keywords': {
+           'primary': 'syphilis',
+           'confidence': 0.9
+       },
+       'medicines': [2 or more medicines],
+       'context_source': 'combined'
+   }
+
+🚀 Deploy Now!
+
+Copy enhanced agent code from artifact wikipedia_agent
+Paste into services/wikipedia_medical_agent.py
+Update orchestrator from artifact smart_rag_orchestrator
+Restart Replit
+Test: "what are main symptoms of disease syphilis"
+See magic happen! ✨
+
+The enhanced agent is production-ready and backward compatible! 🎊

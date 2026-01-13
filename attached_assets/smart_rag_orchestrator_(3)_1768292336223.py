@@ -6,7 +6,7 @@ with intelligent query classification and filtering.
 
 import logging
 from typing import Dict, List, Optional
-from services.query_classifier import QueryClassifier, should_fetch_medication_image, validate_image_relevance
+from query_classifier import QueryClassifier, should_fetch_medication_image, validate_image_relevance
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +24,16 @@ class SmartRAGOrchestrator:
         """
         Main retrieval method with enhanced intelligent routing.
         Uses Wikipedia agent with keyword extraction.
+        
+        Returns:
+            {
+                'medications': List[Dict],
+                'wiki_context': Optional[str],
+                'images': List[Dict],
+                'context_type': str,
+                'should_show_images': bool,
+                'extracted_keywords': Dict
+            }
         """
         result = {
             'medications': [],
@@ -34,9 +44,11 @@ class SmartRAGOrchestrator:
             'extracted_keywords': {}
         }
         
+        # Step 1: Use Enhanced Wikipedia Agent for intelligent processing
         try:
             from services.wikipedia_medical_agent import process_medical_query
             
+            # Process query with intelligent extraction
             agent_result = process_medical_query(user_query)
             
             extracted = agent_result['extracted']
@@ -47,16 +59,19 @@ class SmartRAGOrchestrator:
                 'confidence': extracted.extraction_confidence
             }
             
+            # Use agent's medicine results if available
             if agent_result['medicines']:
                 result['medications'] = agent_result['medicines']
                 result['context_type'] = 'database'
                 logger.info(f"Agent found {len(result['medications'])} medicines")
             
+            # Use agent's Wikipedia context
             if agent_result['wikipedia']:
                 result['wiki_context'] = agent_result['combined_context']
                 result['context_type'] = 'combined' if result['medications'] else 'wikipedia_text'
                 logger.info(f"Agent fetched Wikipedia: {agent_result['wikipedia']['title']}")
             
+            # Image retrieval (ONLY for medications from DB)
             if result['medications']:
                 result['images'] = self._fetch_medication_images(result['medications'])
                 result['should_show_images'] = len(result['images']) > 0
@@ -65,6 +80,7 @@ class SmartRAGOrchestrator:
             
         except Exception as agent_error:
             logger.error(f"Enhanced agent failed, falling back: {agent_error}")
+            # Fallback to old method
             return self._retrieve_fallback(user_query)
     
     def _retrieve_fallback(self, user_query: str) -> Dict:
@@ -78,9 +94,11 @@ class SmartRAGOrchestrator:
             'extracted_keywords': {}
         }
         
+        # Old classification method
         classification = self.classifier.classify(user_query)
         logger.info(f"Fallback - Query type: {classification['type']}")
         
+        # Database search
         if classification['should_search_db']:
             db_query = self.classifier.generate_db_query(classification)
             result['medications'] = self._search_database(db_query)
@@ -88,10 +106,12 @@ class SmartRAGOrchestrator:
             if result['medications']:
                 result['context_type'] = 'database'
         
+        # Images
         if classification['should_fetch_images'] and result['medications']:
             result['images'] = self._fetch_medication_images(result['medications'])
             result['should_show_images'] = len(result['images']) > 0
         
+        # Wikipedia fallback
         if classification['should_crawl_wiki'] and not result['medications']:
             wiki_subject = self.classifier.generate_wiki_subject(classification, user_query)
             if wiki_subject:
@@ -102,7 +122,9 @@ class SmartRAGOrchestrator:
         return result
     
     def _search_database(self, query: str) -> List[Dict]:
-        """Search internal medicine database with fallback strategies."""
+        """
+        Search internal medicine database with fallback strategies.
+        """
         try:
             from services.medicine_rag import (
                 search_medicines,
@@ -113,17 +135,20 @@ class SmartRAGOrchestrator:
             if not query or len(query.strip()) < 2:
                 return []
             
+            # Strategy 1: Direct name search
             results = search_medicines(query, limit=5)
             
             if results:
                 logger.info(f"Direct search found {len(results)} results")
                 return results
             
+            # Strategy 2: Exact name match
             exact_match = get_medicine_by_name(query)
             if exact_match:
                 logger.info("Exact name match found")
                 return [exact_match]
             
+            # Strategy 3: Condition/symptom search
             results = search_medicines_for_condition(query, limit=5)
             
             if results:
@@ -136,21 +161,27 @@ class SmartRAGOrchestrator:
             return []
     
     def _fetch_medication_images(self, medications: List[Dict]) -> List[Dict]:
-        """Fetch ONLY validated medication images from local storage."""
+        """
+        Fetch ONLY validated medication images from local storage.
+        NO external crawling, NO Wikipedia images.
+        """
         validated_images = []
         
         for med in medications:
             med_name = med.get('name', '')
             
+            # Validate image should be fetched
             if not should_fetch_medication_image(med_name, med):
                 continue
             
             image_path = med.get('image', '').strip()
             
+            # Additional validation
             if not validate_image_relevance(image_path, med_name):
                 logger.warning(f"Image validation failed for {med_name}: {image_path}")
                 continue
             
+            # Construct proper URL
             if image_path and not image_path.startswith('/'):
                 image_url = f"/static/uploads/medicines/{image_path}"
             else:
@@ -169,10 +200,14 @@ class SmartRAGOrchestrator:
         return validated_images
     
     def _fetch_wiki_text_only(self, subject: str) -> Optional[str]:
-        """Fetch Wikipedia text summary ONLY using intelligent agent. NO images."""
+        """
+        Fetch Wikipedia text summary ONLY using intelligent agent.
+        NO images, NO tables, NO infoboxes.
+        """
         try:
             from services.wikipedia_medical_agent import get_wiki_agent
             
+            # Use Wikipedia Medical Agent
             agent = get_wiki_agent()
             wiki_data = agent.fetch_medical_info(subject)
             
@@ -180,6 +215,7 @@ class SmartRAGOrchestrator:
                 logger.info(f"No medical Wikipedia info for: {subject}")
                 return None
             
+            # Build medical context with safety disclaimers
             context = agent.build_medical_context(wiki_data)
             
             logger.info(f"Wikipedia agent: {wiki_data['title']} "
@@ -192,9 +228,12 @@ class SmartRAGOrchestrator:
             return None
     
     def build_ai_context(self, retrieval_result: Dict) -> str:
-        """Build context string for AI prompt based on retrieval results."""
+        """
+        Build context string for AI prompt based on retrieval results.
+        """
         context_parts = []
         
+        # Add medication data
         if retrieval_result['medications']:
             context_parts.append("[MEDICINE DATA FROM RED DOT PHARMACY DATABASE]")
             
@@ -215,6 +254,7 @@ class SmartRAGOrchestrator:
                     desc = med['description'][:300]
                     context_parts.append(f"Description: {desc}")
                 
+                # Add image URL if available
                 if retrieval_result['should_show_images']:
                     matching_image = next(
                         (img for img in retrieval_result['images'] 
@@ -227,12 +267,14 @@ class SmartRAGOrchestrator:
             context_parts.append("\n[END OF MEDICINE DATA]")
             context_parts.append("IMPORTANT: Use ONLY this medicine data. Do NOT invent other medicines.")
         
+        # Add Wikipedia text if available
         if retrieval_result['wiki_context']:
             context_parts.append("\n" + retrieval_result['wiki_context'])
         
         return "\n".join(context_parts) if context_parts else ""
 
 
+# Global instance
 _orchestrator = None
 
 def get_orchestrator() -> SmartRAGOrchestrator:
@@ -244,6 +286,9 @@ def get_orchestrator() -> SmartRAGOrchestrator:
 
 
 def smart_retrieve(user_query: str, language: str = "en") -> Dict:
-    """Main entry point for smart retrieval."""
+    """
+    Main entry point for smart retrieval.
+    Use this instead of directly calling medicine_rag or wikipedia_utils.
+    """
     orchestrator = get_orchestrator()
     return orchestrator.retrieve(user_query, language)
