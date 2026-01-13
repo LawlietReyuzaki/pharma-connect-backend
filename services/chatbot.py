@@ -263,28 +263,28 @@ def generate_response(text, prefer_urdu=None, session_id=None, lang="auto"):
     
     retrieved_medicines = []
     medicine_context = ""
+    retrieval_result = None
+    
     try:
-        from services.medicine_rag import (
-            find_medicines_in_text, 
-            search_medicines, 
-            search_medicines_for_condition,
-            build_medicine_context,
-            format_medicine_response
-        )
+        from services.smart_rag_orchestrator import smart_retrieve, get_orchestrator
+        from services.medicine_rag import format_medicine_response
         
-        retrieved_medicines = find_medicines_in_text(text)
+        retrieval_result = smart_retrieve(text, detected_lang)
+        retrieved_medicines = retrieval_result.get('medications', [])
         
-        if not retrieved_medicines:
-            retrieved_medicines = search_medicines(text, limit=3)
-        
-        if not retrieved_medicines:
-            retrieved_medicines = search_medicines_for_condition(text, limit=3)
-        
-        if retrieved_medicines:
-            medicine_context = build_medicine_context(retrieved_medicines)
-            logging.info(f"RAG: Retrieved {len(retrieved_medicines)} medicines for query")
+        if retrieved_medicines or retrieval_result.get('wiki_context'):
+            orchestrator = get_orchestrator()
+            medicine_context = orchestrator.build_ai_context(retrieval_result)
+            logging.info(f"Smart RAG: Retrieved {len(retrieved_medicines)} medicines, context: {retrieval_result.get('context_type')}")
     except Exception as rag_error:
-        logging.warning(f"RAG retrieval failed (non-blocking): {rag_error}")
+        logging.warning(f"Smart RAG retrieval failed (non-blocking): {rag_error}")
+        try:
+            from services.medicine_rag import find_medicines_in_text, build_medicine_context, format_medicine_response
+            retrieved_medicines = find_medicines_in_text(text)
+            if retrieved_medicines:
+                medicine_context = build_medicine_context(retrieved_medicines)
+        except:
+            pass
     
     if needs_escalation(text):
         response_msg = get_emergency_response(detected_lang)
