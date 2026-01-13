@@ -260,13 +260,57 @@ class KeywordExtractor:
 
 
 class EnhancedWikipediaMedicalAgent:
-    """Enhanced Wikipedia agent with intelligent keyword extraction."""
+    """
+    Enhanced Wikipedia agent with intelligent keyword extraction.
+    
+    SYSTEM PROMPT FOR WIKIPEDIA SEARCH:
+    - When searching for diseases, ALWAYS append "disease" or "medical condition" 
+      to ensure Wikipedia API returns the MEDICAL article, not unrelated pages
+    - Example: "typhoid" → "typhoid fever disease" (NOT "Typhoid Mary")
+    - Example: "malaria" → "malaria disease infection"  
+    - Example: "diabetes" → "diabetes mellitus medical"
+    - For medications, append "medication" or "drug" for pharmaceutical results
+    - NEVER return biographical, historical, or non-medical Wikipedia pages
+    """
+    
+    KNOWN_DISEASES = [
+        'typhoid', 'malaria', 'dengue', 'cholera', 'tuberculosis', 'pneumonia',
+        'diabetes', 'hypertension', 'asthma', 'hepatitis', 'syphilis', 'gonorrhea',
+        'covid', 'influenza', 'measles', 'chickenpox', 'polio', 'tetanus',
+        'arthritis', 'epilepsy', 'migraine', 'bronchitis', 'gastritis', 'diarrhea'
+    ]
     
     def __init__(self):
         self.extractor = KeywordExtractor()
         self.cache = {}
         self.fetch_count = 0
         self.cache_hits = 0
+    
+    def _make_medical_query(self, keyword: str, topic_type: MedicalTopicType) -> str:
+        """
+        Convert keyword to medical-specific Wikipedia search query.
+        
+        Ensures we get the DISEASE article, not unrelated pages.
+        Example: "typhoid" → "typhoid fever disease" (NOT "Typhoid Mary")
+        """
+        keyword = keyword.lower().strip()
+        
+        if topic_type == MedicalTopicType.DISEASE or keyword in self.KNOWN_DISEASES:
+            if 'fever' not in keyword and keyword in ['typhoid', 'dengue', 'yellow', 'scarlet']:
+                keyword = f"{keyword} fever"
+            return f"{keyword} disease medical condition"
+        
+        elif topic_type == MedicalTopicType.MEDICATION:
+            return f"{keyword} medication drug pharmaceutical"
+        
+        elif topic_type == MedicalTopicType.SYMPTOM:
+            return f"{keyword} symptom medical"
+        
+        elif topic_type == MedicalTopicType.TREATMENT:
+            return f"{keyword} treatment therapy medical"
+        
+        else:
+            return f"{keyword} medical health"
     
     def process_query(self, query: str) -> Dict:
         """Main method: Process query, extract keywords, fetch Wikipedia + medicines."""
@@ -280,7 +324,7 @@ class EnhancedWikipediaMedicalAgent:
         }
         
         if extracted.should_search_wikipedia and extracted.primary_keyword:
-            result['wikipedia'] = self._fetch_wikipedia(extracted.primary_keyword)
+            result['wikipedia'] = self._fetch_wikipedia(extracted.primary_keyword, extracted.topic_type)
         
         if extracted.should_search_medicines:
             keywords = extracted.medicine_keywords if extracted.medicine_keywords else [extracted.primary_keyword]
@@ -322,8 +366,13 @@ It is NOT a substitute for professional medical advice.
 ALWAYS consult a qualified healthcare provider.
 """.strip()
     
-    def _fetch_wikipedia(self, keyword: str) -> Optional[Dict]:
-        """Fetch from Wikipedia using extracted keyword"""
+    def _fetch_wikipedia(self, keyword: str, topic_type: MedicalTopicType = None) -> Optional[Dict]:
+        """
+        Fetch from Wikipedia using extracted keyword with MEDICAL-SPECIFIC query.
+        
+        Converts "typhoid" → "typhoid fever disease" to get the disease article,
+        NOT "Typhoid Mary" or other unrelated pages.
+        """
         cache_key = keyword.lower()
         if cache_key in self.cache:
             self.cache_hits += 1
@@ -333,11 +382,23 @@ ALWAYS consult a qualified healthcare provider.
         try:
             from services.wikipedia_utils_safe import wiki_search_top_title, fetch_wiki_text_summary
             
-            title = wiki_search_top_title(keyword)
+            medical_query = self._make_medical_query(keyword, topic_type or MedicalTopicType.DISEASE)
+            logger.info(f"Medical Wikipedia query: '{keyword}' → '{medical_query}'")
+            
+            title = wiki_search_top_title(medical_query)
+            
+            if not title:
+                title = wiki_search_top_title(keyword)
             
             if not title:
                 logger.info(f"No Wikipedia page for: {keyword}")
                 return None
+            
+            if not self._is_medical_title(title):
+                medical_query_alt = f"{keyword} disease"
+                alt_title = wiki_search_top_title(medical_query_alt)
+                if alt_title and self._is_medical_title(alt_title):
+                    title = alt_title
             
             wiki_data = fetch_wiki_text_summary(title, max_sentences=6)
             
@@ -351,6 +412,7 @@ ALWAYS consult a qualified healthcare provider.
                 'summary': wiki_data['summary'],
                 'page_url': wiki_data['page_url'],
                 'search_keyword': keyword,
+                'medical_query_used': medical_query,
                 'quality_score': quality_score,
                 'is_reliable': quality_score > 0.6,
                 'word_count': wiki_data.get('word_count', 0)
@@ -365,6 +427,24 @@ ALWAYS consult a qualified healthcare provider.
         except Exception as e:
             logger.error(f"Wikipedia fetch error: {e}")
             return None
+    
+    def _is_medical_title(self, title: str) -> bool:
+        """Check if Wikipedia title is a medical article (not biographical etc.)"""
+        title_lower = title.lower()
+        
+        non_medical = ['mary', 'john', 'person', 'singer', 'actor', 'film', 'movie',
+                       'novel', 'book', 'album', 'song', 'band', 'tv series']
+        
+        if any(term in title_lower for term in non_medical):
+            return False
+        
+        medical_indicators = ['disease', 'disorder', 'syndrome', 'infection', 'fever',
+                              'medication', 'drug', 'symptom', 'treatment', 'itis', 'osis']
+        
+        if any(term in title_lower for term in medical_indicators):
+            return True
+        
+        return True
     
     def _search_medicine_catalog(self, keywords: List[str]) -> List[Dict]:
         """Search medicine catalog with extracted keywords"""
