@@ -319,6 +319,11 @@ class AdminDashboard {
     
     async loadOrders() {
         try {
+            if (!this.authToken) {
+                console.warn('No auth token available for orders');
+                return;
+            }
+            
             const response = await fetch('/admin/api/orders', {
                 headers: {
                     'Authorization': `Bearer ${this.authToken}`
@@ -335,18 +340,30 @@ class AdminDashboard {
                     if (orderCountEl) {
                         orderCountEl.textContent = data.total_count || data.orders.length;
                     }
+                } else {
+                    console.warn('Orders API returned unexpected format:', data);
                 }
+            } else {
+                console.error('Orders API failed with status:', response.status);
             }
         } catch (error) {
-            console.error('Error loading orders:', error);
+            console.error('Error loading orders:', error.message || error);
         }
     }
 
     renderOrdersTable(orders) {
         const tbody = document.getElementById('ordersTableBody');
-        if (!tbody) return;
+        if (!tbody) {
+            console.warn('ordersTableBody element not found');
+            return;
+        }
 
         tbody.innerHTML = '';
+        
+        if (!orders || orders.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No orders found</td></tr>';
+            return;
+        }
 
         orders.forEach(order => {
             const row = document.createElement('tr');
@@ -376,6 +393,11 @@ class AdminDashboard {
     
     async loadAppointments(filter = 'all') {
         try {
+            if (!this.authToken) {
+                console.warn('No auth token available for appointments');
+                return;
+            }
+            
             let url = '/admin/api/appointments';
             if (filter !== 'all') {
                 url += `?approval_status=${filter}`;
@@ -389,22 +411,40 @@ class AdminDashboard {
 
             if (response.ok) {
                 const data = await response.json();
-                this.renderAppointmentsTable(data.appointments);
                 
-                // Update counters
-                document.getElementById('pendingAppointmentsCount').textContent = data.pending_count || 0;
-                document.getElementById('approvedAppointmentsCount').textContent = data.approved_count || 0;
+                if (data.success && data.appointments) {
+                    this.renderAppointmentsTable(data.appointments);
+                    
+                    // Update counters with null checks
+                    const pendingEl = document.getElementById('pendingAppointmentsCount');
+                    const approvedEl = document.getElementById('approvedAppointmentsCount');
+                    
+                    if (pendingEl) pendingEl.textContent = data.pending_count || 0;
+                    if (approvedEl) approvedEl.textContent = data.approved_count || 0;
+                } else {
+                    console.warn('Appointments API returned unexpected format:', data);
+                }
+            } else {
+                console.error('Appointments API failed with status:', response.status);
             }
         } catch (error) {
-            console.error('Error loading appointments:', error);
+            console.error('Error loading appointments:', error.message || error);
         }
     }
 
     renderAppointmentsTable(appointments) {
         const tbody = document.getElementById('appointmentsTableBody');
-        if (!tbody) return;
+        if (!tbody) {
+            console.warn('appointmentsTableBody element not found');
+            return;
+        }
 
         tbody.innerHTML = '';
+        
+        if (!appointments || appointments.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No appointments found</td></tr>';
+            return;
+        }
 
         appointments.forEach(appointment => {
             const row = document.createElement('tr');
