@@ -1,10 +1,11 @@
 from flask import Blueprint, request, jsonify, send_file
 from services.chatbot import generate_response, log_chat_interaction, detect_language, get_chat_history as get_history
-from services.wikipedia_utils import collect_wikipedia_resources, build_wiki_context, extract_medical_keywords
+from services.wikipedia_utils import collect_wikipedia_resources, build_wiki_context
 import speech_recognition as sr
 import uuid
 import logging
 import os
+import re
 import time
 from datetime import datetime
 from gtts import gTTS
@@ -12,6 +13,20 @@ import io
 from werkzeug.utils import secure_filename
 
 bp = Blueprint("chatbot", __name__)
+
+# Only fetch Wikipedia for the display panel when the query is about a
+# specific disease or condition (not for greetings, medicine prices, etc.)
+_DISEASE_TERMS = {
+    "diabetes","hypertension","asthma","pneumonia","malaria","typhoid","dengue",
+    "hepatitis","tuberculosis","cancer","arthritis","migraine","epilepsy","covid",
+    "influenza","bronchitis","sinusitis","gastritis","eczema","psoriasis",
+    "depression","anxiety","parkinson","alzheimer","cholesterol","thyroid",
+}
+
+def _needs_wiki_panel(text: str) -> bool:
+    """Return True only for specific disease/condition queries — for wiki panel display only."""
+    t = text.lower()
+    return any(term in t for term in _DISEASE_TERMS)
 
 
 @bp.route("/medical-chat", methods=["POST"])
@@ -52,37 +67,36 @@ def medical_chat():
                 "success": False,
                 "error": "Message is required"
             }), 400
-        
-        lang = data.get("lang", "auto")
+
+        # Support both "lang" and "language" parameters
+        lang = data.get("lang") or data.get("language") or "auto"
         session_id = data.get("session_id", str(uuid.uuid4()))
         user_id = data.get("user_id")
+        pharmacy_id = data.get("pharmacy_id")
         include_wiki = data.get("include_wiki", True)
-        
+
         detected_lang = detect_language(message) if lang == "auto" else lang
-        
-        wiki_data = None
-        wiki_context = ""
-        
-        if include_wiki:
-            try:
-                search_query = extract_medical_keywords(message)
-                wiki_data = collect_wikipedia_resources(search_query)
-                if wiki_data and wiki_data.get("success"):
-                    wiki_context = build_wiki_context(wiki_data)
-                    logging.info(f"Wikipedia context added for: {wiki_data.get('title')}")
-            except Exception as wiki_error:
-                logging.warning(f"Wikipedia fetch failed (non-blocking): {wiki_error}")
-                wiki_data = None
-        
-        enhanced_message = message
-        if wiki_context:
-            enhanced_message = f"{message}\n\n{wiki_context}"
-        
+
+        # Step 1: Get AI response — pure Gemini + DB medicines, no Wikipedia involved
         response_data = generate_response(
-            text=enhanced_message,
+            text=message,
             session_id=session_id,
             lang=lang
         )
+
+        # Step 2: Wikipedia display panel — only for specific disease queries,
+        # completely separate from AI response, display-only in the frontend
+        wiki_data = None
+        if include_wiki and _needs_wiki_panel(message):
+            try:
+                words = re.findall(r'\b[a-zA-Z]{4,}\b', message)
+                search_query = " ".join(words[:3]) if words else message[:40]
+                wiki_data = collect_wikipedia_resources(search_query)
+                if not (wiki_data and wiki_data.get("success")):
+                    wiki_data = None
+            except Exception as wiki_error:
+                logging.warning(f"Wikipedia panel fetch failed: {wiki_error}")
+                wiki_data = None
         
         log_chat_interaction(
             session_id=session_id,
@@ -90,9 +104,10 @@ def medical_chat():
             bot_response=response_data['message'],
             user_id=user_id,
             flagged=response_data.get('flagged', False),
-            language=response_data.get('language', detected_lang)
+            language=response_data.get('language', detected_lang),
+            pharmacy_id=pharmacy_id
         )
-        
+
         disclaimer = (
             "This AI does not provide medical diagnosis. Consult a doctor for accurate guidance."
             if detected_lang == "en" else
@@ -130,6 +145,116 @@ def medical_chat():
             "error": "Sorry, I'm having trouble right now. Please try again later."
         }), 500
 
+@bp.route("/web-search", methods=["POST"])
+def web_search_chat():
+    """
+    POST /api/chat/web-search
+    Uses Gemini (google-genai) with Google Search grounding for real-time web answers.
+
+    Body: { "message": "...", "lang": "en"|"ur", "session_id": "..." }
+    Response: { "success": true, "message": "...", "grounded": true, "sources": [...] }
+    """
+    try:
+        from services.chatbot import GEMINI_TEMPERATURE, detect_language, GEMINI_MODEL
+        from services.chatbot import MEDICAL_SYSTEM_PROMPT, MEDICAL_SYSTEM_PROMPT_URDU
+        from services.chatbot import DISCLAIMER_EN, DISCLAIMER_UR, needs_escalation, get_emergency_response
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+
+        message = data.get("message", "").strip()
+        if not message:
+            return jsonify({"success": False, "error": "Message is required"}), 400
+
+        lang = data.get("lang") or data.get("language") or "auto"
+        session_id = data.get("session_id", str(uuid.uuid4()))
+        user_id = data.get("user_id")
+        detected_lang = detect_language(message) if lang == "auto" else lang
+
+        # Emergency check first
+        if needs_escalation(message):
+            return jsonify({
+                "success": True,
+                "message": get_emergency_response(detected_lang),
+                "grounded": False,
+                "sources": [],
+                "session_id": session_id
+            })
+
+        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        if not api_key:
+            return jsonify({"success": False, "error": "AI service not configured"}), 503
+
+        from google import genai as new_genai
+        from google.genai import types as genai_types
+
+        client = new_genai.Client(api_key=api_key)
+        system_prompt = MEDICAL_SYSTEM_PROMPT_URDU if detected_lang == "ur" else MEDICAL_SYSTEM_PROMPT
+        full_prompt = f"{system_prompt}\n\nUser: {message}\n\nAssistant:"
+
+        ai_message = ""
+        sources = []
+        grounded = False
+
+        try:
+            response = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=full_prompt,
+                config=genai_types.GenerateContentConfig(
+                    tools=[genai_types.Tool(google_search=genai_types.GoogleSearch())],
+                    max_output_tokens=1024,
+                    temperature=GEMINI_TEMPERATURE
+                )
+            )
+
+            ai_message = response.text.strip() if response.text else ""
+
+            # Extract grounding sources
+            if response.candidates and response.candidates[0].grounding_metadata:
+                grounded = True
+                gm = response.candidates[0].grounding_metadata
+                for chunk in (gm.grounding_chunks or []):
+                    if chunk.web:
+                        sources.append({
+                            "title": getattr(chunk.web, "title", "") or "",
+                            "url": getattr(chunk.web, "uri", "") or ""
+                        })
+
+        except Exception as gen_err:
+            logging.error(f"Gemini web search error: {gen_err}")
+            ai_message = ""
+
+        if not ai_message:
+            ai_message = "I couldn't get a web search result right now. Please try again."
+
+        disclaimer = DISCLAIMER_UR if detected_lang == "ur" else DISCLAIMER_EN
+        if DISCLAIMER_EN not in ai_message and DISCLAIMER_UR not in ai_message:
+            ai_message = f"{ai_message}\n\n{disclaimer}"
+
+        log_chat_interaction(
+            session_id=session_id,
+            user_message=message,
+            bot_response=ai_message,
+            user_id=user_id,
+            flagged=False,
+            language=detected_lang
+        )
+
+        return jsonify({
+            "success": True,
+            "message": ai_message,
+            "language": detected_lang,
+            "grounded": grounded,
+            "sources": sources[:5],
+            "session_id": session_id
+        })
+
+    except Exception as e:
+        logging.error(f"Web search chat error: {e}")
+        return jsonify({"success": False, "error": "Web search unavailable. Please try again."}), 500
+
+
 # TTS Configuration
 TTS_API_KEY = "8f1e5568-0d81-477a-a023-259fff2346d0"
 TTS_BASE_URL = "https://aivoov.com/api/v8"
@@ -147,9 +272,10 @@ def chat():
         message = data.get("message", "").strip()
         if not message:
             return jsonify({"error": "Message is required"}), 400
-        
+
         session_id = data.get("session_id", str(uuid.uuid4()))
-        prefer_urdu = data.get("language") == "ur"
+        # Support both "language" and "prefer_urdu" parameters
+        prefer_urdu = data.get("language") == "ur" or data.get("prefer_urdu")
         user_id = data.get("user_id")
         include_wiki = data.get("include_wiki", True)
         

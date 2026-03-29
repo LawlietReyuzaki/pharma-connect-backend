@@ -23,7 +23,7 @@ def create_admin_token(admin):
             'exp': datetime.utcnow() + timedelta(hours=12)
         }
         
-        secret_key = os.environ.get('SESSION_SECRET', 'red-dot-pharmacy-secret-key')
+        secret_key = os.environ.get('JWT_SECRET', 'red-dot-pharmacy-jwt-secret-key-2025')
         token = jwt.encode(payload, secret_key, algorithm='HS256')
         return token
     except Exception as e:
@@ -33,7 +33,7 @@ def create_admin_token(admin):
 def verify_admin_token(token):
     """Verify admin JWT token"""
     try:
-        secret_key = os.environ.get('SESSION_SECRET', 'red-dot-pharmacy-secret-key')
+        secret_key = os.environ.get('JWT_SECRET', 'red-dot-pharmacy-jwt-secret-key-2025')
         payload = jwt.decode(token, secret_key, algorithms=['HS256'])
         
         # Ensure this is an admin token

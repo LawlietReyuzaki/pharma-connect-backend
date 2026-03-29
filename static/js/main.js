@@ -1155,15 +1155,26 @@ class RedDotPharmacy {
         try {
             this.showLoading();
 
+            // Get payment method
+            const paymentMethodRadio = document.querySelector('input[name="paymentMethod"]:checked');
+            const payment_method = paymentMethodRadio?.value || 'cash_on_delivery';
+            const payment_receipt_path = payment_method !== 'cash_on_delivery' ? this.uploadedReceiptPath : null;
+
             const orderData = {
                 address: address,
                 phone: phone,
+                payment_method: payment_method,
                 items: this.cart.map(item => ({
                     medicine_id: item.medicine_id,
-                    quantity: item.quantity,
-                    price_each: item.price
-                }))
+                    quantity: item.quantity
+                })),
+                delivery_fee: 100 // Default delivery fee
             };
+
+            // Add payment receipt if required
+            if (payment_receipt_path) {
+                orderData.payment_receipt_path = payment_receipt_path;
+            }
 
             const response = await fetch('/api/orders', {
                 method: 'POST',
@@ -1181,7 +1192,7 @@ class RedDotPharmacy {
                 localStorage.removeItem('cart');
                 this.updateCartDisplay();
                 this.hideAllModals();
-                
+
                 this.showSuccess(`Order placed successfully! Order ID: #${data.order.id}. Expected delivery: ${data.order.estimated_delivery}`);
             } else {
                 this.showError(data.error || 'Failed to place order');

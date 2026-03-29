@@ -1,0 +1,82 @@
+/* ─── Pharmacy Color Themes ──────────────────────────────────────────────── */
+/* Each theme defines CSS custom properties applied via <body class="theme-X"> */
+
+.theme-default   { --primary: #2563eb; --primary-dark: #1d4ed8; --primary-light: #dbeafe; --accent: #1d4ed8; --bg: #f8fafc; --nav-bg: #1e3a5f; }
+.theme-emerald   { --primary: #059669; --primary-dark: #047857; --primary-light: #d1fae5; --accent: #047857; --bg: #f0fdf4; --nav-bg: #064e3b; }
+.theme-crimson   { --primary: #dc2626; --primary-dark: #b91c1c; --primary-light: #fee2e2; --accent: #b91c1c; --bg: #fff5f5; --nav-bg: #7f1d1d; }
+.theme-violet    { --primary: #7c3aed; --primary-dark: #6d28d9; --primary-light: #ede9fe; --accent: #6d28d9; --bg: #faf5ff; --nav-bg: #4c1d95; }
+.theme-amber     { --primary: #d97706; --primary-dark: #b45309; --primary-light: #fef3c7; --accent: #b45309; --bg: #fffbeb; --nav-bg: #78350f; }
+.theme-sky       { --primary: #0284c7; --primary-dark: #0369a1; --primary-light: #e0f2fe; --accent: #0369a1; --bg: #f0f9ff; --nav-bg: #0c4a6e; }
+.theme-rose      { --primary: #e11d48; --primary-dark: #be123c; --primary-light: #ffe4e6; --accent: #be123c; --bg: #fff1f2; --nav-bg: #881337; }
+.theme-teal      { --primary: #0d9488; --primary-dark: #0f766e; --primary-light: #ccfbf1; --accent: #0f766e; --bg: #f0fdfa; --nav-bg: #134e4a; }
+.theme-indigo    { --primary: #4338ca; --primary-dark: #3730a3; --primary-light: #e0e7ff; --accent: #3730a3; --bg: #eef2ff; --nav-bg: #1e1b4b; }
+.theme-orange    { --primary: #ea580c; --primary-dark: #c2410c; --primary-light: #ffedd5; --accent: #c2410c; --bg: #fff7ed; --nav-bg: #7c2d12; }
+
+/* ─── Themed Components (applied on pharmacy profile pages) ──────────────── */
+
+body[class*="theme-"] {
+    background-color: var(--bg);
+}
+
+body[class*="theme-"] .navbar-pharmacy {
+    background-color: var(--nav-bg) !important;
+}
+
+body[class*="theme-"] .btn-pharmacy {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+body[class*="theme-"] .btn-pharmacy:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+    color: #fff;
+}
+
+body[class*="theme-"] .btn-outline-pharmacy {
+    color: var(--primary);
+    border-color: var(--primary);
+    background: transparent;
+}
+body[class*="theme-"] .btn-outline-pharmacy:hover {
+    background-color: var(--primary);
+    color: #fff;
+}
+
+body[class*="theme-"] .text-pharmacy {
+    color: var(--primary) !important;
+}
+
+body[class*="theme-"] .bg-pharmacy {
+    background-color: var(--primary) !important;
+}
+
+body[class*="theme-"] .bg-pharmacy-light {
+    background-color: var(--primary-light) !important;
+}
+
+body[class*="theme-"] .border-pharmacy {
+    border-color: var(--primary) !important;
+}
+
+body[class*="theme-"] .pharmacy-hero {
+    background: linear-gradient(135deg, var(--nav-bg) 0%, var(--primary-dark) 100%);
+    color: #fff;
+}
+
+body[class*="theme-"] .badge-pharmacy {
+    background-color: var(--primary-light);
+    color: var(--primary-dark);
+}
+
+body[class*="theme-"] .card-pharmacy {
+    border-left: 4px solid var(--primary);
+}
+
+body[class*="theme-"] .star-filled {
+    color: #f59e0b;
+}
+
+body[class*="theme-"] .star-empty {
+    color: #d1d5db;
+}

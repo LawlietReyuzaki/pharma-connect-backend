@@ -4,7 +4,7 @@ import jwt
 import hashlib
 from functools import wraps
 from flask import request, jsonify, current_app, g
-from models import User
+from models import User, PharmacyAdmin
 
 def phash(pw):
     """Hash password using SHA256"""
@@ -88,13 +88,66 @@ def get_current_user():
     """Get current user from token"""
     token = None
     auth_header = request.headers.get('Authorization')
-    
+
     if auth_header and auth_header.startswith('Bearer '):
         token = auth_header.split(' ')[1]
-    
+
     if token:
         user_data = verify_token(token)
         if user_data:
             return User.query.get(user_data['sub'])
-    
+
     return None
+
+
+# ─── Pharmacy Admin Authentication ──────────────────────────────────────────
+
+def create_pharmacy_admin_token(pharmacy_admin):
+    """Create JWT token for pharmacy admin"""
+    secret = os.environ.get("JWT_SECRET", "red-dot-pharmacy-jwt-secret-key-2025")
+    payload = {
+        "sub": str(pharmacy_admin.id),
+        "pharmacy_id": pharmacy_admin.pharmacy_id,
+        "role": "pharmacy_admin",
+        "name": pharmacy_admin.name,
+        "email": pharmacy_admin.email,
+        "exp": int(time.time()) + 60*60*24  # 24 hours
+    }
+    return jwt.encode(payload, secret, algorithm="HS256")
+
+
+def verify_pharmacy_admin_token(token):
+    """Verify pharmacy admin JWT token"""
+    try:
+        secret = os.environ.get("JWT_SECRET", "red-dot-pharmacy-jwt-secret-key-2025")
+        payload = jwt.decode(token, secret, algorithms=["HS256"])
+        if payload.get('role') != 'pharmacy_admin':
+            return None
+        return payload
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+        return None
+
+
+def get_current_pharmacy_admin():
+    """Get current pharmacy admin from Authorization header"""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return None
+    token = auth_header.split(' ')[1]
+    data = verify_pharmacy_admin_token(token)
+    if not data:
+        return None
+    return PharmacyAdmin.query.get(int(data['sub']))
+
+
+def require_pharmacy_admin(f):
+    """Decorator to require pharmacy admin authentication"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        admin = get_current_pharmacy_admin()
+        if not admin:
+            return jsonify({'error': 'Pharmacy admin access required'}), 403
+        g.pharmacy_admin = admin
+        g.pharmacy_id = admin.pharmacy_id
+        return f(*args, **kwargs)
+    return decorated

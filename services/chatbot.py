@@ -1,7 +1,6 @@
 """
-Medical Assistant Chatbot Service
-Provides safe, guard-railed medical information in English and Urdu.
-Uses Google Gemini for AI responses with comprehensive safety features.
+Medical Consultant Chatbot Service — Red Dot Pharmacy
+Gemini-powered medical assistant with pharmacy DB integration.
 """
 
 import os
@@ -10,11 +9,11 @@ import logging
 import uuid
 from datetime import datetime
 
+# ─── Gemini init ────────────────────────────────────────────────────────────
 gemini_model = None
 genai = None
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini")
 GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 GEMINI_TEMPERATURE = float(os.getenv("GEMINI_TEMPERATURE", "0.7"))
 
 if GEMINI_API_KEY:
@@ -22,458 +21,393 @@ if GEMINI_API_KEY:
         import google.generativeai as genai_module
         genai = genai_module
         genai.configure(api_key=GEMINI_API_KEY)
-        
         safety_settings = [
-            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HARASSMENT",        "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH",       "threshold": "BLOCK_NONE"},
             {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
             {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
         ]
-        
-        gemini_model = genai.GenerativeModel(
-            GEMINI_MODEL,
-            safety_settings=safety_settings
-        )
-        logging.info(f"Gemini model initialized: {GEMINI_MODEL}")
+        gemini_model = genai.GenerativeModel(GEMINI_MODEL, safety_settings=safety_settings)
+        logging.info(f"Gemini ready: {GEMINI_MODEL}")
     except Exception as e:
-        logging.error(f"Failed to initialize Gemini client: {e}")
+        logging.error(f"Gemini init failed: {e}")
 else:
-    logging.warning("GOOGLE_API_KEY/GEMINI_API_KEY not set - chatbot will use offline mode")
+    logging.warning("No GEMINI_API_KEY — chatbot offline")
 
-MEDICAL_SYSTEM_PROMPT = """You are a Pharmacy Medical Assistant AI Agent for Red Dot Pharmacy.
+# ─── System prompts ──────────────────────────────────────────────────────────
+MEDICAL_CONSULTANT_PROMPT_EN = """You are a knowledgeable and caring Medical Consultant AI working for Red Dot Pharmacy in Islamabad, Pakistan.
 
-Your role is to provide helpful, accurate, and safe information related to diseases and medicines available in the pharmacy system.
+YOUR ROLE:
+You act like a real pharmacist + medical advisor. When a user describes symptoms or asks about a condition, you:
+1. Briefly explain the condition in simple, clear language
+2. Recommend suitable medicines FROM the pharmacy database provided to you
+3. Give practical advice (rest, hydration, diet, when to see a doctor)
+4. Be warm, direct, and helpful — not robotic
 
-CORE RESPONSIBILITIES:
-1. Assist users by providing general information about diseases.
-2. Assist users by providing detailed information about medicines from our database.
-3. Provide medicine-related details including:
-   - Price
-   - Brand / Manufacturer
-   - Ingredients
-   - Description
-   - Form and size
-   - Common diseases or conditions the medicine is used for
-4. Help users inquire about diseases by explaining:
-   - Common symptoms
-   - Possible causes
-   - General treatment approaches
-5. Analyze patient-reported symptoms and suggest possible conditions or relevant medicines, but NEVER give a final or confirmed diagnosis.
+MEDICINE RULES (CRITICAL):
+- ONLY recommend medicines that appear in the [PHARMACY DATABASE] section below
+- If medicines are provided, always mention their name and price (e.g. "Panadol Extra — PKR 45")
+- If NO medicines are in the database context, say so clearly and suggest visiting the pharmacy
+- NEVER invent, guess, or hallucinate medicine names or prices
+- If user asks about a specific medicine not in the database, say it's not in our current stock
 
-MEDICAL SAFETY (MANDATORY):
-- You are NOT a doctor or healthcare professional.
-- You must NOT replace professional medical advice.
-- When discussing symptoms, diseases, or diagnosis, ALWAYS include this disclaimer:
-"⚠️ This information is for educational purposes only and is not a medical diagnosis. Please consult a qualified doctor or healthcare professional for proper evaluation, diagnosis, and treatment."
-
-DATA USAGE RULES (CRITICAL - MUST FOLLOW):
-- You can ONLY provide medicine information for medicines that exist in the Red Dot Pharmacy database.
-- NEVER invent, fabricate, or suggest any medicine that is not in the provided database context.
-- If a user asks about a medicine NOT in our database, say: "I don't have information about that medicine in our pharmacy database. Please ask about medicines available at Red Dot Pharmacy, or visit our shop to browse available products."
-- Do NOT provide prices, brands, or details for medicines outside the database.
-- When medicine data is provided in context, use ONLY that exact data - never add medicines that weren't found.
-- If no medicines are found for a query, clearly state that no matching medicines were found in our database.
-- You may provide general disease/health information, but for medicine recommendations, ONLY suggest medicines from our database.
-
-COMMUNICATION STYLE:
-- Professional and friendly
-- Clear and easy to understand
-- Calm and non-alarming
-- Patient-focused and supportive
+RESPONSE STYLE:
+- Conversational and human — not a bullet-point report
+- Keep it concise: 3-6 sentences is ideal
+- Lead with the most useful information first
+- For serious symptoms: mention seeing a doctor but still help with what you know
+- For simple queries (greetings, general questions): respond naturally without forcing medical info
 
 BOUNDARIES:
-- Do NOT provide emergency medical instructions beyond "seek immediate help".
-- Do NOT prescribe dosages beyond general usage information.
-- Encourage users to consult a doctor when needed.
+- You can suggest POSSIBLE conditions based on symptoms, but NEVER give a definitive diagnosis
+- Do NOT prescribe exact dosages — give general guidance only
+- For emergencies (chest pain, stroke, severe bleeding, can't breathe): tell them to call 1122 immediately
 
-If user describes severe symptoms (chest pain, difficulty breathing, severe bleeding, stroke symptoms, suicidal thoughts):
-→ Immediately tell them to seek an ER or call emergency services (1122 in Pakistan).
+LOCATION: Red Dot Pharmacy, Shop #69 Ground Floor Silver City Plaza, G11 Markaz, Islamabad
+EMERGENCY: 1122 | Consultation booking: available on our website"""
 
-You work for Red Dot Pharmacy in Islamabad, Pakistan. Suggest they can book a consultation or visit the pharmacy for proper medical advice.
+MEDICAL_CONSULTANT_PROMPT_UR = """آپ Red Dot Pharmacy اسلام آباد کے لیے ایک ماہر اور مہربان طبی مشیر AI ہیں۔
 
-Keep responses clear and helpful (3-5 sentences). When medicines are found in the database, include their details in your response."""
+آپ کا کردار:
+آپ ایک اصل فارماسسٹ اور طبی مشیر کی طرح کام کریں۔ جب صارف علامات بیان کرے یا کسی بیماری کے بارے میں پوچھے، آپ:
+1. بیماری کو آسان الفاظ میں مختصراً بیان کریں
+2. فارمیسی ڈیٹا بیس سے مناسب دوائیں تجویز کریں
+3. عملی مشورہ دیں (آرام، پانی، خوراک، ڈاکٹر سے کب ملیں)
+4. گرم، واضح اور مددگار انداز میں بات کریں
 
-MEDICAL_SYSTEM_PROMPT_URDU = MEDICAL_SYSTEM_PROMPT + """
+دوائی کے اصول (ضروری):
+- صرف وہی دوائیں تجویز کریں جو نیچے [فارمیسی ڈیٹا بیس] میں موجود ہوں
+- اگر دوائیں موجود ہیں تو نام اور قیمت ضرور بتائیں
+- اگر ڈیٹا بیس میں دوائی نہیں تو واضح کہیں اور فارمیسی آنے کی تجویز دیں
+- کبھی بھی دوائی کا نام یا قیمت خود سے نہ بنائیں
 
-IMPORTANT: You MUST respond in Urdu language using Urdu script (not Roman Urdu).
-Use respectful language appropriate for Pakistani culture.
-Keep medicine names in Urdu where possible, unless the user uses English names."""
+جواب کا انداز:
+- اردو میں جواب دیں (رومن اردو نہیں، اردو رسم الخط)
+- مختصر اور کام کی بات: 3-6 جملے کافی ہیں
+- سنجیدہ علامات میں ڈاکٹر سے ملنے کا مشورہ دیں
 
-RED_FLAGS_EN = [
-    r"chest pain",
-    r"heart attack",
-    r"stroke",
-    r"seizure",
-    r"unconscious",
-    r"severe bleeding",
-    r"difficulty breathing",
-    r"can'?t breathe",
-    r"suicidal",
-    r"suicide",
-    r"kill myself",
-    r"want to die",
-    r"overdose",
-    r"poisoning",
-    r"severe pain",
-    r"blood in stool",
-    r"blood in urine",
-    r"fainting",
-    r"paralysis",
-    r"severe infection",
-    r"high fever.*days",
-    r"allergic reaction",
-    r"anaphylaxis",
-]
+حدود:
+- ممکنہ بیماری بتا سکتے ہیں لیکن حتمی تشخیص نہیں دے سکتے
+- ایمرجنسی میں (سینے میں درد، فالج، شدید خون): فوری 1122 کال کرنے کو کہیں
 
-RED_FLAGS_UR = [
-    r"سینے میں درد",
-    r"سانس.*میں دقت",
-    r"سانس.*نہیں آ رہا",
-    r"بیہوش",
-    r"خون.*بہت زیادہ",
-    r"دل کا دورہ",
-    r"فالج",
-    r"خودکشی",
-    r"مرنا چاہتا",
-    r"شدید درد",
-    r"تیز بخار",
-    r"الرجی",
-    r"زہر",
-]
+مقام: Red Dot Pharmacy، شاپ 69، سلور سٹی پلازہ، G11 مرکز، اسلام آباد"""
 
-RED_FLAGS = RED_FLAGS_EN + RED_FLAGS_UR
-
+# ─── Disclaimers ─────────────────────────────────────────────────────────────
 DISCLAIMER_EN = (
-    "⚠️ This information is for educational purposes only and is not a medical diagnosis. "
-    "Please consult a qualified doctor or healthcare professional for proper evaluation, diagnosis, and treatment. "
-    "Red Dot Pharmacy - Your trusted healthcare partner."
+    "\n\n⚠️ *This is general health information, not a medical diagnosis. "
+    "For proper evaluation and treatment, please consult a qualified doctor. "
+    "Red Dot Pharmacy — your trusted healthcare partner.*"
 )
-
 DISCLAIMER_UR = (
-    "⚠️ یہ معلومات صرف تعلیمی مقاصد کے لیے ہیں اور طبی تشخیص نہیں ہے۔ "
-    "مناسب جانچ، تشخیص اور علاج کے لیے براہ کرم کسی مستند ڈاکٹر یا صحت کے پیشہ ور سے مشورہ کریں۔ "
-    "Red Dot Pharmacy - آپ کا قابل اعتماد صحت کا ساتھی۔"
+    "\n\n⚠️ *یہ عمومی صحت کی معلومات ہیں، طبی تشخیص نہیں۔ "
+    "مناسب علاج کے لیے کسی مستند ڈاکٹر سے مشورہ کریں۔ "
+    "Red Dot Pharmacy — آپ کا قابل اعتماد صحت کا ساتھی۔*"
 )
 
-UNSAFE_PATTERNS = [
-    r"give me.*prescription",
-    r"prescribe.*for me",
-    r"what.*dose.*should",
-    r"how much.*should.*take",
-    r"diagnose me",
-    r"what disease.*do i have",
-    r"tell me.*exactly.*treatment",
-    r"نسخہ.*دیں",
-    r"دوا.*کتنی.*لوں",
-    r"تشخیص.*کریں",
+# ─── Safety patterns ──────────────────────────────────────────────────────────
+_EMERGENCY_PATTERNS = [
+    r"chest pain", r"heart attack", r"stroke", r"seizure", r"unconscious",
+    r"severe bleeding", r"can'?t breathe", r"difficulty breathing",
+    r"suicidal", r"suicide", r"kill myself", r"want to die",
+    r"overdose", r"poisoning", r"anaphylaxis", r"paralysis",
+    r"سینے میں درد", r"دل کا دورہ", r"فالج", r"خودکشی",
+    r"سانس نہیں", r"مرنا چاہتا", r"زہر",
 ]
 
-
-def detect_language(text):
-    """Auto-detect if text is primarily Urdu or English"""
+# ─── Language detection ───────────────────────────────────────────────────────
+def detect_language(text: str) -> str:
     urdu_chars = len(re.findall(r'[\u0600-\u06FF]', text))
-    total_chars = len(text.replace(" ", ""))
-    
-    if total_chars == 0:
+    total = len(text.replace(" ", ""))
+    if total == 0:
         return "en"
-    
-    urdu_ratio = urdu_chars / total_chars
-    return "ur" if urdu_ratio > 0.3 else "en"
+    return "ur" if (urdu_chars / total) > 0.3 else "en"
 
 
-def needs_escalation(text):
-    """Check if message contains medical red flags requiring immediate attention"""
-    text_lower = text.lower()
-    return any(re.search(pattern, text_lower, re.IGNORECASE) for pattern in RED_FLAGS)
+def needs_escalation(text: str) -> bool:
+    t = text.lower()
+    return any(re.search(p, t, re.IGNORECASE) for p in _EMERGENCY_PATTERNS)
 
 
-def is_unsafe_request(text):
-    """Check if user is asking for diagnosis/prescription (which we can't provide)"""
-    text_lower = text.lower()
-    return any(re.search(pattern, text_lower, re.IGNORECASE) for pattern in UNSAFE_PATTERNS)
-
-
-def get_emergency_response(lang):
-    """Get emergency response for red flag situations"""
+def get_emergency_response(lang: str) -> str:
     if lang == "ur":
         return (
-            "🚨 آپ کی علامات سنگین ہو سکتی ہیں۔ براہ کرم فوراً:\n\n"
-            "• 1122 پر کال کریں (ایمرجنسی)\n"
+            "🚨 **آپ کی علامات سنگین ہو سکتی ہیں۔ فوری اقدام کریں:**\n\n"
+            "• **1122** پر ابھی کال کریں (ایمرجنسی سروس)\n"
             "• قریبی ہسپتال جائیں\n"
-            "• یا Red Dot Pharmacy میں آئیں تاکہ ہمارے ڈاکٹر سے مشورہ کر سکیں\n\n"
-            f"{DISCLAIMER_UR}"
+            "• خود گاڑی نہ چلائیں، کسی کو ساتھ لیں\n\n"
+            "Red Dot Pharmacy میں ڈاکٹر سے آن لائن مشاورت بھی بک کر سکتے ہیں۔"
         )
-    else:
-        return (
-            "🚨 Your symptoms may be serious. Please immediately:\n\n"
-            "• Call 1122 (Emergency Services)\n"
-            "• Visit the nearest hospital\n"
-            "• Or come to Red Dot Pharmacy to consult with our doctors\n\n"
-            f"{DISCLAIMER_EN}"
-        )
+    return (
+        "🚨 **Your symptoms may be serious. Take immediate action:**\n\n"
+        "• Call **1122** right now (Emergency Services)\n"
+        "• Go to the nearest hospital\n"
+        "• Do not drive yourself — take someone with you\n\n"
+        "You can also book an online doctor consultation at Red Dot Pharmacy."
+    )
 
 
-def get_guardrail_response(lang):
-    """Response when user asks for diagnosis/prescription"""
-    if lang == "ur":
-        return (
-            "معذرت، میں تشخیص یا نسخہ نہیں دے سکتا کیونکہ یہ صرف ڈاکٹر کا کام ہے۔\n\n"
-            "میں آپ کی مدد کر سکتا ہوں:\n"
-            "• عمومی صحت کی معلومات\n"
-            "• ابتدائی طبی امداد کی رہنمائی\n"
-            "• علامات کا خلاصہ (بغیر تشخیص کے)\n\n"
-            "براہ کرم Red Dot Pharmacy میں ڈاکٹر سے ملاقات کریں یا آن لائن مشاورت بک کریں۔\n\n"
-            f"{DISCLAIMER_UR}"
-        )
-    else:
-        return (
-            "I'm sorry, I cannot provide a diagnosis or prescription as that's only a doctor's role.\n\n"
-            "I can help you with:\n"
-            "• General health information\n"
-            "• First-aid guidance\n"
-            "• Symptom summaries (without diagnosing)\n\n"
-            "Please visit Red Dot Pharmacy to consult with a doctor or book an online consultation.\n\n"
-            f"{DISCLAIMER_EN}"
-        )
+# ─── Medicine lookup ──────────────────────────────────────────────────────────
+_PURE_GREETINGS = re.compile(
+    r"^(hi|hello|hey|salam|assalam|how are you|good morning|good evening|"
+    r"good afternoon|thanks|thank you|ok|okay|bye|goodbye|آداب|سلام|شکریہ)\W*$",
+    re.IGNORECASE
+)
 
-
-def generate_response(text, prefer_urdu=None, session_id=None, lang="auto"):
+def _should_search_medicines(text: str) -> bool:
     """
-    Generate chatbot response with medical guardrails and RAG-based medicine retrieval
-    
-    Args:
-        text: User message
-        prefer_urdu: Deprecated - use lang instead
-        session_id: Session identifier for logging
-        lang: Language preference ("auto", "en", "ur")
-    
-    Returns: dict with message, flagged, needs_doctor, language, timestamp, medicines
+    Return True if the message likely needs a pharmacy DB search.
+    Skip ONLY for pure greetings/small-talk. Search for everything else.
     """
-    if lang == "auto":
-        detected_lang = detect_language(text)
-    elif lang in ["ur", "urdu"]:
+    stripped = text.strip()
+    # Skip pure greetings — no need to hit the DB
+    if _PURE_GREETINGS.match(stripped):
+        return False
+    # For anything else (symptoms, medicine names, conditions, questions) → search
+    return True
+
+
+def _fetch_medicines_for_query(text: str) -> list:
+    """
+    Search the pharmacy DB for medicines relevant to the user's query.
+    Returns a list of medicine dicts. Max 5 results.
+    """
+    try:
+        from services.medicine_rag import search_medicines, search_medicines_for_condition
+
+        stop = {
+            "the","a","an","is","are","was","were","what","which","who","how",
+            "when","where","why","can","could","should","would","do","does",
+            "did","have","has","had","for","to","of","in","on","at","by",
+            "with","about","this","that","these","those","it","me","my","i",
+            "you","your","and","or","but","not","help","tell","give","need",
+            "want","please","hello","hi","hey","thanks","thank","also","some",
+        }
+
+        # Extract meaningful words from the user's message
+        raw_words = re.findall(r'\b[a-zA-Z\u0600-\u06FF]{3,}\b', text)
+        keywords = list(dict.fromkeys(
+            w for w in raw_words if w.lower() not in stop
+        ))[:6]
+
+        seen_ids = set()
+        results = []
+
+        # 1. Search by keyword (medicine name / condition name)
+        for kw in keywords:
+            for med in search_medicines(kw, limit=3):
+                if med["id"] not in seen_ids:
+                    seen_ids.add(med["id"])
+                    results.append(med)
+            if len(results) >= 5:
+                break
+
+        # 2. If still under 3, try condition/description search with top 2 keywords
+        if len(results) < 3:
+            for kw in keywords[:2]:
+                for med in search_medicines_for_condition(kw, limit=3):
+                    if med["id"] not in seen_ids:
+                        seen_ids.add(med["id"])
+                        results.append(med)
+                if len(results) >= 5:
+                    break
+
+        return results[:5]
+
+    except Exception as e:
+        logging.warning(f"Medicine DB search failed: {e}")
+        return []
+
+
+def _build_medicine_context(medicines: list) -> str:
+    """Format medicines from DB into a clean prompt context block."""
+    if not medicines:
+        return ""
+    lines = ["[PHARMACY DATABASE — use ONLY these medicines in your response]"]
+    for m in medicines:
+        lines.append(f"\n• {m['name']} — PKR {m['price']}")
+        if m.get("chemical"):
+            lines.append(f"  Active ingredient: {m['chemical']}")
+        if m.get("category"):
+            lines.append(f"  Category: {m['category']}")
+        if m.get("description"):
+            lines.append(f"  Use: {m['description'][:120]}")
+        lines.append(f"  Stock: {'Available' if m.get('status') == 'in_stock' else 'Out of stock'}")
+    lines.append("\n[END DATABASE — do NOT suggest medicines outside this list]")
+    return "\n".join(lines)
+
+
+# ─── Main response function ───────────────────────────────────────────────────
+def generate_response(text: str, prefer_urdu=None, session_id=None, lang="auto") -> dict:
+    """
+    Generate a medical consultant response using Gemini + pharmacy DB.
+
+    Flow:
+      1. Detect language
+      2. Emergency check → immediate response (no Gemini call)
+      3. Search pharmacy DB if query is medical
+      4. Build prompt: consultant system prompt + DB medicines + user message
+      5. Call Gemini → clean response
+      6. Return response dict
+    """
+    # 1. Language
+    if lang in ("ur", "urdu"):
         detected_lang = "ur"
+    elif lang == "auto":
+        detected_lang = detect_language(text)
     else:
         detected_lang = "en"
-    
     if prefer_urdu is not None:
         detected_lang = "ur" if prefer_urdu else "en"
-    
+
     timestamp = datetime.now().isoformat()
-    
-    retrieved_medicines = []
-    medicine_context = ""
-    retrieval_result = None
-    
-    try:
-        from services.smart_rag_orchestrator import smart_retrieve, get_orchestrator
-        from services.medicine_rag import format_medicine_response
-        
-        retrieval_result = smart_retrieve(text, detected_lang)
-        retrieved_medicines = retrieval_result.get('medications', [])
-        
-        if retrieved_medicines or retrieval_result.get('wiki_context'):
-            orchestrator = get_orchestrator()
-            medicine_context = orchestrator.build_ai_context(retrieval_result)
-            logging.info(f"Smart RAG: Retrieved {len(retrieved_medicines)} medicines, context: {retrieval_result.get('context_type')}")
-    except Exception as rag_error:
-        logging.warning(f"Smart RAG retrieval failed (non-blocking): {rag_error}")
-        try:
-            from services.medicine_rag import find_medicines_in_text, build_medicine_context, format_medicine_response
-            retrieved_medicines = find_medicines_in_text(text)
-            if retrieved_medicines:
-                medicine_context = build_medicine_context(retrieved_medicines)
-        except:
-            pass
-    
+    sid = session_id or str(uuid.uuid4())
+
+    # 2. Emergency check — skip Gemini, respond immediately
     if needs_escalation(text):
-        response_msg = get_emergency_response(detected_lang)
         return {
-            'message': response_msg,
-            'flagged': True,
-            'needs_doctor': True,
-            'suggested_medicines': [],
-            'medicines': format_medicine_response(retrieved_medicines, detected_lang) if retrieved_medicines else [],
-            'language': detected_lang,
-            'timestamp': timestamp,
-            'session_id': session_id or str(uuid.uuid4())
+            "message": get_emergency_response(detected_lang),
+            "flagged": True,
+            "needs_doctor": True,
+            "medicines": [],
+            "suggested_medicines": [],
+            "language": detected_lang,
+            "timestamp": timestamp,
+            "session_id": sid,
         }
-    
-    if is_unsafe_request(text):
-        response_msg = get_guardrail_response(detected_lang)
-        return {
-            'message': response_msg,
-            'flagged': False,
-            'needs_doctor': True,
-            'suggested_medicines': [],
-            'medicines': format_medicine_response(retrieved_medicines, detected_lang) if retrieved_medicines else [],
-            'language': detected_lang,
-            'timestamp': timestamp,
-            'session_id': session_id or str(uuid.uuid4())
-        }
-    
-    if gemini_model:
-        try:
-            if detected_lang == "ur":
-                system_prompt = MEDICAL_SYSTEM_PROMPT_URDU
-            else:
-                system_prompt = MEDICAL_SYSTEM_PROMPT
-            
-            if medicine_context:
-                system_prompt += f"\n\n{medicine_context}"
-            
-            full_prompt = f"{system_prompt}\n\nUser: {text}\n\nAssistant:"
-            
-            generation_config = {
-                "temperature": GEMINI_TEMPERATURE,
-                "max_output_tokens": 500,
-            }
-            
-            response = gemini_model.generate_content(
-                full_prompt,
-                generation_config=generation_config
-            )
-            
-            ai_message = ""
-            
-            try:
-                if response.candidates and len(response.candidates) > 0:
-                    candidate = response.candidates[0]
-                    if hasattr(candidate, 'content') and candidate.content.parts:
-                        ai_message = "".join(part.text for part in candidate.content.parts if hasattr(part, 'text'))
-                        ai_message = ai_message.strip()
-                    
-                    if hasattr(candidate, 'finish_reason'):
-                        finish_reason = candidate.finish_reason
-                        if finish_reason == 2:
-                            logging.warning("Response blocked by safety filters, using fallback")
-                            ai_message = ""
-                        elif finish_reason == 3:
-                            logging.warning("Response recitation blocked, using fallback")
-                            ai_message = ""
-                
-                if not ai_message and hasattr(response, 'text') and response.text:
-                    ai_message = response.text.strip()
-                    
-            except Exception as parse_error:
-                logging.error(f"Error parsing Gemini response: {parse_error}")
-                ai_message = ""
-            
-            if not ai_message:
-                ai_message = get_offline_response(detected_lang)
-            
-            if DISCLAIMER_EN not in ai_message and DISCLAIMER_UR not in ai_message:
-                disclaimer = DISCLAIMER_UR if detected_lang == "ur" else DISCLAIMER_EN
-                ai_message = f"{ai_message}\n\n{disclaimer}"
-            
-            formatted_medicines = []
-            try:
-                from services.medicine_rag import format_medicine_response
-                formatted_medicines = format_medicine_response(retrieved_medicines, detected_lang) if retrieved_medicines else []
-            except:
-                pass
-            
-            return {
-                'message': ai_message,
-                'flagged': False,
-                'needs_doctor': False,
-                'suggested_medicines': [],
-                'medicines': formatted_medicines,
-                'language': detected_lang,
-                'timestamp': timestamp,
-                'session_id': session_id or str(uuid.uuid4())
-            }
-            
-        except Exception as e:
-            logging.error(f"Gemini API error: {e}")
-    
+
+    # 3. Medicine DB lookup (only when relevant)
+    medicines = []
+    medicine_context = ""
+    if _should_search_medicines(text):
+        medicines = _fetch_medicines_for_query(text)
+        if medicines:
+            medicine_context = _build_medicine_context(medicines)
+
+    # 4. Format medicines for response
     formatted_medicines = []
     try:
         from services.medicine_rag import format_medicine_response
-        formatted_medicines = format_medicine_response(retrieved_medicines, detected_lang) if retrieved_medicines else []
-    except:
+        formatted_medicines = format_medicine_response(medicines, detected_lang) if medicines else []
+    except Exception:
         pass
-    
+
+    # 5. Call Gemini
+    if not gemini_model:
+        return {
+            "message": _offline_response(detected_lang),
+            "flagged": False,
+            "needs_doctor": True,
+            "medicines": formatted_medicines,
+            "suggested_medicines": [],
+            "language": detected_lang,
+            "timestamp": timestamp,
+            "session_id": sid,
+        }
+
+    system_prompt = (
+        MEDICAL_CONSULTANT_PROMPT_UR if detected_lang == "ur"
+        else MEDICAL_CONSULTANT_PROMPT_EN
+    )
+
+    # Append DB medicines to system prompt if found
+    if medicine_context:
+        system_prompt = f"{system_prompt}\n\n{medicine_context}"
+
+    full_prompt = f"{system_prompt}\n\nUser: {text}\n\nAssistant:"
+
+    gen_config = {
+        "temperature": GEMINI_TEMPERATURE,
+        "max_output_tokens": 800,
+    }
+
+    ai_message = ""
+    try:
+        # Non-streaming — simpler, more reliable
+        response = gemini_model.generate_content(full_prompt, generation_config=gen_config)
+        if hasattr(response, "text") and response.text:
+            ai_message = response.text.strip()
+        elif response.candidates:
+            candidate = response.candidates[0]
+            if hasattr(candidate, "content") and candidate.content.parts:
+                ai_message = "".join(
+                    p.text for p in candidate.content.parts if hasattr(p, "text")
+                ).strip()
+    except Exception as e:
+        logging.error(f"Gemini call failed: {e}")
+
+    if not ai_message:
+        ai_message = _offline_response(detected_lang)
+
     return {
-        'message': get_offline_response(detected_lang),
-        'flagged': False,
-        'needs_doctor': True,
-        'suggested_medicines': [],
-        'medicines': formatted_medicines,
-        'language': detected_lang,
-        'timestamp': timestamp,
-        'session_id': session_id or str(uuid.uuid4())
+        "message": ai_message,
+        "flagged": False,
+        "needs_doctor": False,
+        "medicines": formatted_medicines,
+        "suggested_medicines": [],
+        "language": detected_lang,
+        "timestamp": timestamp,
+        "session_id": sid,
     }
 
 
-def get_offline_response(lang):
-    """Fallback response when AI is unavailable"""
+# ─── Offline fallback ─────────────────────────────────────────────────────────
+def _offline_response(lang: str) -> str:
     if lang == "ur":
         return (
-            "شکریہ آپ کے سوال کا! Red Dot Pharmacy میں ہمارے پاس تجربہ کار ڈاکٹرز موجود ہیں۔\n\n"
-            "بہتر رہنمائی کے لیے:\n"
-            "• اپنی علامات تفصیل سے بتائیں\n"
-            "• آن لائن ملاقات بک کریں\n"
-            "• یا ہمارے فارمیسی آئیں\n\n"
-            f"{DISCLAIMER_UR}"
+            "معذرت، ابھی AI سروس دستیاب نہیں ہے۔\n\n"
+            "براہ کرم:\n"
+            "• تھوڑی دیر بعد دوبارہ کوشش کریں\n"
+            "• یا Red Dot Pharmacy پر کال کریں: 051-5111222\n"
+            "• یا آن لائن ڈاکٹر مشاورت بک کریں"
         )
-    else:
-        return (
-            "Thank you for your question! Red Dot Pharmacy has experienced doctors available.\n\n"
-            "For better guidance:\n"
-            "• Describe your symptoms in detail\n"
-            "• Book an online consultation\n"
-            "• Or visit our pharmacy\n\n"
-            f"{DISCLAIMER_EN}"
-        )
+    return (
+        "Sorry, the AI service is temporarily unavailable.\n\n"
+        "Please:\n"
+        "• Try again in a moment\n"
+        "• Call Red Dot Pharmacy: 051-5111222\n"
+        "• Or book an online doctor consultation"
+    )
 
 
-def log_chat_interaction(session_id, user_message, bot_response, user_id=None, 
-                         flagged=False, language="en"):
-    """Log chat interaction for analysis and improvement"""
+# ─── Logging ──────────────────────────────────────────────────────────────────
+def log_chat_interaction(session_id, user_message, bot_response,
+                         user_id=None, flagged=False, language="en",
+                         pharmacy_id=None):
     try:
         from app import db
         from models import ChatLog
-        
-        chat_log = ChatLog()
-        chat_log.user_id = user_id
-        chat_log.session_id = session_id
-        chat_log.message = user_message
-        chat_log.response = bot_response
-        chat_log.language = language
-        chat_log.flagged = flagged
-        chat_log.created_at = datetime.utcnow()
-        
-        db.session.add(chat_log)
+        log = ChatLog()
+        log.user_id = user_id
+        log.session_id = session_id
+        log.message = user_message
+        log.response = bot_response
+        log.language = language
+        log.flagged = flagged
+        log.pharmacy_id = pharmacy_id
+        log.created_at = datetime.utcnow()
+        db.session.add(log)
         db.session.commit()
-        
-        logging.info(f"Chat logged - Session: {session_id}, Lang: {language}, Flagged: {flagged}")
-        
     except Exception as e:
-        logging.error(f"Failed to log chat interaction: {e}")
+        logging.error(f"Chat log failed: {e}")
 
 
 def get_chat_history(session_id, limit=50):
-    """Retrieve chat history for a session"""
     try:
         from models import ChatLog
-        
-        logs = ChatLog.query.filter_by(session_id=session_id)\
-                            .order_by(ChatLog.created_at.asc())\
-                            .limit(limit).all()
-        
-        history = []
-        for log in logs:
-            history.append({
-                'user_message': log.message,
-                'bot_response': log.response,
-                'language': log.language,
-                'flagged': log.flagged,
-                'timestamp': log.created_at.isoformat() if log.created_at else None
-            })
-        
-        return history
-        
+        logs = (ChatLog.query
+                .filter_by(session_id=session_id)
+                .order_by(ChatLog.created_at.asc())
+                .limit(limit).all())
+        return [
+            {
+                "user_message": l.message,
+                "bot_response": l.response,
+                "language": l.language,
+                "flagged": l.flagged,
+                "timestamp": l.created_at.isoformat() if l.created_at else None,
+            }
+            for l in logs
+        ]
     except Exception as e:
-        logging.error(f"Failed to get chat history: {e}")
+        logging.error(f"Chat history failed: {e}")
         return []

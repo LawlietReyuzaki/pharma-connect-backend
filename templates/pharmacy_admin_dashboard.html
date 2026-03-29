@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharmacy Dashboard — Red Dot Network</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f1f5f9; }
+        .sidebar {
+            position: fixed; top: 0; left: 0; width: 250px; height: 100vh;
+            background: #1e293b; color: #fff; padding-top: 1rem;
+            overflow-y: auto; z-index: 1000;
+        }
+        .sidebar .brand { padding: 1rem 1.5rem; font-weight: 700; font-size: 1.1rem; border-bottom: 1px solid #334155; margin-bottom: 0.5rem; }
+        .sidebar .nav-item {
+            padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 12px;
+            color: #94a3b8; transition: all 0.2s; font-size: 0.9rem;
+        }
+        .sidebar .nav-item:hover, .sidebar .nav-item.active { background: #334155; color: #fff; }
+        .sidebar .nav-item i { width: 20px; text-align: center; }
+        .main-content { margin-left: 250px; padding: 1.5rem 2rem; }
+        .stat-card { background: #fff; border-radius: 12px; padding: 1.5rem; }
+        .stat-card .stat-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+        .stat-card h3 { font-weight: 700; margin: 0; }
+        .section-panel { display: none; }
+        .section-panel.active { display: block; }
+        .data-table { width: 100%; }
+        .data-table th { font-weight: 600; font-size: 0.85rem; text-transform: uppercase; color: #64748b; border-bottom: 2px solid #e2e8f0; padding: 0.75rem; }
+        .data-table td { padding: 0.75rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+        .badge-status { font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; }
+        .login-container { max-width: 400px; margin: 100px auto; }
+        #dashboardContent { display: none; }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen">
+        <div class="login-container">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-store fa-3x text-primary mb-3"></i>
+                        <h4>Pharmacy Admin Login</h4>
+                        <p class="text-muted small">Log in to manage your pharmacy</p>
+                    </div>
+                    <form id="loginForm">
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="loginEmail" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" id="loginPassword" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                        </button>
+                    </form>
+                    <div class="text-center mt-3">
+                        <a href="/" class="text-muted small">Back to Home</a>
+                    </div>
+                    <div id="loginError" class="alert alert-danger mt-3" style="display:none;"></div>
+                    <div id="loginPending" class="alert alert-warning mt-3" style="display:none;">
+                        <strong>Awaiting Approval</strong><br>
+                        Your pharmacy application is under review by the super admin.
+                        You will be able to log in once it is approved.<br>
+                        <a href="/api/pharmacy/status?email=" id="checkStatusLink" class="alert-link small">Check status</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboardContent">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="brand">
+                <i class="fas fa-circle text-danger me-2"></i>
+                <span id="pharmacyName">Pharmacy</span>
+            </div>
+            <div class="nav-item active" onclick="showPanel('overview')">
+                <i class="fas fa-tachometer-alt"></i> Overview
+            </div>
+            <div class="nav-item" onclick="showPanel('orders')">
+                <i class="fas fa-shopping-bag"></i> Orders
+            </div>
+            <div class="nav-item" onclick="showPanel('appointments')">
+                <i class="fas fa-calendar-check"></i> Appointments
+            </div>
+            <div class="nav-item" onclick="showPanel('doctors')">
+                <i class="fas fa-user-md"></i> My Doctors
+            </div>
+            <div class="nav-item" onclick="showPanel('reviews')">
+                <i class="fas fa-star"></i> Reviews
+            </div>
+            <div class="nav-item" onclick="showPanel('chatLogs')">
+                <i class="fas fa-comments"></i> Chat Logs
+            </div>
+            <div class="nav-item" onclick="showPanel('profile')">
+                <i class="fas fa-cog"></i> Profile Settings
+            </div>
+            <div class="nav-item" style="margin-top:2rem;color:#ef4444;" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="mb-0" id="panelTitle">Overview</h4>
+                <a href="#" id="viewPageLink" class="btn btn-outline-primary btn-sm" target="_blank">
+                    <i class="fas fa-external-link-alt me-1"></i>View Pharmacy Page
+                </a>
+            </div>
+
+            <!-- Overview Panel -->
+            <div class="section-panel active" id="panelOverview">
+                <div class="row g-4 mb-4">
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <small class="text-muted">Orders Today</small>
+                                    <h3 id="statOrdersToday">0</h3>
+                                </div>
+                                <div class="stat-icon bg-primary-subtle text-primary"><i class="fas fa-shopping-bag"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <small class="text-muted">Pending Appointments</small>
+                                    <h3 id="statPendingAppts">0</h3>
+                                </div>
+                                <div class="stat-icon bg-warning-subtle text-warning"><i class="fas fa-calendar-check"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <small class="text-muted">Revenue</small>
+                                    <h3 id="statRevenue">PKR 0</h3>
+                                </div>
+                                <div class="stat-icon bg-success-subtle text-success"><i class="fas fa-money-bill"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <small class="text-muted">Doctors</small>
+                                    <h3 id="statDoctors">0</h3>
+                                </div>
+                                <div class="stat-icon bg-info-subtle text-info"><i class="fas fa-user-md"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Orders Panel -->
+            <div class="section-panel" id="panelOrders">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <select class="form-select form-select-sm w-auto" id="orderStatusFilter" onchange="loadOrders()">
+                                <option value="">All Orders</option>
+                                <option value="pending">Pending</option>
+                                <option value="processing">Processing</option>
+                                <option value="out_for_delivery">Out for Delivery</option>
+                                <option value="delivered">Delivered</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead><tr>
+                                    <th>ID</th><th>Customer</th><th>Total</th><th>Status</th><th>Date</th><th>Actions</th>
+                                </tr></thead>
+                                <tbody id="ordersTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Appointments Panel -->
+            <div class="section-panel" id="panelAppointments">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead><tr>
+                                    <th>Patient</th><th>Doctor</th><th>Date</th><th>Status</th><th>Meet Link</th>
+                                </tr></thead>
+                                <tbody id="appointmentsTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Doctors Panel -->
+            <div class="section-panel" id="panelDoctors">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h5 class="mb-0">Doctors</h5>
+                            <button class="btn btn-primary btn-sm" onclick="showAddDoctorForm()">
+                                <i class="fas fa-plus me-1"></i>Add Doctor
+                            </button>
+                        </div>
+                        <div id="addDoctorForm" style="display:none;" class="mb-4 p-3 border rounded">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control" id="newDoctorName" placeholder="Full Name *">
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="email" class="form-control" id="newDoctorEmail" placeholder="Email *">
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="text" class="form-control" id="newDoctorSpec" placeholder="Specialization">
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="text" class="form-control" id="newDoctorQual" placeholder="Qualification">
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="number" class="form-control" id="newDoctorExp" placeholder="Years Exp">
+                                </div>
+                                <div class="col-12 text-end">
+                                    <button class="btn btn-secondary btn-sm me-2" onclick="hideAddDoctorForm()">Cancel</button>
+                                    <button class="btn btn-primary btn-sm" onclick="addDoctor()">Save Doctor</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead><tr>
+                                    <th>Name</th><th>Email</th><th>Specialization</th><th>Qualification</th><th>Experience</th><th>Actions</th>
+                                </tr></thead>
+                                <tbody id="doctorsTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reviews Panel -->
+            <div class="section-panel" id="panelReviews">
+                <div class="card">
+                    <div class="card-body" id="reviewsContent"></div>
+                </div>
+            </div>
+
+            <!-- Chat Logs Panel -->
+            <div class="section-panel" id="panelChatLogs">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead><tr>
+                                    <th>User Message</th><th>Bot Response</th><th>Language</th><th>Flagged</th><th>Date</th>
+                                </tr></thead>
+                                <tbody id="chatLogsTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Panel -->
+            <div class="section-panel" id="panelProfile">
+                <div class="card">
+                    <div class="card-body">
+                        <form id="profileForm">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Pharmacy Name</label>
+                                    <input type="text" class="form-control" id="profileName">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Owner Name</label>
+                                    <input type="text" class="form-control" id="profileOwnerName">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Phone</label>
+                                    <input type="tel" class="form-control" id="profilePhone">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">City</label>
+                                    <input type="text" class="form-control" id="profileCity">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Address</label>
+                                    <textarea class="form-control" id="profileAddress" rows="2"></textarea>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Operating Hours</label>
+                                    <input type="text" class="form-control" id="profileHours">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Theme</label>
+                                    <select class="form-select" id="profileTheme"></select>
+                                </div>
+                                <div class="col-12 text-end">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>Save Changes
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API = '/pharmacy-admin/api';
+        let token = localStorage.getItem('pharmacy_admin_token');
+        let pharmacySlug = '';
+
+        function headers() {
+            return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+        }
+
+        // ─── Auth ───────────────────────────────────────────────────────
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errEl = document.getElementById('loginError');
+            const pendingEl = document.getElementById('loginPending');
+            errEl.style.display = 'none';
+            pendingEl.style.display = 'none';
+            const email = document.getElementById('loginEmail').value;
+            try {
+                const res = await fetch(`${API}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email,
+                        password: document.getElementById('loginPassword').value,
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    token = data.token;
+                    localStorage.setItem('pharmacy_admin_token', token);
+                    pharmacySlug = data.admin.pharmacy_slug;
+                    document.getElementById('pharmacyName').textContent = data.admin.pharmacy_name;
+                    document.getElementById('viewPageLink').href = `/pharmacy/${pharmacySlug}`;
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('dashboardContent').style.display = 'block';
+                    loadDashboard();
+                } else if (res.status === 403) {
+                    // Pharmacy not approved yet
+                    const statusLink = document.getElementById('checkStatusLink');
+                    if (statusLink) statusLink.href = `/api/pharmacy/status?email=${encodeURIComponent(email)}`;
+                    pendingEl.style.display = 'block';
+                } else {
+                    errEl.textContent = data.error || 'Invalid email or password.';
+                    errEl.style.display = 'block';
+                }
+            } catch (err) { errEl.textContent = 'Login failed. Please try again.'; errEl.style.display = 'block'; }
+        });
+
+        async function checkAuth() {
+            if (!token) return;
+            try {
+                const res = await fetch(`${API}/verify`, { method: 'POST', headers: headers() });
+                const data = await res.json();
+                if (data.valid) {
+                    pharmacySlug = data.admin.pharmacy_slug || '';
+                    document.getElementById('pharmacyName').textContent = data.admin.pharmacy_name;
+                    document.getElementById('viewPageLink').href = `/pharmacy/${pharmacySlug}`;
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('dashboardContent').style.display = 'block';
+                    loadDashboard();
+                }
+            } catch (err) {}
+        }
+
+        function logout() {
+            token = null;
+            localStorage.removeItem('pharmacy_admin_token');
+            location.reload();
+        }
+
+        // ─── Navigation ────────────────────────────────────────────────
+        function showPanel(name) {
+            document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.sidebar .nav-item').forEach(n => n.classList.remove('active'));
+            const panelId = `panel${name.charAt(0).toUpperCase() + name.slice(1)}`;
+            document.getElementById(panelId).classList.add('active');
+            event.currentTarget.classList.add('active');
+            const titles = { overview: 'Overview', orders: 'Orders', appointments: 'Appointments', doctors: 'My Doctors', reviews: 'Reviews', chatLogs: 'Chat Logs', profile: 'Profile Settings' };
+            document.getElementById('panelTitle').textContent = titles[name] || name;
+
+            // Load data
+            if (name === 'orders') loadOrders();
+            if (name === 'appointments') loadAppointments();
+            if (name === 'doctors') loadDoctors();
+            if (name === 'reviews') loadReviews();
+            if (name === 'chatLogs') loadChatLogs();
+            if (name === 'profile') loadProfile();
+        }
+
+        // ─── Data Loading ──────────────────────────────────────────────
+        async function loadDashboard() {
+            try {
+                const res = await fetch(`${API}/stats`, { headers: headers() });
+                const data = await res.json();
+                if (data.success) {
+                    const s = data.stats;
+                    document.getElementById('statOrdersToday').textContent = s.orders_today;
+                    document.getElementById('statPendingAppts').textContent = s.pending_appointments;
+                    document.getElementById('statRevenue').textContent = `PKR ${(s.total_revenue || 0).toLocaleString()}`;
+                    document.getElementById('statDoctors').textContent = s.total_doctors;
+                }
+            } catch (err) { console.error('Stats error:', err); }
+        }
+
+        async function loadOrders() {
+            try {
+                const status = document.getElementById('orderStatusFilter').value;
+                let url = `${API}/orders?limit=50`;
+                if (status) url += `&status=${status}`;
+                const res = await fetch(url, { headers: headers() });
+                const data = await res.json();
+                const tbody = document.getElementById('ordersTableBody');
+                tbody.innerHTML = '';
+                (data.orders || []).forEach(o => {
+                    tbody.innerHTML += `<tr>
+                        <td>#${o.id}</td>
+                        <td>${o.customer_name}</td>
+                        <td>PKR ${o.total_amount}</td>
+                        <td><span class="badge badge-status bg-${statusColor(o.status)}">${o.status}</span></td>
+                        <td>${new Date(o.created_at).toLocaleDateString()}</td>
+                        <td>
+                            <select class="form-select form-select-sm" style="width:150px;" onchange="updateOrderStatus(${o.id}, this.value)">
+                                ${['pending','processing','out_for_delivery','delivered','cancelled'].map(s =>
+                                    `<option value="${s}" ${s === o.status ? 'selected' : ''}>${s}</option>`
+                                ).join('')}
+                            </select>
+                        </td>
+                    </tr>`;
+                });
+            } catch (err) { console.error('Orders error:', err); }
+        }
+
+        async function updateOrderStatus(id, status) {
+            try {
+                await fetch(`${API}/orders/${id}/status`, {
+                    method: 'PUT', headers: headers(),
+                    body: JSON.stringify({ status })
+                });
+                loadOrders();
+            } catch (err) { alert('Failed to update order'); }
+        }
+
+        async function loadAppointments() {
+            try {
+                const res = await fetch(`${API}/appointments`, { headers: headers() });
+                const data = await res.json();
+                const tbody = document.getElementById('appointmentsTableBody');
+                tbody.innerHTML = '';
+                (data.appointments || []).forEach(a => {
+                    tbody.innerHTML += `<tr>
+                        <td>${a.patient_name}</td>
+                        <td>${a.doctor_name}</td>
+                        <td>${a.date || ''}</td>
+                        <td><span class="badge badge-status bg-${statusColor(a.status)}">${a.status}</span></td>
+                        <td>${a.google_meet_link ? `<a href="${a.google_meet_link}" target="_blank" class="btn btn-sm btn-outline-primary">Join</a>` : '-'}</td>
+                    </tr>`;
+                });
+            } catch (err) { console.error('Appointments error:', err); }
+        }
+
+        async function loadDoctors() {
+            try {
+                const res = await fetch(`${API}/doctors`, { headers: headers() });
+                const data = await res.json();
+                const tbody = document.getElementById('doctorsTableBody');
+                tbody.innerHTML = '';
+                (data.doctors || []).forEach(d => {
+                    tbody.innerHTML += `<tr>
+                        <td>${d.name}</td>
+                        <td>${d.email}</td>
+                        <td>${d.specialization || '-'}</td>
+                        <td>${d.qualification || '-'}</td>
+                        <td>${d.experience_years || '-'} yrs</td>
+                        <td><button class="btn btn-sm btn-outline-danger" onclick="removeDoctor(${d.id})"><i class="fas fa-trash"></i></button></td>
+                    </tr>`;
+                });
+            } catch (err) { console.error('Doctors error:', err); }
+        }
+
+        function showAddDoctorForm() { document.getElementById('addDoctorForm').style.display = 'block'; }
+        function hideAddDoctorForm() { document.getElementById('addDoctorForm').style.display = 'none'; }
+
+        async function addDoctor() {
+            try {
+                const res = await fetch(`${API}/doctors`, {
+                    method: 'POST', headers: headers(),
+                    body: JSON.stringify({
+                        name: document.getElementById('newDoctorName').value,
+                        email: document.getElementById('newDoctorEmail').value,
+                        specialization: document.getElementById('newDoctorSpec').value,
+                        qualification: document.getElementById('newDoctorQual').value,
+                        experience_years: parseInt(document.getElementById('newDoctorExp').value) || null,
+                    })
+                });
+                const data = await res.json();
+                if (data.success) { hideAddDoctorForm(); loadDoctors(); }
+                else alert(data.error);
+            } catch (err) { alert('Failed to add doctor'); }
+        }
+
+        async function removeDoctor(id) {
+            if (!confirm('Remove this doctor from your pharmacy?')) return;
+            try {
+                await fetch(`${API}/doctors/${id}`, { method: 'DELETE', headers: headers() });
+                loadDoctors();
+            } catch (err) { alert('Failed to remove doctor'); }
+        }
+
+        async function loadReviews() {
+            try {
+                const res = await fetch(`${API}/reviews`, { headers: headers() });
+                const data = await res.json();
+                const container = document.getElementById('reviewsContent');
+                container.innerHTML = '';
+                if (!data.reviews || data.reviews.length === 0) {
+                    container.innerHTML = '<p class="text-muted text-center py-4">No reviews yet</p>';
+                    return;
+                }
+                data.reviews.forEach(r => {
+                    const stars = Array(5).fill(0).map((_, i) =>
+                        `<i class="fas fa-star" style="color:${i < r.rating ? '#f59e0b' : '#d1d5db'};"></i>`
+                    ).join('');
+                    container.innerHTML += `
+                        <div class="border-bottom pb-3 mb-3">
+                            <div class="d-flex justify-content-between">
+                                <strong>${r.user_name}</strong>
+                                <small class="text-muted">${r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}</small>
+                            </div>
+                            <div class="mb-1">${stars}</div>
+                            ${r.comment ? `<p class="mb-1">${r.comment}</p>` : ''}
+                            ${r.owner_reply ? `<div class="bg-light p-2 rounded mt-1"><small><strong>Your reply:</strong> ${r.owner_reply}</small></div>` : `
+                                <div class="mt-2">
+                                    <div class="input-group input-group-sm" style="max-width:400px;">
+                                        <input type="text" class="form-control" id="reply-${r.id}" placeholder="Write a reply...">
+                                        <button class="btn btn-outline-primary" onclick="replyToReview(${r.id})">Reply</button>
+                                    </div>
+                                </div>
+                            `}
+                        </div>
+                    `;
+                });
+            } catch (err) { console.error('Reviews error:', err); }
+        }
+
+        async function replyToReview(id) {
+            const reply = document.getElementById(`reply-${id}`).value.trim();
+            if (!reply) return;
+            try {
+                await fetch(`${API}/reviews/${id}/reply`, {
+                    method: 'POST', headers: headers(),
+                    body: JSON.stringify({ reply })
+                });
+                loadReviews();
+            } catch (err) { alert('Failed to reply'); }
+        }
+
+        async function loadChatLogs() {
+            try {
+                const res = await fetch(`${API}/chat-logs?limit=50`, { headers: headers() });
+                const data = await res.json();
+                const tbody = document.getElementById('chatLogsTableBody');
+                tbody.innerHTML = '';
+                (data.logs || []).forEach(l => {
+                    tbody.innerHTML += `<tr>
+                        <td style="max-width:250px;">${(l.message || '').substring(0, 80)}...</td>
+                        <td style="max-width:250px;">${(l.response || '').substring(0, 80)}...</td>
+                        <td>${l.language}</td>
+                        <td>${l.flagged ? '<span class="badge bg-danger">Flagged</span>' : '-'}</td>
+                        <td>${l.created_at ? new Date(l.created_at).toLocaleDateString() : ''}</td>
+                    </tr>`;
+                });
+            } catch (err) { console.error('Chat logs error:', err); }
+        }
+
+        async function loadProfile() {
+            try {
+                const res = await fetch(`${API}/profile`, { headers: headers() });
+                const data = await res.json();
+                if (data.success) {
+                    const p = data.pharmacy;
+                    document.getElementById('profileName').value = p.name || '';
+                    document.getElementById('profileOwnerName').value = p.owner_name || '';
+                    document.getElementById('profilePhone').value = p.phone || '';
+                    document.getElementById('profileCity').value = p.city || '';
+                    document.getElementById('profileAddress').value = p.address || '';
+                    document.getElementById('profileHours').value = p.operating_hours || '';
+
+                    const themeSelect = document.getElementById('profileTheme');
+                    themeSelect.innerHTML = '';
+                    (data.themes || []).forEach(t => {
+                        themeSelect.innerHTML += `<option value="${t.key}" ${t.key === p.theme_key ? 'selected' : ''}>${t.name}</option>`;
+                    });
+                }
+            } catch (err) { console.error('Profile error:', err); }
+        }
+
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const res = await fetch(`${API}/profile`, {
+                    method: 'PUT', headers: headers(),
+                    body: JSON.stringify({
+                        name: document.getElementById('profileName').value,
+                        owner_name: document.getElementById('profileOwnerName').value,
+                        phone: document.getElementById('profilePhone').value,
+                        city: document.getElementById('profileCity').value,
+                        address: document.getElementById('profileAddress').value,
+                        operating_hours: document.getElementById('profileHours').value,
+                        theme_key: document.getElementById('profileTheme').value,
+                    })
+                });
+                const data = await res.json();
+                if (data.success) alert('Profile updated!');
+                else alert(data.error);
+            } catch (err) { alert('Failed to update profile'); }
+        });
+
+        // ─── Utilities ─────────────────────────────────────────────────
+        function statusColor(s) {
+            const colors = { pending: 'warning', processing: 'info', out_for_delivery: 'primary', delivered: 'success', completed: 'success', cancelled: 'danger', approved: 'success', declined: 'danger', scheduled: 'info', ongoing: 'primary' };
+            return colors[s] || 'secondary';
+        }
+
+        // ─── Init ──────────────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', checkAuth);
+    </script>
+</body>
+</html>

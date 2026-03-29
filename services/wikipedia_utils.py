@@ -38,7 +38,7 @@ def wiki_search_top_title(query):
             WIKIPEDIA_API,
             params=params,
             headers={"User-Agent": USER_AGENT},
-            timeout=10
+            timeout=5
         )
         response.raise_for_status()
         data = response.json()
@@ -80,7 +80,7 @@ def fetch_wiki_summary(title):
             WIKIPEDIA_API,
             params=params,
             headers={"User-Agent": USER_AGENT},
-            timeout=10
+            timeout=5
         )
         response.raise_for_status()
         data = response.json()
@@ -125,7 +125,7 @@ def fetch_wiki_images(title, max_images=4):
             WIKIPEDIA_API,
             params=params,
             headers={"User-Agent": USER_AGENT},
-            timeout=10
+            timeout=5
         )
         response.raise_for_status()
         data = response.json()
@@ -176,7 +176,7 @@ def get_commons_metadata(file_title):
             COMMONS_API,
             params=params,
             headers={"User-Agent": USER_AGENT},
-            timeout=10
+            timeout=5
         )
         response.raise_for_status()
         data = response.json()
@@ -241,7 +241,7 @@ def get_image_direct_url(file_title):
             COMMONS_API,
             params=params,
             headers={"User-Agent": USER_AGENT},
-            timeout=10
+            timeout=5
         )
         response.raise_for_status()
         data = response.json()
@@ -261,14 +261,15 @@ def get_image_direct_url(file_title):
 
 def collect_wikipedia_resources(query):
     """
-    Main function to collect all Wikipedia resources for a query.
-    Fetches the best matching page, its summary, and images with full attribution.
-    
+    Collect Wikipedia page summary for a query.
+    Images are intentionally skipped — Commons.wikimedia.org causes
+    network timeouts and the images are not reliable enough for display.
+
     Args:
-        query: The search query (user's question)
-        
+        query: The search query
+
     Returns:
-        Dictionary containing title, page_url, summary, and images with attribution
+        Dictionary with title, page_url, summary, images=[], success
     """
     result = {
         "title": None,
@@ -277,44 +278,26 @@ def collect_wikipedia_resources(query):
         "images": [],
         "success": False
     }
-    
+
     try:
         title = wiki_search_top_title(query)
         if not title:
-            logging.info(f"No Wikipedia match found for: {query}")
             return result
-        
+
         summary_data = fetch_wiki_summary(title)
         if not summary_data:
-            logging.info(f"Could not fetch summary for: {title}")
             return result
-        
+
         result["title"] = summary_data["title"]
         result["page_url"] = summary_data["page_url"]
         result["summary"] = summary_data["summary"]
         result["success"] = True
-        
-        image_titles = fetch_wiki_images(title, max_images=4)
-        
-        for img_title in image_titles:
-            metadata = get_commons_metadata(img_title)
-            if metadata and metadata.get("url"):
-                thumb_url = get_image_direct_url(img_title)
-                result["images"].append({
-                    "url": metadata["url"],
-                    "thumb_url": thumb_url or metadata["url"],
-                    "license": metadata["license"],
-                    "license_url": metadata["license_url"],
-                    "artist": metadata["artist"],
-                    "credit": metadata["credit"],
-                    "description": metadata.get("description", "")
-                })
-        
-        logging.info(f"Wikipedia resources collected for '{query}': {result['title']}, {len(result['images'])} images")
+
+        logging.info(f"Wikipedia fetched for '{query}': {result['title']}")
         return result
-        
+
     except Exception as e:
-        logging.error(f"Error collecting Wikipedia resources: {e}")
+        logging.error(f"Wikipedia fetch error: {e}")
         return result
 
 
@@ -350,30 +333,32 @@ def build_wiki_context(wiki_data):
 
 def extract_medical_keywords(text):
     """
-    Extract potential medical keywords from user text for better Wikipedia search.
-    
+    Extract medical keywords for Wikipedia search using fast heuristics only.
+    No extra LLM calls — keeps latency low.
+
     Args:
         text: User's question/message
-        
+
     Returns:
-        Refined search query
+        Refined search query for Wikipedia
     """
     medical_keywords = [
-        "fever", "headache", "pain", "cough", "cold", "flu", "diabetes", 
+        "fever", "headache", "pain", "cough", "cold", "flu", "diabetes",
         "blood pressure", "heart", "stomach", "infection", "allergy",
         "medicine", "drug", "treatment", "symptom", "disease", "condition",
-        "paracetamol", "aspirin", "ibuprofen", "antibiotic"
+        "paracetamol", "aspirin", "ibuprofen", "antibiotic", "hypertension",
+        "asthma", "arthritis", "cancer", "depression", "anxiety", "vaccine",
+        "diarrhea", "vomiting", "nausea", "rash", "pneumonia", "malaria",
+        "dengue", "hepatitis", "tuberculosis", "cholesterol", "thyroid",
     ]
-    
+
     text_lower = text.lower()
-    
-    found_keywords = [kw for kw in medical_keywords if kw in text_lower]
-    
-    if found_keywords:
-        return " ".join(found_keywords[:3])
-    
+    found = [kw for kw in medical_keywords if kw in text_lower]
+    if found:
+        return " ".join(found[:3])
+
     words = re.findall(r'\b[a-zA-Z]{4,}\b', text)
     if words:
-        return " ".join(words[:5])
-    
-    return text[:100]
+        return " ".join(words[:4])
+
+    return text[:80]

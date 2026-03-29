@@ -85,6 +85,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="#pharmacyApps" onclick="showSection('pharmacyApps')">
+                            <i class="fas fa-store me-1"></i>Pharmacy Apps
+                            <span id="pendingPharmacyBadge" class="badge bg-danger ms-1" style="display:none;">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="#payments" onclick="showSection('payments')">
                             <i class="fas fa-credit-card me-1"></i>Payments
                         </a>
@@ -658,6 +664,64 @@
                 <div class="card-body">
                     <div id="chatLogsList">
                         <!-- Chat logs will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pharmacy Applications Section -->
+        <div id="pharmacyAppsSection" class="admin-section" style="display: none;">
+            <h2 class="mb-4">
+                <i class="fas fa-store text-primary me-2"></i>Pharmacy Applications
+            </h2>
+
+            <!-- Filter Tabs -->
+            <div class="mb-3">
+                <button class="btn btn-sm btn-warning me-2" onclick="loadPharmacyApplications('pending')">Pending</button>
+                <button class="btn btn-sm btn-success me-2" onclick="loadPharmacyApplications('approved')">Approved</button>
+                <button class="btn btn-sm btn-danger" onclick="loadPharmacyApplications('suspended')">Suspended</button>
+            </div>
+
+            <div class="card">
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Pharmacy Name</th>
+                                <th>Owner</th>
+                                <th>Email</th>
+                                <th>City</th>
+                                <th>License #</th>
+                                <th>Status</th>
+                                <th>Registered</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pharmacyAppsTableBody">
+                            <tr><td colspan="9" class="text-center py-4 text-muted">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Reject Modal -->
+            <div class="modal fade" id="rejectPharmacyModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Reject Pharmacy Application</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="rejectPharmacyId">
+                            <label class="form-label">Reason for rejection</label>
+                            <textarea class="form-control" id="rejectReason" rows="3" placeholder="e.g. License number could not be verified"></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button class="btn btn-danger" onclick="submitPharmacyRejection()">Reject Application</button>
+                        </div>
                     </div>
                 </div>
             </div>

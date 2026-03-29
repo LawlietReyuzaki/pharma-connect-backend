@@ -38,7 +38,7 @@ def wiki_search_top_title(query: str) -> Optional[str]:
             WIKIPEDIA_API,
             params=params,
             headers={"User-Agent": USER_AGENT},
-            timeout=10
+            timeout=5
         )
         response.raise_for_status()
         data = response.json()
@@ -75,7 +75,7 @@ def fetch_wiki_text_summary(title: str, max_sentences: int = 5) -> Optional[Dict
             WIKIPEDIA_API,
             params=params,
             headers={"User-Agent": USER_AGENT},
-            timeout=10
+            timeout=5
         )
         response.raise_for_status()
         data = response.json()
@@ -118,18 +118,20 @@ def fetch_wiki_summary(title: str) -> Optional[Dict]:
 
 
 def _sanitize_query(query: str) -> str:
-    """Sanitize query to prevent inappropriate Wikipedia searches."""
+    """Sanitize query for Wikipedia search.
+    Limits to 60 chars / 6 words to prevent sending full sentences as queries."""
     query = re.sub(r'[^\w\s-]', '', query)
     query = ' '.join(query.split())
-    query = query[:100]
-    
+    # Hard limit: first 6 words only (prevents wiki summary bleed-through)
+    words = query.split()
+    query = ' '.join(words[:6])
+    query = query[:60]
+
     blocked_keywords = ['porn', 'xxx', 'explicit', 'nude']
-    query_lower = query.lower()
-    
-    if any(kw in query_lower for kw in blocked_keywords):
+    if any(kw in query.lower() for kw in blocked_keywords):
         logger.warning(f"Blocked inappropriate query: {query}")
         return ""
-    
+
     return query.strip()
 
 

@@ -447,33 +447,47 @@ ALWAYS consult a qualified healthcare provider.
         return True
     
     def _search_medicine_catalog(self, keywords: List[str]) -> List[Dict]:
-        """Search medicine catalog with extracted keywords"""
+        """Search medicine catalog with extracted keywords.
+        Keywords are cleaned and limited to prevent passing full sentences."""
         try:
             from services.medicine_rag import search_medicines, search_medicines_for_condition
-            
+
             all_medicines = []
             seen_ids = set()
-            
-            for keyword in keywords[:3]:
-                if not keyword:
+
+            # Clean keywords: keep only short phrases (≤4 words, ≤40 chars)
+            # This prevents the Wikipedia summary from being used as a search term
+            clean_keywords = []
+            for kw in keywords[:5]:
+                if not kw:
                     continue
-                    
+                kw = kw.strip()
+                words = kw.split()
+                if len(words) <= 4 and len(kw) <= 40:
+                    clean_keywords.append(kw)
+                elif words:
+                    # Take only first 2 words
+                    clean_keywords.append(" ".join(words[:2]))
+
+            # Deduplicate
+            clean_keywords = list(dict.fromkeys(clean_keywords))[:3]
+
+            for keyword in clean_keywords:
+                if len(keyword) < 3:
+                    continue
                 medicines = search_medicines(keyword, limit=3)
-                
                 if not medicines:
                     medicines = search_medicines_for_condition(keyword, limit=3)
-                
                 for med in medicines:
                     if med['id'] not in seen_ids:
                         seen_ids.add(med['id'])
                         all_medicines.append(med)
-                
                 if len(all_medicines) >= 5:
                     break
-            
-            logger.info(f"Found {len(all_medicines)} medicines for keywords: {keywords}")
+
+            logger.info(f"Found {len(all_medicines)} medicines for keywords: {clean_keywords}")
             return all_medicines[:5]
-            
+
         except Exception as e:
             logger.error(f"Medicine catalog search error: {e}")
             return []

@@ -3,19 +3,24 @@ import logging
 from functools import wraps
 from flask import Flask, render_template, jsonify
 from flask_cors import CORS
+
+# Load .env file FIRST before any other imports use os.environ
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    logging.basicConfig(level=logging.DEBUG)
+    logging.info("✅ .env loaded successfully")
+except Exception as _e:
+    logging.warning(f"dotenv not available: {_e}")
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.exc import SQLAlchemyError, OperationalError
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
-class Base(DeclarativeBase):
-    pass
-
 # Initialize extensions
-db = SQLAlchemy(model_class=Base)
+db = SQLAlchemy()
 
 def create_app():
     # Create Flask app
@@ -50,6 +55,11 @@ def create_app():
     from routes.doctor_oauth_routes import bp as doctor_oauth_bp
     from routes.payment_routes import bp as payment_bp
     
+    # Multi-pharmacy network blueprints
+    from routes.pharmacy_routes import bp as pharmacy_bp
+    from routes.pharmacy_registration_routes import bp as pharmacy_reg_bp
+    from routes.pharmacy_admin_routes import bp as pharmacy_admin_bp
+
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(chatbot_bp, url_prefix="/api/chat")
     app.register_blueprint(appt_bp, url_prefix="/api/appointments")
@@ -61,9 +71,17 @@ def create_app():
     app.register_blueprint(google_auth_bp)
     app.register_blueprint(doctor_oauth_bp)
     app.register_blueprint(payment_bp, url_prefix="/api/payments")
-    
+    app.register_blueprint(pharmacy_bp, url_prefix="/pharmacy")
+    app.register_blueprint(pharmacy_reg_bp, url_prefix="/register")
+    app.register_blueprint(pharmacy_admin_bp, url_prefix="/pharmacy-admin")
+
     @app.route("/")
     def index():
+        return render_template("platform_home.html")
+
+    @app.route("/home")
+    def old_index():
+        """Legacy single-pharmacy home page"""
         return render_template("index.html")
     
     @app.route("/admin")

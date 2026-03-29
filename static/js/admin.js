@@ -117,6 +117,7 @@ class AdminDashboard {
             case 'dashboard':
                 this.loadDashboardStats();
                 this.loadPendingNotifications();
+                loadPharmacyApplications('pending');
                 break;
             case 'medicines':
                 this.loadMedicines();
@@ -144,6 +145,9 @@ class AdminDashboard {
                 loadPayments();
                 loadPaymentMethods();
                 loadBankingDetails();
+                break;
+            case 'pharmacyApps':
+                loadPharmacyApplications('pending');
                 break;
         }
     }
@@ -2460,10 +2464,146 @@ function showBankingAlert(message, type) {
 // Initialize admin dashboard on page load
 document.addEventListener('DOMContentLoaded', function() {
     adminDashboard = new AdminDashboard();
-    
+
     // Add form submission handler for time slots
     const timeSlotForm = document.getElementById('addTimeSlotForm');
     if (timeSlotForm) {
         timeSlotForm.addEventListener('submit', addTimeSlot);
     }
 });
+
+
+// ============ PHARMACY APPLICATIONS ============
+
+async function loadPharmacyApplications(status = 'pending') {
+    const tbody = document.getElementById('pharmacyAppsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">Loading...</td></tr>';
+
+    try {
+        const token = localStorage.getItem('adminToken');
+        const res = await fetch(`/admin/api/pharmacy-applications?status=${status}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        if (!data.success || !data.applications.length) {
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">No ${status} applications found.</td></tr>`;
+
+            // Update pending badge
+            if (status === 'pending') {
+                const badge = document.getElementById('pendingPharmacyBadge');
+                if (badge) badge.style.display = 'none';
+            }
+            return;
+        }
+
+        // Update pending badge
+        if (status === 'pending') {
+            const badge = document.getElementById('pendingPharmacyBadge');
+            if (badge) {
+                badge.textContent = data.applications.length;
+                badge.style.display = 'inline';
+            }
+        }
+
+        tbody.innerHTML = data.applications.map(p => {
+            const statusBadge = {
+                pending:   '<span class="badge bg-warning text-dark">Pending</span>',
+                approved:  '<span class="badge bg-success">Approved</span>',
+                suspended: '<span class="badge bg-danger">Suspended</span>',
+            }[p.status] || `<span class="badge bg-secondary">${p.status}</span>`;
+
+            const actions = p.status === 'pending' ? `
+                <button class="btn btn-sm btn-success me-1" onclick="approvePharmacy(${p.id}, '${p.name.replace(/'/g, "\\'")}')">
+                    <i class="fas fa-check"></i> Approve
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="openRejectModal(${p.id})">
+                    <i class="fas fa-times"></i> Reject
+                </button>` : '—';
+
+            const registered = p.created_at ? new Date(p.created_at).toLocaleDateString() : '—';
+
+            return `<tr>
+                <td>${p.id}</td>
+                <td><strong>${p.name}</strong></td>
+                <td>${p.owner_name}</td>
+                <td>${p.email}</td>
+                <td>${p.city || '—'}</td>
+                <td>${p.license_number || '—'}</td>
+                <td>${statusBadge}</td>
+                <td>${registered}</td>
+                <td>${actions}</td>
+            </tr>`;
+        }).join('');
+
+    } catch (err) {
+        console.error('Load pharmacy applications error:', err);
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger">Failed to load applications.</td></tr>';
+    }
+}
+
+async function approvePharmacy(pharmacyId, pharmacyName) {
+    if (!confirm(`Approve "${pharmacyName}"? They will be able to log in immediately.`)) return;
+
+    try {
+        const token = localStorage.getItem('adminToken');
+        const res = await fetch(`/admin/api/pharmacy-applications/${pharmacyId}/approve`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            alert(`✅ ${data.message}`);
+            loadPharmacyApplications('pending');
+        } else {
+            alert(`❌ Error: ${data.error}`);
+        }
+    } catch (err) {
+        console.error('Approve pharmacy error:', err);
+        alert('Failed to approve pharmacy. Check console.');
+    }
+}
+
+function openRejectModal(pharmacyId) {
+    document.getElementById('rejectPharmacyId').value = pharmacyId;
+    document.getElementById('rejectReason').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('rejectPharmacyModal'));
+    modal.show();
+}
+
+async function submitPharmacyRejection() {
+    const pharmacyId = document.getElementById('rejectPharmacyId').value;
+    const reason = document.getElementById('rejectReason').value.trim();
+
+    if (!reason) {
+        alert('Please enter a rejection reason.');
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem('adminToken');
+        const res = await fetch(`/admin/api/pharmacy-applications/${pharmacyId}/reject`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reason })
+        });
+        const data = await res.json();
+
+        bootstrap.Modal.getInstance(document.getElementById('rejectPharmacyModal')).hide();
+
+        if (data.success) {
+            alert('Application rejected.');
+            loadPharmacyApplications('pending');
+        } else {
+            alert(`❌ Error: ${data.error}`);
+        }
+    } catch (err) {
+        console.error('Reject pharmacy error:', err);
+        alert('Failed to reject application. Check console.');
+    }
+}

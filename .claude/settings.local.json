@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Read(//c/Program Files/PostgreSQL//**)",
+      "Read(//c/Program Files \\(x86\\)/**)",
+      "Read(//c/Program Files/**)",
+      "Bash(PSQL=\"/c/Program Files/PostgreSQL/18/bin/psql.exe\"\n\"$PSQL\" -U postgres -p 5432 -c \"\\\\l\" 2>&1 | head -20)",
+      "Bash(PGPASSWORD=postgres \"/c/Program Files/PostgreSQL/18/bin/psql.exe\" -U postgres -p 5432 -c \"\\\\l\" 2>&1)",
+      "Read(//c/Users/Hassan/AppData/Roaming/postgresql/**)",
+      "Read(//c/Users/Hassan/**)",
+      "Bash(cat:*)",
+      "Bash(python -c \":*)",
+      "Bash(\"C:/Users/Hassan/Desktop/red  dot/react frontend/ui-ux-polish/node_modules/.bin/tsc\" --noEmit -p \"C:/Users/Hassan/Desktop/red  dot/react frontend/ui-ux-polish/tsconfig.json\" 2>&1)",
+      "Bash(PGPASSWORD=reddot_pass psql -h 127.0.0.1 -p 5434 -U reddot_user -d red_dot_pharmacy -c \"\\\\dt\" 2>&1)"
+    ]
+  }
+}

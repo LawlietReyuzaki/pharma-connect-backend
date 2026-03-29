@@ -68,6 +68,7 @@ def create_order():
         # Create order
         order = Order()
         order.user_id = current_user.id
+        order.pharmacy_id = data.get("pharmacy_id")
         order.address = data["address"]
         order.phone = data["phone"]
         order.total_amount = final_total

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Your Pharmacy — Red Dot Network</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f8fafc; }
+        .register-hero {
+            background: linear-gradient(135deg, #059669, #047857);
+            color: #fff; padding: 100px 0 40px; text-align: center;
+        }
+        .register-hero h1 { font-family: 'Poppins', sans-serif; font-weight: 700; }
+        .form-container {
+            max-width: 720px; margin: -40px auto 3rem;
+            background: #fff; border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            padding: 2.5rem;
+        }
+        .step { display: none; }
+        .step.active { display: block; }
+        .step-indicator { display: flex; justify-content: center; gap: 8px; margin-bottom: 2rem; }
+        .step-dot {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: #e5e7eb; color: #9ca3af;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 600; font-size: 0.85rem; transition: all 0.3s;
+        }
+        .step-dot.active { background: #059669; color: #fff; }
+        .step-dot.done { background: #34d399; color: #fff; }
+        .theme-option {
+            display: inline-block; width: 64px; height: 64px;
+            border-radius: 12px; cursor: pointer; margin: 6px;
+            border: 3px solid transparent; transition: all 0.2s;
+            position: relative;
+        }
+        .theme-option:hover { transform: scale(1.1); }
+        .theme-option.selected { border-color: #111827; transform: scale(1.1); }
+        .theme-option .check {
+            display: none; position: absolute; top: -6px; right: -6px;
+            background: #111827; color: #fff; border-radius: 50%;
+            width: 22px; height: 22px; font-size: 12px;
+            align-items: center; justify-content: center;
+        }
+        .theme-option.selected .check { display: flex; }
+        .photo-upload {
+            border: 2px dashed #d1d5db; border-radius: 12px;
+            padding: 2rem; text-align: center; cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .photo-upload:hover { border-color: #059669; }
+        .photo-upload.has-file { border-color: #059669; border-style: solid; }
+        .btn-step { min-width: 140px; }
+        .success-screen { text-align: center; padding: 3rem 1rem; }
+        .success-screen i { font-size: 4rem; color: #059669; }
+    </style>
+</head>
+<body>
+    <!-- Nav -->
+    <nav class="navbar navbar-dark fixed-top" style="background:#064e3b;">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-circle text-danger me-2"></i>Red Dot Network
+            </a>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="register-hero">
+        <h1><i class="fas fa-store me-3"></i>Register Your Pharmacy</h1>
+        <p class="opacity-75 mt-2">Join Pakistan's growing pharmacy network</p>
+    </section>
+
+    <!-- Form -->
+    <div class="form-container">
+        <!-- Step Indicator -->
+        <div class="step-indicator">
+            <div class="step-dot active" id="dot1">1</div>
+            <div class="step-dot" id="dot2">2</div>
+            <div class="step-dot" id="dot3">3</div>
+            <div class="step-dot" id="dot4">4</div>
+        </div>
+
+        <form id="registrationForm" enctype="multipart/form-data">
+            <!-- Step 1: Pharmacy Details -->
+            <div class="step active" id="step1">
+                <h4 class="mb-4">Pharmacy Details</h4>
+                <div class="mb-3">
+                    <label class="form-label">Pharmacy Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="name" required placeholder="e.g. Al-Shifa Pharmacy">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Address <span class="text-danger">*</span></label>
+                    <textarea class="form-control" name="address" rows="2" required
+                              placeholder="Full street address"></textarea>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">City <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="city" required placeholder="e.g. Islamabad">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Province</label>
+                        <select class="form-select" name="province">
+                            <option value="">Select...</option>
+                            <option value="ICT">Islamabad Capital Territory</option>
+                            <option value="Punjab">Punjab</option>
+                            <option value="Sindh">Sindh</option>
+                            <option value="KPK">Khyber Pakhtunkhwa</option>
+                            <option value="Balochistan">Balochistan</option>
+                            <option value="GB">Gilgit-Baltistan</option>
+                            <option value="AJK">Azad Kashmir</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Phone <span class="text-danger">*</span></label>
+                        <input type="tel" class="form-control" name="phone" required placeholder="051-XXXXXXX">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">License Number</label>
+                        <input type="text" class="form-control" name="license_number" placeholder="Registration number">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Operating Hours</label>
+                    <input type="text" class="form-control" name="operating_hours"
+                           placeholder="e.g. Mon-Sat 9:00 AM - 10:00 PM">
+                </div>
+                <div class="text-end mt-4">
+                    <button type="button" class="btn btn-success btn-step" onclick="nextStep(2)">
+                        Next <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Owner Info & Photos -->
+            <div class="step" id="step2">
+                <h4 class="mb-4">Owner Info & Photos</h4>
+                <div class="mb-3">
+                    <label class="form-label">Owner Full Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="owner_name" required>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Owner Photo</label>
+                        <div class="photo-upload" onclick="document.getElementById('ownerPhotoInput').click()" id="ownerUploadBox">
+                            <i class="fas fa-user fa-2x text-muted mb-2 d-block"></i>
+                            <span class="text-muted" id="ownerPhotoLabel">Click to upload</span>
+                        </div>
+                        <input type="file" id="ownerPhotoInput" name="owner_photo" accept="image/*"
+                               style="display:none" onchange="handlePhotoSelect(this, 'ownerPhotoLabel', 'ownerUploadBox')">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Pharmacy Photo</label>
+                        <div class="photo-upload" onclick="document.getElementById('pharmacyPhotoInput').click()" id="pharmacyUploadBox">
+                            <i class="fas fa-store fa-2x text-muted mb-2 d-block"></i>
+                            <span class="text-muted" id="pharmacyPhotoLabel">Click to upload</span>
+                        </div>
+                        <input type="file" id="pharmacyPhotoInput" name="pharmacy_photo" accept="image/*"
+                               style="display:none" onchange="handlePhotoSelect(this, 'pharmacyPhotoLabel', 'pharmacyUploadBox')">
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" class="btn btn-outline-secondary btn-step" onclick="prevStep(1)">
+                        <i class="fas fa-arrow-left me-2"></i>Back
+                    </button>
+                    <button type="button" class="btn btn-success btn-step" onclick="nextStep(3)">
+                        Next <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: Theme Selection -->
+            <div class="step" id="step3">
+                <h4 class="mb-4">Choose Your Theme</h4>
+                <p class="text-muted mb-3">Pick a color theme for your pharmacy's page</p>
+                <div class="text-center mb-4" id="themeGrid">
+                    {% for theme in themes %}
+                    <div class="theme-option" style="background:{{ theme.preview }};"
+                         data-key="{{ theme.key }}" onclick="selectTheme('{{ theme.key }}', this)"
+                         title="{{ theme.name }}">
+                        <div class="check"><i class="fas fa-check"></i></div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="theme_key" id="themeInput" value="theme-default">
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" class="btn btn-outline-secondary btn-step" onclick="prevStep(2)">
+                        <i class="fas fa-arrow-left me-2"></i>Back
+                    </button>
+                    <button type="button" class="btn btn-success btn-step" onclick="nextStep(4)">
+                        Next <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 4: Account Setup -->
+            <div class="step" id="step4">
+                <h4 class="mb-4">Admin Account Setup</h4>
+                <p class="text-muted mb-3">This will be your login for the pharmacy dashboard</p>
+                <div class="mb-3">
+                    <label class="form-label">Email Address <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control" name="email" required
+                           placeholder="admin@yourpharmacy.com">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Password <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control" name="admin_password" required minlength="6">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control" id="confirmPassword" required minlength="6">
+                </div>
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" class="btn btn-outline-secondary btn-step" onclick="prevStep(3)">
+                        <i class="fas fa-arrow-left me-2"></i>Back
+                    </button>
+                    <button type="submit" class="btn btn-success btn-step btn-lg" id="submitBtn">
+                        <i class="fas fa-paper-plane me-2"></i>Submit Application
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Success Screen -->
+        <div id="successScreen" style="display:none;">
+            <div class="success-screen">
+                <i class="fas fa-check-circle mb-4"></i>
+                <h3 class="mb-3">Application Submitted!</h3>
+                <p class="text-muted mb-4">
+                    Your pharmacy registration is under review. You will receive a notification
+                    once it has been approved. This typically takes 24-48 hours.
+                </p>
+                <a href="/" class="btn btn-success btn-lg">
+                    <i class="fas fa-home me-2"></i>Back to Homepage
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-3 text-center">
+        <small><i class="fas fa-circle text-danger me-1"></i>Red Dot Pharmacy Network &copy; 2025</small>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentStep = 1;
+
+        function nextStep(n) {
+            // Validate current step
+            const currentFields = document.querySelectorAll(`#step${currentStep} [required]`);
+            let valid = true;
+            currentFields.forEach(f => {
+                if (!f.value.trim()) { f.classList.add('is-invalid'); valid = false; }
+                else { f.classList.remove('is-invalid'); }
+            });
+            if (!valid) return;
+
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            document.getElementById(`dot${currentStep}`).classList.remove('active');
+            document.getElementById(`dot${currentStep}`).classList.add('done');
+            currentStep = n;
+            document.getElementById(`step${n}`).classList.add('active');
+            document.getElementById(`dot${n}`).classList.add('active');
+        }
+
+        function prevStep(n) {
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            document.getElementById(`dot${currentStep}`).classList.remove('active');
+            currentStep = n;
+            document.getElementById(`step${n}`).classList.add('active');
+            document.getElementById(`dot${n}`).classList.add('active');
+            document.getElementById(`dot${n}`).classList.remove('done');
+        }
+
+        function selectTheme(key, el) {
+            document.querySelectorAll('.theme-option').forEach(t => t.classList.remove('selected'));
+            el.classList.add('selected');
+            document.getElementById('themeInput').value = key;
+        }
+
+        function handlePhotoSelect(input, labelId, boxId) {
+            if (input.files && input.files[0]) {
+                document.getElementById(labelId).textContent = input.files[0].name;
+                document.getElementById(boxId).classList.add('has-file');
+            }
+        }
+
+        // Select default theme on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const defaultTheme = document.querySelector('.theme-option[data-key="theme-default"]');
+            if (defaultTheme) defaultTheme.classList.add('selected');
+        });
+
+        // Form submission
+        document.getElementById('registrationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const password = document.querySelector('[name="admin_password"]').value;
+            const confirm = document.getElementById('confirmPassword').value;
+            if (password !== confirm) {
+                alert('Passwords do not match');
+                return;
+            }
+
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
+
+            try {
+                const formData = new FormData(document.getElementById('registrationForm'));
+                const res = await fetch('/register/api/pharmacy', {
+                    method: 'POST',
+                    body: formData,
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    document.getElementById('registrationForm').style.display = 'none';
+                    document.querySelector('.step-indicator').style.display = 'none';
+                    document.getElementById('successScreen').style.display = 'block';
+                } else if (res.status === 409) {
+                    // Already registered — guide user to login or status check
+                    const email = document.querySelector('[name="email"]').value;
+                    const msg = (data.error || 'This email is already registered.') +
+                        '\n\nIf you already submitted an application, go to the Pharmacy Login page to check your status or log in.';
+                    alert(msg);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Submit Application';
+                } else {
+                    alert(data.error || 'Registration failed');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Submit Application';
+                }
+            } catch (err) {
+                alert('Registration failed. Please try again.');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Submit Application';
+            }
+        });
+    </script>
+</body>
+</html>

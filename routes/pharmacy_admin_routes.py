@@ -106,7 +106,31 @@ def verify_token_route():
 def dashboard_stats():
     """Get dashboard statistics for this pharmacy"""
     try:
-        stats = get_pharmacy_stats(g.pharmacy_id)
+        from models import Appointment, ChatLog
+        s = get_pharmacy_stats(g.pharmacy_id)
+        pharmacy = Pharmacy.query.get(g.pharmacy_id)
+
+        pending_orders = Order.query.filter_by(
+            pharmacy_id=g.pharmacy_id, status='pending'
+        ).count()
+
+        total_appointments = Appointment.query.join(
+            User, Appointment.doctor_id == User.id
+        ).filter(User.pharmacy_id == g.pharmacy_id).count()
+
+        total_chat_logs = ChatLog.query.filter_by(
+            pharmacy_id=g.pharmacy_id
+        ).count()
+
+        stats = {
+            'total_orders': s['total_orders'],
+            'pending_orders': pending_orders,
+            'total_appointments': total_appointments,
+            'total_doctors': s['total_doctors'],
+            'avg_rating': pharmacy.avg_rating if pharmacy else 0,
+            'review_count': pharmacy.review_count if pharmacy else 0,
+            'total_chat_logs': total_chat_logs,
+        }
         return jsonify({'success': True, 'stats': stats})
     except Exception as e:
         logging.error(f"Pharmacy stats error: {e}")

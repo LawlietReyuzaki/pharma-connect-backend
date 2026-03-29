@@ -262,15 +262,14 @@ function askQuestion(question) {
 
 // Toggle language
 function toggleLanguage() {
-    currentLanguage = currentLanguage === 'en' ? 'ur' : 'en';
-    document.getElementById('currentLang').textContent = currentLanguage === 'en' ? 'EN' : 'UR';
-    
+    window.currentLanguage = window.currentLanguage === 'en' ? 'ur' : 'en';
+    document.getElementById('currentLang').textContent = window.currentLanguage === 'en' ? 'EN' : 'UR';
+    currentLanguage = window.currentLanguage;
+
     const input = document.getElementById('messageInput');
-    input.placeholder = currentLanguage === 'en' 
+    input.placeholder = window.currentLanguage === 'en'
         ? 'Type your medical question...'
         : 'اپنا طبی سوال ٹائپ کریں...';
-    
-    window.currentLanguage = currentLanguage;
 }
 
 // Send message

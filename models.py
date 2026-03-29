@@ -2,11 +2,80 @@ from datetime import datetime
 from app import db
 from flask_login import UserMixin
 
+
+# ─── Multi-Pharmacy Network Models ──────────────────────────────────────────
+
+class Pharmacy(db.Model):
+    __tablename__ = 'pharmacies'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    slug = db.Column(db.String(100), unique=True, nullable=False)
+    owner_name = db.Column(db.String(120), nullable=False)
+    owner_photo_path = db.Column(db.String(255))
+    pharmacy_photo_path = db.Column(db.String(255))
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    phone = db.Column(db.String(50))
+    address = db.Column(db.Text)
+    city = db.Column(db.String(100))
+    province = db.Column(db.String(100))
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
+    license_number = db.Column(db.String(100))
+    operating_hours = db.Column(db.Text)  # JSON string
+    theme_key = db.Column(db.String(50), default='theme-default')
+    status = db.Column(db.String(30), default='pending')  # pending|approved|suspended
+    approved_by = db.Column(db.Integer, db.ForeignKey('admins.admin_id'), nullable=True)
+    approved_at = db.Column(db.DateTime, nullable=True)
+    rejection_reason = db.Column(db.Text, nullable=True)
+    avg_rating = db.Column(db.Float, default=0.0)
+    review_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    users = db.relationship('User', backref='pharmacy', lazy='dynamic')
+    orders = db.relationship('Order', backref='pharmacy', lazy='dynamic',
+                             foreign_keys='Order.pharmacy_id')
+    reviews = db.relationship('PharmacyReview', backref='pharmacy', lazy='dynamic')
+    pharmacy_admins = db.relationship('PharmacyAdmin', backref='pharmacy', lazy='dynamic')
+
+
+class PharmacyAdmin(db.Model):
+    __tablename__ = 'pharmacy_admins'
+
+    id = db.Column(db.Integer, primary_key=True)
+    pharmacy_id = db.Column(db.Integer, db.ForeignKey('pharmacies.id'), nullable=False)
+    name = db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class PharmacyReview(db.Model):
+    __tablename__ = 'pharmacy_reviews'
+
+    id = db.Column(db.Integer, primary_key=True)
+    pharmacy_id = db.Column(db.Integer, db.ForeignKey('pharmacies.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)  # 1-5
+    comment = db.Column(db.String(500))
+    owner_reply = db.Column(db.Text)
+    source_type = db.Column(db.String(20))  # 'order' | 'appointment'
+    source_id = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='reviews')
+
+
+# ─── Existing Models ────────────────────────────────────────────────────────
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     role = db.Column(db.String(20), default="patient")  # patient | doctor | admin
+    pharmacy_id = db.Column(db.Integer, db.ForeignKey('pharmacies.id'), nullable=True)
     name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     phone = db.Column(db.String(50))
@@ -18,6 +87,7 @@ class User(UserMixin, db.Model):
     experience_years = db.Column(db.Integer)    # Years of experience
     current_hospital = db.Column(db.String(200))  # Current workplace
     doctor_password_set = db.Column(db.Boolean, default=False)  # Track if doctor has set their password
+    photo_path = db.Column(db.String(255), nullable=True)  # Doctor profile photo
     
     # Google Calendar OAuth integration fields (for doctors)
     google_access_token = db.Column(db.Text, nullable=True)  # Encrypted access token
@@ -109,9 +179,10 @@ class Appointment(db.Model):
 
 class Order(db.Model):
     __tablename__ = 'orders'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    pharmacy_id = db.Column(db.Integer, db.ForeignKey('pharmacies.id'), nullable=True)
     address = db.Column(db.Text, nullable=False)
     phone = db.Column(db.String(50), nullable=False)
     status = db.Column(db.String(30), default="pending")   # pending|processing|out_for_delivery|delivered|cancelled
@@ -149,9 +220,10 @@ class OrderItem(db.Model):
 
 class ChatLog(db.Model):
     __tablename__ = 'chat_logs'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    pharmacy_id = db.Column(db.Integer, db.ForeignKey('pharmacies.id'), nullable=True)
     session_id = db.Column(db.String(255), nullable=False)
     message = db.Column(db.Text, nullable=False)
     response = db.Column(db.Text, nullable=False)

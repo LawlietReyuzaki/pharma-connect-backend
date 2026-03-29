@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, render_template
 from datetime import datetime, timedelta, date, time as dt_time
 from services.auth import require_auth, get_current_user, require_role
 from routes.admin_auth_routes import get_current_admin, require_admin
-from models import User, Medicine, Appointment, Order, OrderItem, ChatLog, TimeSlot, DoctorAvailability, PaymentMethod, Admin, BankingDetails
+from models import User, Medicine, Appointment, Order, OrderItem, ChatLog, TimeSlot, DoctorAvailability, PaymentMethod, Admin, BankingDetails, Pharmacy, PharmacyReview
 from app import db
 from sqlalchemy import func
 import logging
@@ -2239,3 +2239,240 @@ def test_google_calendar_integration():
     except Exception as e:
         logging.error(f"Test Google Calendar error: {e}")
         return jsonify({"error": f"Test failed: {str(e)}"}), 500
+
+
+# ─── Multi-Pharmacy Network Management (Super Admin) ────────────────────────
+
+@bp.route("/api/pharmacy-applications", methods=["GET"])
+def list_pharmacy_applications():
+    """List pending pharmacy registrations"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+
+        status_filter = request.args.get('status', 'pending')
+        query = Pharmacy.query
+        if status_filter:
+            query = query.filter_by(status=status_filter)
+
+        pharmacies = query.order_by(Pharmacy.created_at.desc()).all()
+
+        return jsonify({
+            "success": True,
+            "applications": [{
+                "id": p.id,
+                "name": p.name,
+                "slug": p.slug,
+                "owner_name": p.owner_name,
+                "email": p.email,
+                "phone": p.phone,
+                "city": p.city,
+                "address": p.address,
+                "license_number": p.license_number,
+                "status": p.status,
+                "theme_key": p.theme_key,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+            } for p in pharmacies]
+        })
+
+    except Exception as e:
+        logging.error(f"List pharmacy applications error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/api/pharmacy-applications/<int:pharmacy_id>/approve", methods=["POST"])
+def approve_pharmacy_application(pharmacy_id):
+    """Approve a pending pharmacy registration"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+
+        from services.pharmacy_service import approve_pharmacy
+        pharmacy, error = approve_pharmacy(pharmacy_id, current_admin['admin_id'])
+        if error:
+            return jsonify({"error": error}), 400
+
+        return jsonify({
+            "success": True,
+            "message": f"Pharmacy '{pharmacy.name}' approved successfully",
+            "pharmacy": {
+                "id": pharmacy.id,
+                "name": pharmacy.name,
+                "slug": pharmacy.slug,
+                "status": pharmacy.status,
+            }
+        })
+
+    except Exception as e:
+        logging.error(f"Approve pharmacy error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/api/pharmacy-applications/<int:pharmacy_id>/reject", methods=["POST"])
+def reject_pharmacy_application(pharmacy_id):
+    """Reject a pending pharmacy registration"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+
+        data = request.get_json() or {}
+        reason = data.get('reason', 'Application rejected by admin')
+
+        from services.pharmacy_service import reject_pharmacy
+        pharmacy, error = reject_pharmacy(pharmacy_id, reason)
+        if error:
+            return jsonify({"error": error}), 400
+
+        return jsonify({
+            "success": True,
+            "message": f"Pharmacy '{pharmacy.name}' rejected",
+        })
+
+    except Exception as e:
+        logging.error(f"Reject pharmacy error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/api/all-pharmacies", methods=["GET"])
+def list_all_pharmacies():
+    """List all registered pharmacies"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+
+        pharmacies = Pharmacy.query.order_by(Pharmacy.created_at.desc()).all()
+
+        return jsonify({
+            "success": True,
+            "pharmacies": [{
+                "id": p.id,
+                "name": p.name,
+                "slug": p.slug,
+                "owner_name": p.owner_name,
+                "email": p.email,
+                "city": p.city,
+                "status": p.status,
+                "avg_rating": p.avg_rating,
+                "review_count": p.review_count,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+            } for p in pharmacies]
+        })
+
+    except Exception as e:
+        logging.error(f"List all pharmacies error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/api/all-pharmacies/<int:pharmacy_id>/suspend", methods=["PUT"])
+def suspend_pharmacy(pharmacy_id):
+    """Suspend an active pharmacy"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+
+        pharmacy = Pharmacy.query.get(pharmacy_id)
+        if not pharmacy:
+            return jsonify({"error": "Pharmacy not found"}), 404
+
+        pharmacy.status = 'suspended'
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": f"Pharmacy '{pharmacy.name}' suspended"
+        })
+
+    except Exception as e:
+        logging.error(f"Suspend pharmacy error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/api/all-pharmacies/<int:pharmacy_id>/reactivate", methods=["PUT"])
+def reactivate_pharmacy(pharmacy_id):
+    """Reactivate a suspended pharmacy"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+
+        pharmacy = Pharmacy.query.get(pharmacy_id)
+        if not pharmacy:
+            return jsonify({"error": "Pharmacy not found"}), 404
+
+        pharmacy.status = 'approved'
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": f"Pharmacy '{pharmacy.name}' reactivated"
+        })
+
+    except Exception as e:
+        logging.error(f"Reactivate pharmacy error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/api/reviews/<int:review_id>", methods=["DELETE"])
+def delete_review(review_id):
+    """Delete an inappropriate review (super admin)"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+
+        review = PharmacyReview.query.get(review_id)
+        if not review:
+            return jsonify({"error": "Review not found"}), 404
+
+        pharmacy_id = review.pharmacy_id
+        db.session.delete(review)
+        db.session.commit()
+
+        # Recalculate rating
+        from services.pharmacy_service import recalculate_rating
+        recalculate_rating(pharmacy_id)
+
+        return jsonify({"success": True, "message": "Review deleted"})
+
+    except Exception as e:
+        logging.error(f"Delete review error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/api/platform-stats", methods=["GET"])
+def platform_stats():
+    """Get aggregate platform-wide statistics"""
+    try:
+        current_admin = get_current_admin()
+        if not current_admin:
+            return jsonify({"error": "Admin access required"}), 403
+
+        total_pharmacies = Pharmacy.query.filter_by(status='approved').count()
+        pending_applications = Pharmacy.query.filter_by(status='pending').count()
+        total_users = User.query.count()
+        total_orders = Order.query.count()
+        total_revenue = db.session.query(
+            func.sum(Order.total_amount)
+        ).filter_by(status='delivered').scalar() or 0
+        total_appointments = Appointment.query.count()
+
+        return jsonify({
+            "success": True,
+            "stats": {
+                "total_pharmacies": total_pharmacies,
+                "pending_applications": pending_applications,
+                "total_users": total_users,
+                "total_orders": total_orders,
+                "total_revenue": total_revenue,
+                "total_appointments": total_appointments,
+            }
+        })
+
+    except Exception as e:
+        logging.error(f"Platform stats error: {e}")
+        return jsonify({"error": str(e)}), 500

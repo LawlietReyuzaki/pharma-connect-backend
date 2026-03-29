@@ -1,17 +1,39 @@
 """
 Medicine RAG (Retrieval-Augmented Generation) Service
 Retrieves medicine data from the database for the chatbot.
+Now uses SQLite-optimized search functions from sqlite_medicine_search module.
 """
 
 import re
 import logging
 from typing import List, Dict, Optional
 
+# Import from the new SQLite-optimized module
+try:
+    from services.sqlite_medicine_search import (
+        MedicineSearchService,
+        search_medicines as _search_medicines,
+        get_medicine_by_name as _get_medicine_by_name,
+        extract_medicine_keywords,
+        build_medicine_context,
+        format_medicine_response,
+    )
+    USE_SQLITE_SERVICE = True
+except ImportError:
+    USE_SQLITE_SERVICE = False
+    logging.warning("sqlite_medicine_search module not available, using fallback methods")
+
+
 def search_medicines(query: str, limit: int = 5) -> List[Dict]:
     """
     Search medicines by name, ingredients, or description.
     Returns a list of matching medicine dictionaries with image_url.
+    Uses SQLite-optimized search if available, otherwise falls back.
     """
+    if USE_SQLITE_SERVICE:
+        return _search_medicines(query, limit)
+    
+    # Fallback to original implementation
     try:
         from app import db
         from models import Medicine
@@ -64,7 +86,12 @@ def search_medicines(query: str, limit: int = 5) -> List[Dict]:
 def get_medicine_by_name(name: str) -> Optional[Dict]:
     """
     Get a specific medicine by exact or partial name match.
+    Uses SQLite-optimized search if available.
     """
+    if USE_SQLITE_SERVICE:
+        return _get_medicine_by_name(name)
+    
+    # Fallback to original implementation
     try:
         from app import db
         from models import Medicine

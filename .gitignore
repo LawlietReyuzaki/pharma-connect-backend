@@ -64,3 +64,13 @@ replit.nix
 .breakpoints
 poetry.lock
 pyproject.toml
+
+# Secrets and tokens
+tokens.txt
+service_account_key.json
+reddot_backup.sql
+
+# Large binaries / installers
+*.exe
+*.msi
+*.dat

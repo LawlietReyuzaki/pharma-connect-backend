@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: reddot_postgres
+    environment:
+      POSTGRES_DB: red_dot_pharmacy
+      POSTGRES_USER: reddot_user
+      POSTGRES_PASSWORD: reddot2025
+    ports:
+      - "5433:5432"
+    volumes:
+      - reddot_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  reddot_pgdata:
