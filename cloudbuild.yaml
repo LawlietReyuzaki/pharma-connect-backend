@@ -33,11 +33,11 @@ steps:
 
   # Step 6: Build Docker image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/pharma-connect/app', '.']
+    args: ['build', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/pharma-connect-central/app', '.']
 
   # Step 7: Push Docker image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/pharma-connect/app']
+    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/pharma-connect-central/app']
 
   # Step 8: Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -46,7 +46,7 @@ steps:
       - 'run'
       - 'deploy'
       - 'pharma-connect'
-      - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/pharma-connect/app'
+      - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/pharma-connect-central/app'
       - '--region=us-central1'
       - '--platform=managed'
       - '--allow-unauthenticated'
