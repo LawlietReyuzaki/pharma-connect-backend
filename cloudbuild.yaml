@@ -63,4 +63,4 @@ images:
 
 options:
   logging: CLOUD_LOGGING_ONLY
-  # trigger: 2026-04-09c
+  # trigger: 2026-04-09d
