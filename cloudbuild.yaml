@@ -60,7 +60,7 @@ steps:
       - '--platform=managed'
       - '--allow-unauthenticated'
       - '--memory=512Mi'
-      - '--min-instances=0'
+      - '--min-instances=1'
       - '--max-instances=5'
       - '--update-env-vars=DEPLOY_TIME=$BUILD_ID'
 

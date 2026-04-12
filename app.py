@@ -36,7 +36,7 @@ def create_app():
     }
     
     # WSGI proxy fix for proper URL generation
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1, x_port=1)
     
     # Initialize extensions
     db.init_app(app)
