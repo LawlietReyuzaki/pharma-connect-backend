@@ -14,4 +14,5 @@ attached_assets/
 docs/
 scripts/
 bin/
+static/uploads/
 reddot_backup.sql
