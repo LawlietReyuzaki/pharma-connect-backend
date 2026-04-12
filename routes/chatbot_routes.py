@@ -81,7 +81,8 @@ def medical_chat():
         response_data = generate_response(
             text=message,
             session_id=session_id,
-            lang=lang
+            lang=lang,
+            pharmacy_id=pharmacy_id
         )
 
         # Step 2: Wikipedia display panel — only for specific disease queries,
@@ -696,10 +697,10 @@ def speak_english():
         return send_file(
             audio_buffer,
             mimetype='audio/mpeg',
-            as_attachment=True,
+            as_attachment=False,
             download_name=f"speech_{int(time.time())}.mp3"
         )
-        
+
     except Exception as e:
         logging.error(f"English TTS error: {e}")
         return jsonify({
@@ -736,10 +737,10 @@ def speak_urdu():
         return send_file(
             audio_buffer,
             mimetype='audio/mpeg',
-            as_attachment=True,
+            as_attachment=False,
             download_name=f"speech_{int(time.time())}.mp3"
         )
-        
+
     except Exception as e:
         logging.error(f"TTS error: {e}")
         return jsonify({

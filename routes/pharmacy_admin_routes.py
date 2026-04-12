@@ -46,13 +46,21 @@ def pharmacy_admin_login():
             return jsonify({'error': 'Email and password are required'}), 400
 
         admin = PharmacyAdmin.query.filter_by(email=email).first()
-        if not admin or admin.password_hash != phash(password):
-            return jsonify({'error': 'Invalid credentials'}), 401
+        if not admin:
+            return jsonify({'error': 'No account found with this email. Please register first.'}), 401
+        if admin.password_hash != phash(password):
+            return jsonify({'error': 'Incorrect password. Please try again.'}), 401
 
         # Check pharmacy is approved
         pharmacy = Pharmacy.query.get(admin.pharmacy_id)
-        if not pharmacy or pharmacy.status != 'approved':
-            return jsonify({'error': 'Your pharmacy is not yet approved'}), 403
+        if not pharmacy:
+            return jsonify({'error': 'Pharmacy record not found. Contact support.'}), 404
+        if pharmacy.status == 'pending':
+            return jsonify({'error': 'Your pharmacy application is still under review. You will be notified once approved.', 'status': 'pending'}), 403
+        if pharmacy.status == 'suspended':
+            return jsonify({'error': 'Your pharmacy has been suspended. Contact support for details.', 'status': 'suspended'}), 403
+        if pharmacy.status != 'approved':
+            return jsonify({'error': f'Your pharmacy status is: {pharmacy.status}. Only approved pharmacies can log in.', 'status': pharmacy.status}), 403
 
         token = create_pharmacy_admin_token(admin)
 
