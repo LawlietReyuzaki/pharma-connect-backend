@@ -62,7 +62,7 @@ steps:
       - '--memory=512Mi'
       - '--min-instances=0'
       - '--max-instances=5'
-      - '--set-env-vars=DATABASE_URL=$_DATABASE_URL,JWT_SECRET=$_JWT_SECRET,GEMINI_API_KEY=$_GEMINI_API_KEY'
+      - '--update-env-vars=DEPLOY_TIME=$BUILD_ID'
 
 images:
   - 'us-west1-docker.pkg.dev/$PROJECT_ID/pharma-connect/app:$COMMIT_SHA'
