@@ -7,6 +7,7 @@ import logging
 import hashlib
 from datetime import datetime
 from flask import Blueprint, request, jsonify, render_template, g
+from google.cloud import storage as gcs_storage
 from models import (
     Pharmacy, PharmacyAdmin, PharmacyReview, User, Order, OrderItem,
     Appointment, ChatLog, Medicine
@@ -20,6 +21,21 @@ from config import AVAILABLE_THEMES
 from app import db
 
 bp = Blueprint("pharmacy_admin", __name__)
+
+GCS_BUCKET = "pharma-connect-uploads"
+GCS_PREFIX = "uploads/uploads"
+
+def upload_to_gcs(file_stream, gcs_path):
+    """Upload a file stream to GCS and return the public /static/uploads/ URL."""
+    try:
+        client = gcs_storage.Client()
+        bucket = client.bucket(GCS_BUCKET)
+        blob = bucket.blob(f"{GCS_PREFIX}/{gcs_path}")
+        blob.upload_from_file(file_stream, rewind=True)
+        return f"/static/uploads/{gcs_path}"
+    except Exception as e:
+        logging.error(f"GCS upload failed: {e}")
+        raise
 
 
 # ─── Template Route ─────────────────────────────────────────────────────────
@@ -413,13 +429,8 @@ def upload_doctor_photo(doctor_id):
         pharmacy = Pharmacy.query.get(g.pharmacy_id)
         ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'jpg'
         filename = secure_filename(f"doctor_{doctor.id}.{ext}")
-        directory = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            'static', 'uploads', 'pharmacies', pharmacy.slug, 'doctors'
-        )
-        os.makedirs(directory, exist_ok=True)
-        file.save(os.path.join(directory, filename))
-        doctor.photo_path = f"/static/uploads/pharmacies/{pharmacy.slug}/doctors/{filename}"
+        gcs_path = f"pharmacies/{pharmacy.slug}/doctors/{filename}"
+        doctor.photo_path = upload_to_gcs(file.stream, gcs_path)
 
         db.session.commit()
         return jsonify({
@@ -569,26 +580,16 @@ def update_profile():
             if file and file.filename:
                 ext = file.filename.rsplit('.', 1)[1].lower()
                 filename = secure_filename(f"owner_{pharmacy.slug}.{ext}")
-                directory = os.path.join(
-                    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                    'static', 'uploads', 'pharmacies', pharmacy.slug
-                )
-                os.makedirs(directory, exist_ok=True)
-                file.save(os.path.join(directory, filename))
-                pharmacy.owner_photo_path = f"/static/uploads/pharmacies/{pharmacy.slug}/{filename}"
+                gcs_path = f"pharmacies/{pharmacy.slug}/{filename}"
+                pharmacy.owner_photo_path = upload_to_gcs(file.stream, gcs_path)
 
         if 'pharmacy_photo' in request.files:
             file = request.files['pharmacy_photo']
             if file and file.filename:
                 ext = file.filename.rsplit('.', 1)[1].lower()
                 filename = secure_filename(f"pharmacy_{pharmacy.slug}.{ext}")
-                directory = os.path.join(
-                    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                    'static', 'uploads', 'pharmacies', pharmacy.slug
-                )
-                os.makedirs(directory, exist_ok=True)
-                file.save(os.path.join(directory, filename))
-                pharmacy.pharmacy_photo_path = f"/static/uploads/pharmacies/{pharmacy.slug}/{filename}"
+                gcs_path = f"pharmacies/{pharmacy.slug}/{filename}"
+                pharmacy.pharmacy_photo_path = upload_to_gcs(file.stream, gcs_path)
 
         db.session.commit()
         return jsonify({'success': True, 'message': 'Profile updated'})
