@@ -6,6 +6,7 @@ import os
 import logging
 from flask import Blueprint, request, jsonify, render_template
 from werkzeug.utils import secure_filename
+from google.cloud import storage as gcs_storage
 from models import Pharmacy, PharmacyAdmin
 from services.pharmacy_service import generate_slug
 from services.auth import phash
@@ -14,11 +15,9 @@ from app import db
 
 bp = Blueprint("pharmacy_registration", __name__)
 
-UPLOAD_BASE = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    'static', 'uploads', 'pharmacies'
-)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
+GCS_BUCKET = "pharma-connect-uploads"
+GCS_PREFIX = "uploads/uploads"
 
 
 def _allowed_file(filename):
@@ -26,13 +25,14 @@ def _allowed_file(filename):
 
 
 def _save_photo(file, slug, photo_type):
-    """Save uploaded photo and return the URL path"""
+    """Upload photo to GCS and return the URL path"""
     ext = file.filename.rsplit('.', 1)[1].lower()
     filename = secure_filename(f"{photo_type}_{slug}.{ext}")
-    directory = os.path.join(UPLOAD_BASE, slug)
-    os.makedirs(directory, exist_ok=True)
-    filepath = os.path.join(directory, filename)
-    file.save(filepath)
+    gcs_path = f"{GCS_PREFIX}/pharmacies/{slug}/{filename}"
+    client = gcs_storage.Client()
+    bucket = client.bucket(GCS_BUCKET)
+    blob = bucket.blob(gcs_path)
+    blob.upload_from_file(file.stream, rewind=True)
     return f"/static/uploads/pharmacies/{slug}/{filename}"
 
 
