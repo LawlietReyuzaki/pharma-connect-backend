@@ -30,6 +30,7 @@ steps:
         mkdir -p static/frontend static/admin-panel
         cp -r frontend/dist/* static/frontend/
         cp -r frontend/dist-admin/* static/admin-panel/
+        sed -i 's|src="/assets/|src="/admin-panel/assets/|g; s|href="/assets/|href="/admin-panel/assets/|g' static/admin-panel/index.html
 
   # Step 6: Build Docker image
   - name: 'gcr.io/cloud-builders/docker'
