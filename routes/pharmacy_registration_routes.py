@@ -3,6 +3,7 @@ Pharmacy registration routes — new pharmacies sign up here
 """
 
 import os
+import time
 import logging
 from flask import Blueprint, request, jsonify, render_template
 from werkzeug.utils import secure_filename
@@ -25,13 +26,15 @@ def _allowed_file(filename):
 
 
 def _save_photo(file, slug, photo_type):
-    """Upload photo to GCS and return the URL path"""
+    """Upload photo to GCS with a unique timestamp filename to bust caches."""
     ext = file.filename.rsplit('.', 1)[1].lower()
-    filename = secure_filename(f"{photo_type}_{slug}.{ext}")
+    ts = int(time.time())
+    filename = secure_filename(f"{photo_type}_{slug}_{ts}.{ext}")
     gcs_path = f"{GCS_PREFIX}/pharmacies/{slug}/{filename}"
     client = gcs_storage.Client()
     bucket = client.bucket(GCS_BUCKET)
     blob = bucket.blob(gcs_path)
+    blob.cache_control = "public, max-age=60"
     blob.upload_from_file(file.stream, rewind=True)
     return f"/static/uploads/pharmacies/{slug}/{filename}"
 

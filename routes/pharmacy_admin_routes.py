@@ -3,6 +3,7 @@ Pharmacy Admin Dashboard routes — each pharmacy manages its own data here
 """
 
 import os
+import time
 import logging
 import hashlib
 from datetime import datetime
@@ -31,6 +32,7 @@ def upload_to_gcs(file_stream, gcs_path):
         client = gcs_storage.Client()
         bucket = client.bucket(GCS_BUCKET)
         blob = bucket.blob(f"{GCS_PREFIX}/{gcs_path}")
+        blob.cache_control = "public, max-age=60"
         blob.upload_from_file(file_stream, rewind=True)
         return f"/static/uploads/{gcs_path}"
     except Exception as e:
@@ -428,7 +430,8 @@ def upload_doctor_photo(doctor_id):
         from werkzeug.utils import secure_filename
         pharmacy = Pharmacy.query.get(g.pharmacy_id)
         ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'jpg'
-        filename = secure_filename(f"doctor_{doctor.id}.{ext}")
+        ts = int(time.time())
+        filename = secure_filename(f"doctor_{doctor.id}_{ts}.{ext}")
         gcs_path = f"pharmacies/{pharmacy.slug}/doctors/{filename}"
         doctor.photo_path = upload_to_gcs(file.stream, gcs_path)
 
@@ -579,7 +582,8 @@ def update_profile():
             file = request.files['owner_photo']
             if file and file.filename:
                 ext = file.filename.rsplit('.', 1)[1].lower()
-                filename = secure_filename(f"owner_{pharmacy.slug}.{ext}")
+                ts = int(time.time())
+                filename = secure_filename(f"owner_{pharmacy.slug}_{ts}.{ext}")
                 gcs_path = f"pharmacies/{pharmacy.slug}/{filename}"
                 pharmacy.owner_photo_path = upload_to_gcs(file.stream, gcs_path)
 
@@ -587,7 +591,8 @@ def update_profile():
             file = request.files['pharmacy_photo']
             if file and file.filename:
                 ext = file.filename.rsplit('.', 1)[1].lower()
-                filename = secure_filename(f"pharmacy_{pharmacy.slug}.{ext}")
+                ts = int(time.time())
+                filename = secure_filename(f"pharmacy_{pharmacy.slug}_{ts}.{ext}")
                 gcs_path = f"pharmacies/{pharmacy.slug}/{filename}"
                 pharmacy.pharmacy_photo_path = upload_to_gcs(file.stream, gcs_path)
 
