@@ -1,10 +1,11 @@
+import os
+import logging
 from flask import Blueprint, request, jsonify
 from datetime import datetime, timedelta
 from services.auth import require_auth, get_current_user, require_role
 from services.google_services import calendar_service, meet_service
 from models import Appointment, User, TimeSlot
 from app import db
-import logging
 
 bp = Blueprint("appointments", __name__)
 
@@ -123,9 +124,12 @@ def create_appointment():
         slot.updated_at = datetime.utcnow()
         db.session.commit()
         
+        # Calendar sync is best-effort. The appointment is already saved in the DB
+        # (the source of truth). If Calendar API fails, we log and continue —
+        # the booking still succeeds.
         calendar_result = None
-        meet_link = None
-        
+        meet_link = os.environ.get('STATIC_MEET_LINK', '').strip() or None
+
         if calendar_service_account.has_credentials:
             appointment_data = {
                 'doctor_email': doctor.email,
@@ -135,51 +139,26 @@ def create_appointment():
                 'start_time': start_time,
                 'end_time': end_time,
                 'symptoms': data["symptoms"],
-                'appointment_id': appointment.id
+                'appointment_id': appointment.id,
             }
-            
-            calendar_result = calendar_service_account.create_event_for_both_calendars(appointment_data)
-            
-            if calendar_result and calendar_result.get('success'):
-                meet_link = calendar_result.get('meet_link')
-                
-                if calendar_result.get('doctor_event'):
-                    appointment.google_calendar_event_id = calendar_result['doctor_event'].get('event_id')
-                
-                logging.info(f"✅ Created Google Calendar events for Dr. {doctor.name} and {current_user.name}")
-                logging.info(f"✅ Google Meet link: {meet_link}")
-        
-        if not meet_link:
-            from services.doctor_oauth_service import doctor_oauth_service
-            
-            if doctor.google_access_token:
-                calendar_data = {
-                    'summary': f'Online Consultation - Red Dot Pharmacy',
-                    'description': f'Patient: {current_user.name}\nSymptoms: {data["symptoms"]}',
-                    'start_time': start_time,
-                    'end_time': end_time,
-                    'attendee_emails': [current_user.email, doctor.email],
-                    'appointment_id': appointment.id
-                }
-                
-                oauth_result = doctor_oauth_service.create_calendar_event_for_doctor(
-                    doctor_id=doctor.id,
-                    appointment_data=calendar_data
-                )
-                
-                if oauth_result and oauth_result.get('meet_link'):
-                    meet_link = oauth_result['meet_link']
-                    appointment.google_calendar_event_id = oauth_result.get('event_id')
-                    logging.info(f"✅ Created event via Doctor OAuth: {meet_link}")
-        
-        if not meet_link:
-            db.session.rollback()
-            return jsonify({
-                "error": "Could not create Google Meet link. Please ensure Google Calendar is properly configured with domain-wide delegation.",
-                "details": "The appointment requires Google Calendar integration to generate Google Meet links."
-            }), 503
-        
-        appointment.google_meet_link = meet_link
+            try:
+                calendar_result = calendar_service_account.create_event_for_both_calendars(appointment_data)
+                if calendar_result and calendar_result.get('success'):
+                    if calendar_result.get('doctor_event'):
+                        appointment.google_calendar_event_id = calendar_result['doctor_event'].get('event_id')
+                    if calendar_result.get('meet_link'):
+                        meet_link = calendar_result['meet_link']
+                    logging.info(f"✅ Calendar event created for appointment {appointment.id}")
+                else:
+                    err = (calendar_result or {}).get('error', 'unknown')
+                    logging.warning(f"Calendar sync failed for appointment {appointment.id}: {err}")
+            except Exception as e:
+                logging.warning(f"Calendar sync raised for appointment {appointment.id}: {e}")
+        else:
+            logging.warning("Calendar service account has no credentials — skipping calendar sync")
+
+        if meet_link:
+            appointment.google_meet_link = meet_link
         db.session.commit()
         
         logging.info(f"📧 Notification to {current_user.email}: Appointment booked with {doctor.name} at {start_time.strftime('%Y-%m-%d %H:%M')}. Meet link: {meet_link}")
@@ -522,9 +501,10 @@ def schedule_appointment():
         db.session.add(appointment)
         db.session.commit()
         
-        meet_link = None
+        # Calendar sync is non-blocking — appointment is already saved in DB.
+        meet_link = os.environ.get('STATIC_MEET_LINK', '').strip() or None
         calendar_result = None
-        
+
         if calendar_service_account.has_credentials:
             appointment_data = {
                 'doctor_email': doctor.email,
@@ -534,26 +514,24 @@ def schedule_appointment():
                 'start_time': start_time,
                 'end_time': end_time,
                 'symptoms': reason,
-                'appointment_id': appointment.id
+                'appointment_id': appointment.id,
             }
-            
-            calendar_result = calendar_service_account.create_event_for_both_calendars(appointment_data)
-            
-            if calendar_result and calendar_result.get('success'):
-                meet_link = calendar_result.get('meet_link')
-                if calendar_result.get('doctor_event'):
-                    appointment.google_calendar_event_id = calendar_result['doctor_event'].get('event_id')
-                logging.info(f"✅ Created Google Calendar events with Meet link: {meet_link}")
-        
-        if not meet_link:
-            db.session.rollback()
-            return jsonify({
-                "success": False,
-                "error": "Could not create Google Meet link. Google Calendar integration is required.",
-                "details": "Please ensure the service account has domain-wide delegation enabled and can access user calendars."
-            }), 503
-        
-        appointment.google_meet_link = meet_link
+            try:
+                calendar_result = calendar_service_account.create_event_for_both_calendars(appointment_data)
+                if calendar_result and calendar_result.get('success'):
+                    if calendar_result.get('doctor_event'):
+                        appointment.google_calendar_event_id = calendar_result['doctor_event'].get('event_id')
+                    if calendar_result.get('meet_link'):
+                        meet_link = calendar_result['meet_link']
+                    logging.info(f"✅ Calendar event created for appointment {appointment.id}")
+                else:
+                    err = (calendar_result or {}).get('error', 'unknown')
+                    logging.warning(f"Calendar sync failed for appointment {appointment.id}: {err}")
+            except Exception as e:
+                logging.warning(f"Calendar sync raised for appointment {appointment.id}: {e}")
+
+        if meet_link:
+            appointment.google_meet_link = meet_link
         db.session.commit()
         
         doctor_event_id = None
