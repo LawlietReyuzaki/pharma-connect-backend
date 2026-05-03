@@ -237,7 +237,7 @@ def _build_medicine_context(medicines: list) -> str:
 
 
 # ─── Main response function ───────────────────────────────────────────────────
-def generate_response(text: str, prefer_urdu=None, session_id=None, lang="auto", pharmacy_id=None) -> dict:
+def generate_response(text: str, prefer_urdu=None, session_id=None, lang="auto", pharmacy_id=None, mode="patient") -> dict:
     """
     Generate a medical consultant response using Gemini + pharmacy DB.
 
@@ -304,10 +304,19 @@ def generate_response(text: str, prefer_urdu=None, session_id=None, lang="auto",
             "session_id": sid,
         }
 
-    system_prompt = (
-        MEDICAL_CONSULTANT_PROMPT_UR if detected_lang == "ur"
-        else MEDICAL_CONSULTANT_PROMPT_EN
-    )
+    if mode == "pharmacist":
+        from services.pharmacist_knowledge import (
+            PHARMACIST_SYSTEM_PROMPT_EN, PHARMACIST_SYSTEM_PROMPT_UR
+        )
+        system_prompt = (
+            PHARMACIST_SYSTEM_PROMPT_UR if detected_lang == "ur"
+            else PHARMACIST_SYSTEM_PROMPT_EN
+        )
+    else:
+        system_prompt = (
+            MEDICAL_CONSULTANT_PROMPT_UR if detected_lang == "ur"
+            else MEDICAL_CONSULTANT_PROMPT_EN
+        )
 
     # Replace pharmacy name if a specific pharmacy is selected
     if pharmacy_id:

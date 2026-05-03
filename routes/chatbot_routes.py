@@ -146,6 +146,71 @@ def medical_chat():
             "error": "Sorry, I'm having trouble right now. Please try again later."
         }), 500
 
+@bp.route("/pharmacist-consult", methods=["POST"])
+def pharmacist_consult():
+    """
+    POST /api/chat/pharmacist-consult
+    Pharmacist consultation mode — clinical reference for pharmacy staff.
+    Uses the comprehensive pharmacist knowledge base system prompt.
+
+    Body: { "message": "...", "lang": "auto"|"en"|"ur", "session_id": "..." }
+    Response: same shape as /medical-chat
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+
+        message = data.get("message", "").strip()
+        if not message:
+            return jsonify({"success": False, "error": "Message is required"}), 400
+
+        lang = data.get("lang") or data.get("language") or "auto"
+        session_id = data.get("session_id", str(uuid.uuid4()))
+        user_id = data.get("user_id")
+        pharmacy_id = data.get("pharmacy_id")
+
+        detected_lang = detect_language(message) if lang == "auto" else lang
+
+        response_data = generate_response(
+            text=message,
+            session_id=session_id,
+            lang=lang,
+            pharmacy_id=pharmacy_id,
+            mode="pharmacist",
+        )
+
+        log_chat_interaction(
+            session_id=session_id,
+            user_message=message,
+            bot_response=response_data["message"],
+            user_id=user_id,
+            flagged=response_data.get("flagged", False),
+            language=response_data.get("language", detected_lang),
+            pharmacy_id=pharmacy_id,
+        )
+
+        response_json = {
+            "success": True,
+            "message": response_data["message"],
+            "language": response_data.get("language", detected_lang),
+            "flagged": response_data.get("flagged", False),
+            "needs_doctor": response_data.get("needs_doctor", False),
+            "timestamp": response_data.get("timestamp", datetime.now().isoformat()),
+            "session_id": session_id,
+            "mode": "pharmacist",
+        }
+
+        if response_data.get("medicines"):
+            response_json["medicines"] = response_data["medicines"]
+
+        return jsonify(response_json)
+
+    except Exception as e:
+        logging.error(f"Pharmacist consult error: {e}")
+        return jsonify({"success": False, "error": "Pharmacist consultation unavailable. Please try again."}), 500
+
+
 @bp.route("/web-search", methods=["POST"])
 def web_search_chat():
     """
