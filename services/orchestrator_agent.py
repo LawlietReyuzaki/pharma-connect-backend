@@ -210,7 +210,23 @@ Respond ONLY with JSON:
         from services.catalog_agent import get_agent
         agent = get_agent()
         if not agent.is_ready:
-            return {"intent": intent, "message": self._fallback_text(lang), "medicines": []}
+            # Catalog Chroma index still warming up (or unavailable). Fall
+            # through to the legacy Gemini path so we still respond — never
+            # show a "service unavailable" message for normal chat turns.
+            try:
+                from services.chatbot import generate_response
+                legacy = generate_response(
+                    text=msg, lang=lang, session_id=request_id, mode=mode,
+                )
+                return {
+                    "intent": intent,
+                    "message": legacy.get("message", self._fallback_text(lang)),
+                    "medicines": legacy.get("medicines", []),
+                    "needs_doctor": legacy.get("needs_doctor", False),
+                }
+            except Exception as e:
+                logging.exception(f"[req={request_id}] legacy fallback also failed: {e}")
+                return {"intent": intent, "message": self._fallback_text(lang), "medicines": []}
         result = agent.recommend(
             user_message=msg, lang=lang, mode=mode,
             pharmacy_name=pharmacy_name, request_id=request_id,
