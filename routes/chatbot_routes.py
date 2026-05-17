@@ -211,6 +211,103 @@ def pharmacist_consult():
         return jsonify({"success": False, "error": "Pharmacist consultation unavailable. Please try again."}), 500
 
 
+@bp.route("/substitute", methods=["POST"])
+def substitute():
+    """
+    POST /api/chat/substitute — Phase 4 Substitution Sub-Agent.
+
+    Given a requested medication (typically out of stock), returns
+    therapeutic alternatives from in-stock SKUs:
+      - exact_equivalents  (same active ingredient)
+      - class_alternatives (same class, requires prescriber approval)
+
+    Body:  { "requested": "Augmentin 625mg" | "Panadol",
+             "lang": "auto"|"en"|"ur",
+             "pharmacy_id": <int|null>,
+             "session_id": "..." }
+    Reply: { "success": true, "message": "<markdown>",
+             "medicines": [{...with substitution_type}],
+             "requested": {name, chemical, in_catalog, in_stock},
+             "exact_count": N, "class_count": M,
+             "session_id": "..." }
+    """
+    try:
+        from services.chatbot import detect_language
+        from services.substitution_agent import get_agent, SubstitutionAgentUnavailable
+
+        try:
+            from flask import g
+            request_id = getattr(g, "request_id", "-")
+        except Exception:
+            request_id = "-"
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+
+        requested = (data.get("requested") or data.get("message") or "").strip()
+        if not requested:
+            return jsonify({"success": False, "error": "'requested' (medication name) is required"}), 400
+
+        lang = data.get("lang") or data.get("language") or "auto"
+        session_id = data.get("session_id", str(uuid.uuid4()))
+        user_id = data.get("user_id")
+        pharmacy_id = data.get("pharmacy_id")
+        detected_lang = detect_language(requested) if lang == "auto" else lang
+
+        pharmacy_name = "Red Dot Pharmacy"
+        if pharmacy_id:
+            try:
+                from models import Pharmacy
+                ph = Pharmacy.query.get(pharmacy_id)
+                if ph:
+                    pharmacy_name = ph.name
+            except Exception:
+                pass
+
+        try:
+            agent = get_agent()
+            if not agent.is_ready:
+                raise SubstitutionAgentUnavailable("agent not ready")
+            result = agent.find_alternatives(
+                requested_medicine=requested,
+                lang=detected_lang,
+                pharmacy_name=pharmacy_name,
+                request_id=request_id,
+            )
+        except SubstitutionAgentUnavailable as e:
+            logging.warning(f"[req={request_id}] SubstitutionAgent unavailable: {e}")
+            return jsonify({
+                "success": False,
+                "error": "Substitution service unavailable. Please try again.",
+            }), 503
+
+        log_chat_interaction(
+            session_id=session_id,
+            user_message=f"[SUBSTITUTE] {requested}",
+            bot_response=result["message"],
+            user_id=user_id,
+            flagged=False,
+            language=detected_lang,
+            pharmacy_id=pharmacy_id,
+        )
+
+        return jsonify({
+            "success": True,
+            "message": result["message"],
+            "medicines": result["medicines"],
+            "requested": result["requested"],
+            "exact_count": result["exact_count"],
+            "class_count": result["class_count"],
+            "language": detected_lang,
+            "session_id": session_id,
+        })
+
+    except Exception as e:
+        logging.exception(f"Substitution error: {e}")
+        return jsonify({"success": False, "error": "Substitution unavailable. Please try again."}), 500
+
+
 @bp.route("/clinical-reasoning", methods=["POST"])
 def clinical_reasoning():
     """
