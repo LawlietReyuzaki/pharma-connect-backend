@@ -211,6 +211,75 @@ def pharmacist_consult():
         return jsonify({"success": False, "error": "Pharmacist consultation unavailable. Please try again."}), 500
 
 
+@bp.route("/correct-transcript", methods=["POST"])
+def correct_transcript():
+    """
+    POST /api/chat/correct-transcript — Phase 6 STT post-correction.
+
+    Takes a raw speech-to-text transcript (English or Urdu) and returns a
+    medical-vocabulary-corrected version. Intended to be called by the
+    frontend between mic capture and chat submit, so drug names and
+    clinical terms aren't garbled by a general-purpose recogniser.
+
+    Body:  { "transcript": "panda doll for fever",
+             "lang": "auto"|"en"|"ur" }
+    Reply: { "success": true,
+             "transcript": "<original>",
+             "corrected": "Panadol for fever",
+             "changes": [{"original": "panda doll", "corrected": "Panadol"}] }
+    """
+    try:
+        from services.chatbot import detect_language
+        from services.transcript_corrector import get_corrector, TranscriptCorrectorUnavailable
+
+        try:
+            from flask import g
+            request_id = getattr(g, "request_id", "-")
+        except Exception:
+            request_id = "-"
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+
+        transcript = (data.get("transcript") or data.get("text") or "").strip()
+        if not transcript:
+            return jsonify({"success": False, "error": "'transcript' is required"}), 400
+
+        lang = data.get("lang") or data.get("language") or "auto"
+        detected_lang = detect_language(transcript) if lang == "auto" else lang
+
+        try:
+            corrector = get_corrector()
+            if not corrector.is_ready:
+                raise TranscriptCorrectorUnavailable("corrector not ready")
+            result = corrector.correct(transcript=transcript, lang=detected_lang, request_id=request_id)
+        except TranscriptCorrectorUnavailable as e:
+            logging.warning(f"[req={request_id}] TranscriptCorrector unavailable: {e}")
+            # Soft-fail: return the original so the frontend can still submit something.
+            return jsonify({
+                "success": True,
+                "transcript": transcript,
+                "corrected": transcript,
+                "changes": [],
+                "language": detected_lang,
+                "corrector_available": False,
+            })
+
+        return jsonify({
+            "success": True,
+            "transcript": transcript,
+            "corrected": result["corrected"],
+            "changes": result["changes"],
+            "language": detected_lang,
+            "corrector_available": True,
+        })
+
+    except Exception as e:
+        logging.exception(f"Transcript correction error: {e}")
+        return jsonify({"success": False, "error": "Transcript correction unavailable."}), 500
+
+
 @bp.route("/images", methods=["POST"])
 def images():
     """
