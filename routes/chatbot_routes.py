@@ -211,6 +211,107 @@ def pharmacist_consult():
         return jsonify({"success": False, "error": "Pharmacist consultation unavailable. Please try again."}), 500
 
 
+@bp.route("/clinical-reasoning", methods=["POST"])
+def clinical_reasoning():
+    """
+    POST /api/chat/clinical-reasoning — Phase 3 Clinical Reasoning Sub-Agent.
+
+    Generates a ranked differential diagnosis with discriminating features,
+    confirmatory workup, and red-flag warnings. Adapts depth to user role
+    (doctor: 3–7 ranked differentials; patient: 2–3 plain-language causes).
+
+    Body:  { "message": "...", "lang": "auto"|"en"|"ur", "session_id": "...",
+             "user_id": <int> }
+    Reply: { "success": true, "message": "<markdown>", "needs_doctor": bool,
+             "red_flag": bool, "session_id": "..." }
+    """
+    try:
+        from services.chatbot import detect_language, needs_escalation, get_emergency_response
+        from services.clinical_agent import get_agent, ClinicalAgentUnavailable
+
+        try:
+            from flask import g
+            request_id = getattr(g, "request_id", "-")
+        except Exception:
+            request_id = "-"
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+
+        message = data.get("message", "").strip()
+        if not message:
+            return jsonify({"success": False, "error": "Message is required"}), 400
+
+        lang = data.get("lang") or data.get("language") or "auto"
+        session_id = data.get("session_id", str(uuid.uuid4()))
+        user_id = data.get("user_id")
+        detected_lang = detect_language(message) if lang == "auto" else lang
+
+        # Resolve user role from JWT if present; default to "patient".
+        user_role = "patient"
+        try:
+            from services.auth import get_current_user
+            user = get_current_user()
+            if user and getattr(user, "role", None):
+                user_role = user.role
+        except Exception:
+            pass
+
+        # Emergency phrases — short-circuit before the LLM call.
+        if needs_escalation(message):
+            emergency_text = get_emergency_response(detected_lang)
+            log_chat_interaction(
+                session_id=session_id, user_message=message,
+                bot_response=emergency_text, user_id=user_id,
+                flagged=True, language=detected_lang,
+            )
+            return jsonify({
+                "success": True,
+                "message": emergency_text,
+                "needs_doctor": True,
+                "red_flag": True,
+                "language": detected_lang,
+                "session_id": session_id,
+            })
+
+        try:
+            agent = get_agent()
+            if not agent.is_ready:
+                raise ClinicalAgentUnavailable("agent not ready")
+            result = agent.reason(
+                user_message=message,
+                lang=detected_lang,
+                user_role=user_role,
+                request_id=request_id,
+            )
+        except ClinicalAgentUnavailable as e:
+            logging.warning(f"[req={request_id}] ClinicalAgent unavailable: {e}")
+            return jsonify({
+                "success": False,
+                "error": "Clinical reasoning service unavailable. Please try again.",
+            }), 503
+
+        log_chat_interaction(
+            session_id=session_id, user_message=message,
+            bot_response=result["message"], user_id=user_id,
+            flagged=result["red_flag"], language=detected_lang,
+        )
+
+        return jsonify({
+            "success": True,
+            "message": result["message"],
+            "needs_doctor": result["needs_doctor"],
+            "red_flag": result["red_flag"],
+            "language": detected_lang,
+            "session_id": session_id,
+        })
+
+    except Exception as e:
+        logging.exception(f"Clinical reasoning error: {e}")
+        return jsonify({"success": False, "error": "Clinical reasoning unavailable. Please try again."}), 500
+
+
 @bp.route("/web-search", methods=["POST"])
 def web_search_chat():
     """
