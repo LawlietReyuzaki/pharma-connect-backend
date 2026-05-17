@@ -74,3 +74,7 @@ reddot_backup.sql
 *.exe
 *.msi
 *.dat
+
+# Chroma catalog DB — reproducible from medicines_export.json via scripts/build_catalog_embeddings.py
+data/catalog_chroma/*
+!data/catalog_chroma/.gitkeep

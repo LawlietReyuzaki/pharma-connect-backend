@@ -275,7 +275,54 @@ def generate_response(text: str, prefer_urdu=None, session_id=None, lang="auto",
             "session_id": sid,
         }
 
-    # 3. Medicine DB lookup (only when relevant)
+    # 3. Resolve pharmacy name (used by both new and legacy paths)
+    pharmacy_name = "Red Dot Pharmacy"
+    if pharmacy_id:
+        try:
+            from models import Pharmacy
+            pharmacy = Pharmacy.query.get(pharmacy_id)
+            if pharmacy:
+                pharmacy_name = pharmacy.name
+        except Exception:
+            pass
+
+    # 4. PRIMARY PATH: Catalog Sub-Agent (embeddings + structured JSON)
+    use_legacy = os.getenv("USE_LEGACY_MEDICINE_SEARCH", "").strip() == "1"
+    request_id = "-"
+    try:
+        from flask import g
+        request_id = getattr(g, "request_id", "-")
+    except Exception:
+        pass
+
+    if not use_legacy:
+        try:
+            from services.catalog_agent import get_agent, CatalogAgentUnavailable
+            agent = get_agent()
+            if agent.is_ready:
+                result = agent.recommend(
+                    user_message=text,
+                    lang=detected_lang,
+                    mode=mode,
+                    pharmacy_name=pharmacy_name,
+                    request_id=request_id,
+                )
+                return {
+                    "message": result["message"],
+                    "flagged": False,
+                    "needs_doctor": False,
+                    "medicines": result["medicines"],
+                    "suggested_medicines": [],
+                    "language": detected_lang,
+                    "timestamp": timestamp,
+                    "session_id": sid,
+                }
+        except CatalogAgentUnavailable as e:
+            logging.warning(f"[req={request_id}] CatalogAgent unavailable, falling back to legacy: {e}")
+        except Exception as e:
+            logging.exception(f"[req={request_id}] CatalogAgent error, falling back to legacy: {e}")
+
+    # 5. LEGACY FALLBACK PATH (kept for resilience — keyword search + free-text Gemini)
     medicines = []
     medicine_context = ""
     if _should_search_medicines(text):
@@ -283,7 +330,6 @@ def generate_response(text: str, prefer_urdu=None, session_id=None, lang="auto",
         if medicines:
             medicine_context = _build_medicine_context(medicines)
 
-    # 4. Format medicines for response
     formatted_medicines = []
     try:
         from services.medicine_rag import format_medicine_response
@@ -291,7 +337,6 @@ def generate_response(text: str, prefer_urdu=None, session_id=None, lang="auto",
     except Exception:
         pass
 
-    # 5. Call Gemini
     if not gemini_model:
         return {
             "message": _offline_response(detected_lang),
@@ -318,17 +363,9 @@ def generate_response(text: str, prefer_urdu=None, session_id=None, lang="auto",
             else MEDICAL_CONSULTANT_PROMPT_EN
         )
 
-    # Replace pharmacy name if a specific pharmacy is selected
-    if pharmacy_id:
-        try:
-            from models import Pharmacy
-            pharmacy = Pharmacy.query.get(pharmacy_id)
-            if pharmacy:
-                system_prompt = system_prompt.replace("Red Dot Pharmacy", pharmacy.name)
-        except Exception:
-            pass
+    if pharmacy_name != "Red Dot Pharmacy":
+        system_prompt = system_prompt.replace("Red Dot Pharmacy", pharmacy_name)
 
-    # Append DB medicines to system prompt if found
     if medicine_context:
         system_prompt = f"{system_prompt}\n\n{medicine_context}"
 
@@ -341,7 +378,6 @@ def generate_response(text: str, prefer_urdu=None, session_id=None, lang="auto",
 
     ai_message = ""
     try:
-        # Non-streaming — simpler, more reliable
         response = gemini_model.generate_content(full_prompt, generation_config=gen_config)
         if hasattr(response, "text") and response.text:
             ai_message = response.text.strip()

@@ -1,7 +1,8 @@
 import os
+import uuid
 import logging
 from functools import wraps
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, g, request
 from flask_cors import CORS
 
 # Load .env file FIRST before any other imports use os.environ
@@ -153,6 +154,12 @@ def ensure_database():
     """Ensure database is initialized before handling requests"""
     if not db_initialized:
         initialize_database()
+
+
+@app.before_request
+def assign_request_id():
+    """Tag every request with an id for log correlation across sub-agents."""
+    g.request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex[:12]
 
 # Global database error handler
 @app.errorhandler(OperationalError)
