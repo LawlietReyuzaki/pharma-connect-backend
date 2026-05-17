@@ -19,11 +19,17 @@ Implementation:
     available" message per FR-9 (never fabricate).
 """
 import os
+import re
 import json
 import logging
 import time
 from typing import Dict, List, Optional
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
+
+try:
+    import urllib.request as _urllib_request  # stdlib — no extra dependency
+except Exception:
+    _urllib_request = None
 
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 GEMINI_TEMPERATURE = float(os.getenv("GEMINI_TEMPERATURE", "0.4"))
@@ -239,11 +245,27 @@ RULES:
                 "متعلقہ بصری حالتوں کے لیے مستند طبی ذرائع نیچے دیے گئے ہیں۔"
             )
 
+        # Try to enrich each ref with an actual image_url via og:image fetch.
+        kept_refs = kept_refs[:4]
+        for r in kept_refs:
+            img = _fetch_og_image(r["source_url"])
+            if img and is_image_credible(img):
+                r["image_url"] = img
+            elif img:
+                # Same-host image is OK even if the absolute URL doesn't match
+                # the allow-list (e.g. CDN subdomain). Use only if same registrable host root.
+                src_host = _host_of(r["source_url"])
+                img_host = _host_of(img)
+                if src_host and img_host and (img_host == src_host or img_host.endswith("." + src_host) or src_host.endswith("." + img_host)):
+                    r["image_url"] = img
+
         return {
             "message": message,
-            "image_references": kept_refs[:4],
+            "image_references": kept_refs,
             "audit": audit,
         }
+
+    # (helper functions below module-level)
 
     @staticmethod
     def _refuse_message(lang: str) -> str:
@@ -258,3 +280,63 @@ RULES:
             "Mayo Clinic, NHS, etc.). Try rephrasing the query or consult a "
             "specialist for visual confirmation."
         )
+
+
+# ────────────────────────────── og:image fetcher ─────────────────────────────
+
+_OG_IMAGE_RE = re.compile(
+    r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']',
+    re.IGNORECASE,
+)
+_OG_IMAGE_RE_ALT = re.compile(
+    r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']',
+    re.IGNORECASE,
+)
+_TWITTER_IMAGE_RE = re.compile(
+    r'<meta[^>]+name=["\']twitter:image["\'][^>]+content=["\']([^"\']+)["\']',
+    re.IGNORECASE,
+)
+
+
+def _fetch_og_image(page_url: str, timeout: float = 4.0) -> Optional[str]:
+    """
+    Best-effort extraction of the Open Graph image (or twitter:image) from a
+    source page. Returns absolute URL, or None on any failure. Uses stdlib
+    urllib only — no new dependency.
+    """
+    if not _urllib_request or not page_url:
+        return None
+    try:
+        req = _urllib_request.Request(
+            page_url,
+            headers={
+                "User-Agent": "Mozilla/5.0 (pharma-connect image agent)",
+                "Accept": "text/html",
+            },
+        )
+        with _urllib_request.urlopen(req, timeout=timeout) as resp:
+            ctype = (resp.headers.get("Content-Type") or "").lower()
+            if "html" not in ctype:
+                return None
+            # Read at most 256 KB — og tags appear in <head> early on the page.
+            html_bytes = resp.read(256 * 1024)
+        try:
+            html = html_bytes.decode("utf-8", errors="ignore")
+        except Exception:
+            html = html_bytes.decode("latin-1", errors="ignore")
+        for pat in (_OG_IMAGE_RE, _OG_IMAGE_RE_ALT, _TWITTER_IMAGE_RE):
+            m = pat.search(html)
+            if m:
+                img = m.group(1).strip()
+                if not img:
+                    continue
+                # Normalise relative URLs
+                if img.startswith("//"):
+                    img = "https:" + img
+                elif img.startswith("/"):
+                    img = urljoin(page_url, img)
+                return img
+        return None
+    except Exception as e:
+        logging.debug(f"_fetch_og_image failed for {page_url}: {e}")
+        return None

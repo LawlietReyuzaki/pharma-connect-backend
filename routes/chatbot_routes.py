@@ -211,6 +211,129 @@ def pharmacist_consult():
         return jsonify({"success": False, "error": "Pharmacist consultation unavailable. Please try again."}), 500
 
 
+@bp.route("/agent", methods=["POST"])
+def agent():
+    """
+    POST /api/chat/agent — Orchestrator entry point (spec section 5.1).
+
+    Single endpoint the frontend can call for every chat turn. The
+    orchestrator classifies intent, dispatches to the correct sub-agent
+    (Catalog / Clinical / Evidence / Substitution / Images), and returns
+    a unified response.
+
+    Body: { "message": "...", "lang": "auto"|"en"|"ur",
+            "session_id": "...", "user_id": <int>, "pharmacy_id": <int>,
+            "mode": "patient"|"pharmacist"   (optional override),
+            "force_intent": "catalog"|"clinical"|"evidence"|"substitute"|"images"
+                            (optional) }
+    Reply: unified envelope; see services/orchestrator_agent.handle() docstring.
+    """
+    try:
+        from services.chatbot import detect_language
+        from services.orchestrator_agent import get_orchestrator, OrchestratorUnavailable
+
+        try:
+            from flask import g
+            request_id = getattr(g, "request_id", "-")
+        except Exception:
+            request_id = "-"
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+
+        message = (data.get("message") or "").strip()
+        if not message:
+            return jsonify({"success": False, "error": "'message' is required"}), 400
+
+        lang = data.get("lang") or data.get("language") or "auto"
+        session_id = data.get("session_id", str(uuid.uuid4()))
+        user_id = data.get("user_id")
+        pharmacy_id = data.get("pharmacy_id")
+        mode = (data.get("mode") or "patient").lower()
+        force_intent = data.get("force_intent")
+        detected_lang = detect_language(message) if lang == "auto" else lang
+
+        # Resolve pharmacy name + user role
+        pharmacy_name = "Red Dot Pharmacy"
+        if pharmacy_id:
+            try:
+                from models import Pharmacy
+                ph = Pharmacy.query.get(pharmacy_id)
+                if ph:
+                    pharmacy_name = ph.name
+            except Exception:
+                pass
+
+        user_role = "patient"
+        try:
+            from services.auth import get_current_user
+            user = get_current_user()
+            if user and getattr(user, "role", None):
+                user_role = user.role
+        except Exception:
+            pass
+
+        try:
+            orch = get_orchestrator()
+            if not orch.is_ready:
+                raise OrchestratorUnavailable("orchestrator not ready")
+            result = orch.handle(
+                user_message=message,
+                lang=detected_lang,
+                mode=mode,
+                user_role=user_role,
+                pharmacy_name=pharmacy_name,
+                pharmacy_id=pharmacy_id,
+                request_id=request_id,
+                force_intent=force_intent,
+            )
+        except OrchestratorUnavailable as e:
+            logging.warning(f"[req={request_id}] Orchestrator unavailable, falling back to medical-chat: {e}")
+            from services.chatbot import generate_response
+            legacy = generate_response(
+                text=message, lang=detected_lang, pharmacy_id=pharmacy_id,
+                session_id=session_id, mode=mode,
+            )
+            result = {
+                "intent": "catalog",
+                "message": legacy.get("message"),
+                "medicines": legacy.get("medicines", []),
+                "needs_doctor": legacy.get("needs_doctor", False),
+            }
+
+        log_chat_interaction(
+            session_id=session_id,
+            user_message=message,
+            bot_response=result.get("message", ""),
+            user_id=user_id,
+            flagged=bool(result.get("red_flag")),
+            language=detected_lang,
+            pharmacy_id=pharmacy_id,
+        )
+
+        return jsonify({
+            "success": True,
+            "session_id": session_id,
+            "language": detected_lang,
+            "intent": result.get("intent", "catalog"),
+            "message": result.get("message", ""),
+            "medicines": result.get("medicines", []),
+            "sources": result.get("sources", []),
+            "image_references": result.get("image_references", []),
+            "needs_doctor": result.get("needs_doctor", False),
+            "red_flag": result.get("red_flag", False),
+            "cta": result.get("cta"),
+            "requested": result.get("requested"),
+            "exact_count": result.get("exact_count", 0),
+            "class_count": result.get("class_count", 0),
+        })
+
+    except Exception as e:
+        logging.exception(f"Orchestrator error: {e}")
+        return jsonify({"success": False, "error": "Chat agent unavailable. Please try again."}), 500
+
+
 @bp.route("/correct-transcript", methods=["POST"])
 def correct_transcript():
     """
@@ -566,14 +689,8 @@ def web_search_chat():
              "grounded": true, "sources": [{title, url}], "evidence_only": true }
     """
     try:
-        from services.chatbot import (
-            GEMINI_TEMPERATURE, detect_language, GEMINI_MODEL,
-            MEDICAL_CONSULTANT_PROMPT_EN, MEDICAL_CONSULTANT_PROMPT_UR,
-            DISCLAIMER_EN, DISCLAIMER_UR, needs_escalation, get_emergency_response,
-        )
-        from services.evidence import (
-            filter_sources, inject_citations, refuse_message, source_instructions, audit_log,
-        )
+        from services.chatbot import detect_language, needs_escalation, get_emergency_response
+        from services.evidence_search import run_evidence_search
 
         try:
             from flask import g
@@ -604,95 +721,12 @@ def web_search_chat():
                 "session_id": session_id,
             })
 
-        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-        if not api_key:
-            return jsonify({"success": False, "error": "AI service not configured"}), 503
-
-        from google import genai as new_genai
-        from google.genai import types as genai_types
-
-        client = new_genai.Client(api_key=api_key)
-        consultant_prompt = MEDICAL_CONSULTANT_PROMPT_UR if detected_lang == "ur" else MEDICAL_CONSULTANT_PROMPT_EN
-        full_prompt = (
-            f"{consultant_prompt}\n\n"
-            f"{source_instructions(detected_lang)}\n\n"
-            f"User: {message}\n\nAssistant:"
-        )
-
-        ai_message = ""
-        raw_sources = []
-        grounded = False
-
-        try:
-            response = client.models.generate_content(
-                model=GEMINI_MODEL,
-                contents=full_prompt,
-                config=genai_types.GenerateContentConfig(
-                    tools=[genai_types.Tool(google_search=genai_types.GoogleSearch())],
-                    max_output_tokens=1024,
-                    temperature=GEMINI_TEMPERATURE,
-                ),
-            )
-
-            ai_message = response.text.strip() if response.text else ""
-
-            if response.candidates and response.candidates[0].grounding_metadata:
-                grounded = True
-                gm = response.candidates[0].grounding_metadata
-                for chunk in (gm.grounding_chunks or []):
-                    if chunk.web:
-                        raw_sources.append({
-                            "title": getattr(chunk.web, "title", "") or "",
-                            "url": getattr(chunk.web, "uri", "") or "",
-                        })
-        except Exception as gen_err:
-            logging.error(f"[req={request_id}] Gemini web search error: {gen_err}")
-            ai_message = ""
-
-        # Filter sources to credible medical domains only.
-        kept_sources = filter_sources(raw_sources)
-        audit_log(request_id, raw_sources, kept_sources)
-
-        # If no credible source survived the filter, refuse per spec FR-9.
-        if not kept_sources:
-            refusal = refuse_message(detected_lang)
-            log_chat_interaction(
-                session_id=session_id,
-                user_message=message,
-                bot_response=refusal,
-                user_id=user_id,
-                flagged=False,
-                language=detected_lang,
-            )
-            return jsonify({
-                "success": True,
-                "message": refusal,
-                "language": detected_lang,
-                "grounded": False,
-                "sources": [],
-                "evidence_only": True,
-                "session_id": session_id,
-            })
-
-        # We have credible sources; finalise the answer with a numbered Sources block.
-        if not ai_message:
-            ai_message = (
-                "I couldn't generate a synthesised answer, but credible sources for your query are listed below."
-                if detected_lang == "en"
-                else "میں مختصر جواب تیار نہیں کر سکا، لیکن متعلقہ مستند ذرائع نیچے دیے گئے ہیں۔"
-            )
-
-        kept_sources = kept_sources[:5]
-        ai_message = inject_citations(ai_message, kept_sources, detected_lang)
-
-        disclaimer = DISCLAIMER_UR if detected_lang == "ur" else DISCLAIMER_EN
-        if DISCLAIMER_EN not in ai_message and DISCLAIMER_UR not in ai_message:
-            ai_message = f"{ai_message}\n\n{disclaimer}"
+        result = run_evidence_search(message, detected_lang, request_id)
 
         log_chat_interaction(
             session_id=session_id,
             user_message=message,
-            bot_response=ai_message,
+            bot_response=result["message"],
             user_id=user_id,
             flagged=False,
             language=detected_lang,
@@ -700,11 +734,11 @@ def web_search_chat():
 
         return jsonify({
             "success": True,
-            "message": ai_message,
+            "message": result["message"],
             "language": detected_lang,
-            "grounded": grounded,
-            "sources": kept_sources,
-            "evidence_only": True,
+            "grounded": result.get("grounded", False),
+            "sources": result.get("sources", []),
+            "evidence_only": result.get("evidence_only", True),
             "session_id": session_id,
         })
 

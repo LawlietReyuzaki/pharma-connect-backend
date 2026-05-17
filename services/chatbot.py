@@ -264,10 +264,13 @@ def generate_response(text: str, prefer_urdu=None, session_id=None, lang="auto",
 
     # 2. Emergency check — skip Gemini, respond immediately
     if needs_escalation(text):
+        cta_label = "Book a consultation" if detected_lang == "en" else "ڈاکٹر سے رابطہ"
         return {
             "message": get_emergency_response(detected_lang),
             "flagged": True,
             "needs_doctor": True,
+            "red_flag": True,
+            "cta": {"label": cta_label, "url": "/consultation"},
             "medicines": [],
             "suggested_medicines": [],
             "language": detected_lang,
