@@ -211,6 +211,79 @@ def pharmacist_consult():
         return jsonify({"success": False, "error": "Pharmacist consultation unavailable. Please try again."}), 500
 
 
+@bp.route("/images", methods=["POST"])
+def images():
+    """
+    POST /api/chat/images — Phase 5 Image Retrieval Sub-Agent.
+
+    Returns 2–4 reference page links from a credible medical-image allow-list
+    (DermNet NZ, Radiopaedia, CDC PHIL, MSD Manuals, Mayo, NHS, AAO, etc.)
+    for queries about visually-identifiable conditions.
+
+    Body:  { "query": "rash that could be dengue or chicken pox",
+             "lang": "auto"|"en"|"ur", "session_id": "..." }
+    Reply: { "success": true, "message": "...",
+             "image_references": [{condition, distinguishing_features,
+                                   source_title, source_url, source_domain}],
+             "session_id": "..." }
+    """
+    try:
+        from services.chatbot import detect_language
+        from services.image_agent import get_agent, ImageAgentUnavailable
+
+        try:
+            from flask import g
+            request_id = getattr(g, "request_id", "-")
+        except Exception:
+            request_id = "-"
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+
+        query = (data.get("query") or data.get("message") or "").strip()
+        if not query:
+            return jsonify({"success": False, "error": "'query' is required"}), 400
+
+        lang = data.get("lang") or data.get("language") or "auto"
+        session_id = data.get("session_id", str(uuid.uuid4()))
+        user_id = data.get("user_id")
+        detected_lang = detect_language(query) if lang == "auto" else lang
+
+        try:
+            agent = get_agent()
+            if not agent.is_ready:
+                raise ImageAgentUnavailable("agent not ready")
+            result = agent.find_images(query=query, lang=detected_lang, request_id=request_id)
+        except ImageAgentUnavailable as e:
+            logging.warning(f"[req={request_id}] ImageAgent unavailable: {e}")
+            return jsonify({
+                "success": False,
+                "error": "Image reference service unavailable. Please try again.",
+            }), 503
+
+        log_chat_interaction(
+            session_id=session_id,
+            user_message=f"[IMAGES] {query}",
+            bot_response=result["message"],
+            user_id=user_id,
+            flagged=False,
+            language=detected_lang,
+        )
+
+        return jsonify({
+            "success": True,
+            "message": result["message"],
+            "image_references": result["image_references"],
+            "language": detected_lang,
+            "session_id": session_id,
+        })
+
+    except Exception as e:
+        logging.exception(f"Image retrieval error: {e}")
+        return jsonify({"success": False, "error": "Image retrieval unavailable. Please try again."}), 500
+
+
 @bp.route("/substitute", methods=["POST"])
 def substitute():
     """
