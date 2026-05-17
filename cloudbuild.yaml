@@ -33,15 +33,12 @@ steps:
         sed -i 's|src="/assets/|src="/admin-panel/assets/|g; s|href="/assets/|href="/admin-panel/assets/|g' static/admin-panel/index.html
 
   # Step 6: Build Docker image
-  # Passes _GEMINI_API_KEY (Cloud Build substitution) as a build-arg so the
-  # Dockerfile can bake the Chroma catalog embeddings into the image. If the
-  # substitution is empty, the Dockerfile step prints a warning and the runtime
-  # falls back to the legacy keyword search.
+  # Chroma catalog embeddings are NOT baked into the image; they are built
+  # by services/catalog_agent.py at first startup using the runtime
+  # GEMINI_API_KEY env var (~3-5 min, one-time per deploy).
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
-      - '--build-arg'
-      - 'GEMINI_API_KEY=${_GEMINI_API_KEY}'
       - '-t'
       - 'us-west1-docker.pkg.dev/$PROJECT_ID/pharma-connect/app:$COMMIT_SHA'
       - '-t'
@@ -74,9 +71,6 @@ steps:
 images:
   - 'us-west1-docker.pkg.dev/$PROJECT_ID/pharma-connect/app:$COMMIT_SHA'
   - 'us-west1-docker.pkg.dev/$PROJECT_ID/pharma-connect/app:latest'
-
-substitutions:
-  _GEMINI_API_KEY: ""  # Set via Cloud Build trigger UI; if empty, embeddings are not baked into image (runtime falls back to legacy keyword search)
 
 options:
   logging: CLOUD_LOGGING_ONLY
