@@ -214,16 +214,32 @@ def pharmacist_consult():
 @bp.route("/web-search", methods=["POST"])
 def web_search_chat():
     """
-    POST /api/chat/web-search
-    Uses Gemini (google-genai) with Google Search grounding for real-time web answers.
+    POST /api/chat/web-search — Phase 2 Evidence Sub-Agent.
 
-    Body: { "message": "...", "lang": "en"|"ur", "session_id": "..." }
-    Response: { "success": true, "message": "...", "grounded": true, "sources": [...] }
+    Uses Gemini google.genai SDK with Google Search grounding, then enforces
+    a credible-medical-sources allow-list. If no allow-listed source is
+    returned, refuses with a clear "no credible source" message rather than
+    falling back to ungrounded AI knowledge.
+
+    Body:  { "message": "...", "lang": "en"|"ur", "session_id": "..." }
+    Reply: { "success": true, "message": "<answer + Sources block>",
+             "grounded": true, "sources": [{title, url}], "evidence_only": true }
     """
     try:
-        from services.chatbot import GEMINI_TEMPERATURE, detect_language, GEMINI_MODEL
-        from services.chatbot import MEDICAL_SYSTEM_PROMPT, MEDICAL_SYSTEM_PROMPT_URDU
-        from services.chatbot import DISCLAIMER_EN, DISCLAIMER_UR, needs_escalation, get_emergency_response
+        from services.chatbot import (
+            GEMINI_TEMPERATURE, detect_language, GEMINI_MODEL,
+            MEDICAL_CONSULTANT_PROMPT_EN, MEDICAL_CONSULTANT_PROMPT_UR,
+            DISCLAIMER_EN, DISCLAIMER_UR, needs_escalation, get_emergency_response,
+        )
+        from services.evidence import (
+            filter_sources, inject_citations, refuse_message, source_instructions, audit_log,
+        )
+
+        try:
+            from flask import g
+            request_id = getattr(g, "request_id", "-")
+        except Exception:
+            request_id = "-"
 
         data = request.get_json()
         if not data:
@@ -245,7 +261,7 @@ def web_search_chat():
                 "message": get_emergency_response(detected_lang),
                 "grounded": False,
                 "sources": [],
-                "session_id": session_id
+                "session_id": session_id,
             })
 
         api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
@@ -256,11 +272,15 @@ def web_search_chat():
         from google.genai import types as genai_types
 
         client = new_genai.Client(api_key=api_key)
-        system_prompt = MEDICAL_SYSTEM_PROMPT_URDU if detected_lang == "ur" else MEDICAL_SYSTEM_PROMPT
-        full_prompt = f"{system_prompt}\n\nUser: {message}\n\nAssistant:"
+        consultant_prompt = MEDICAL_CONSULTANT_PROMPT_UR if detected_lang == "ur" else MEDICAL_CONSULTANT_PROMPT_EN
+        full_prompt = (
+            f"{consultant_prompt}\n\n"
+            f"{source_instructions(detected_lang)}\n\n"
+            f"User: {message}\n\nAssistant:"
+        )
 
         ai_message = ""
-        sources = []
+        raw_sources = []
         grounded = False
 
         try:
@@ -270,29 +290,60 @@ def web_search_chat():
                 config=genai_types.GenerateContentConfig(
                     tools=[genai_types.Tool(google_search=genai_types.GoogleSearch())],
                     max_output_tokens=1024,
-                    temperature=GEMINI_TEMPERATURE
-                )
+                    temperature=GEMINI_TEMPERATURE,
+                ),
             )
 
             ai_message = response.text.strip() if response.text else ""
 
-            # Extract grounding sources
             if response.candidates and response.candidates[0].grounding_metadata:
                 grounded = True
                 gm = response.candidates[0].grounding_metadata
                 for chunk in (gm.grounding_chunks or []):
                     if chunk.web:
-                        sources.append({
+                        raw_sources.append({
                             "title": getattr(chunk.web, "title", "") or "",
-                            "url": getattr(chunk.web, "uri", "") or ""
+                            "url": getattr(chunk.web, "uri", "") or "",
                         })
-
         except Exception as gen_err:
-            logging.error(f"Gemini web search error: {gen_err}")
+            logging.error(f"[req={request_id}] Gemini web search error: {gen_err}")
             ai_message = ""
 
+        # Filter sources to credible medical domains only.
+        kept_sources = filter_sources(raw_sources)
+        audit_log(request_id, raw_sources, kept_sources)
+
+        # If no credible source survived the filter, refuse per spec FR-9.
+        if not kept_sources:
+            refusal = refuse_message(detected_lang)
+            log_chat_interaction(
+                session_id=session_id,
+                user_message=message,
+                bot_response=refusal,
+                user_id=user_id,
+                flagged=False,
+                language=detected_lang,
+            )
+            return jsonify({
+                "success": True,
+                "message": refusal,
+                "language": detected_lang,
+                "grounded": False,
+                "sources": [],
+                "evidence_only": True,
+                "session_id": session_id,
+            })
+
+        # We have credible sources; finalise the answer with a numbered Sources block.
         if not ai_message:
-            ai_message = "I couldn't get a web search result right now. Please try again."
+            ai_message = (
+                "I couldn't generate a synthesised answer, but credible sources for your query are listed below."
+                if detected_lang == "en"
+                else "میں مختصر جواب تیار نہیں کر سکا، لیکن متعلقہ مستند ذرائع نیچے دیے گئے ہیں۔"
+            )
+
+        kept_sources = kept_sources[:5]
+        ai_message = inject_citations(ai_message, kept_sources, detected_lang)
 
         disclaimer = DISCLAIMER_UR if detected_lang == "ur" else DISCLAIMER_EN
         if DISCLAIMER_EN not in ai_message and DISCLAIMER_UR not in ai_message:
@@ -304,7 +355,7 @@ def web_search_chat():
             bot_response=ai_message,
             user_id=user_id,
             flagged=False,
-            language=detected_lang
+            language=detected_lang,
         )
 
         return jsonify({
@@ -312,12 +363,13 @@ def web_search_chat():
             "message": ai_message,
             "language": detected_lang,
             "grounded": grounded,
-            "sources": sources[:5],
-            "session_id": session_id
+            "sources": kept_sources,
+            "evidence_only": True,
+            "session_id": session_id,
         })
 
     except Exception as e:
-        logging.error(f"Web search chat error: {e}")
+        logging.exception(f"Web search chat error: {e}")
         return jsonify({"success": False, "error": "Web search unavailable. Please try again."}), 500
 
 
