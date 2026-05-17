@@ -39,21 +39,23 @@ def medicine_to_text(m: dict) -> str:
     return " | ".join(p for p in parts if p)
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--rebuild", action="store_true", help="Wipe existing collection")
-    parser.add_argument("--only-in-stock", action="store_true", default=True)
-    args = parser.parse_args()
+def build_catalog(rebuild: bool = False, only_in_stock: bool = True) -> int:
+    """
+    Build / refresh the Chroma medicines collection. Importable so the
+    CatalogAgent can call it as a background warmup at runtime when
+    the collection is missing.
 
+    Returns: final medicine count in the collection.
+    """
     if not os.path.exists(SOURCE_JSON):
         log.error(f"Source file not found: {SOURCE_JSON}")
-        sys.exit(1)
+        return 0
 
     with open(SOURCE_JSON, "r", encoding="utf-8") as f:
         medicines = json.load(f)
     log.info(f"Loaded {len(medicines)} medicines from {SOURCE_JSON}")
 
-    if args.only_in_stock:
+    if only_in_stock:
         medicines = [m for m in medicines if (m.get("status") or "in_stock") == "in_stock"]
         log.info(f"Filtered to in-stock: {len(medicines)} remain")
 
@@ -62,7 +64,7 @@ def main():
     import chromadb
     client = chromadb.PersistentClient(path=CHROMA_DIR)
 
-    if args.rebuild:
+    if rebuild:
         try:
             client.delete_collection(COLLECTION_NAME)
             log.info("Wiped existing collection")
@@ -82,7 +84,7 @@ def main():
 
     if not todo:
         log.info("Nothing to do — collection up to date")
-        return
+        return col.count()
 
     start = time.time()
     for i in range(0, len(todo), BATCH):
@@ -112,6 +114,18 @@ def main():
         log.info(f"  {done}/{len(todo)} embedded ({rate:.1f}/s, eta {eta:.0f}s)")
 
     log.info(f"Done in {time.time() - start:.1f}s. Final count: {col.count()}")
+    return col.count()
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--rebuild", action="store_true", help="Wipe existing collection")
+    parser.add_argument("--only-in-stock", action="store_true", default=True)
+    args = parser.parse_args()
+    if not os.path.exists(SOURCE_JSON):
+        log.error(f"Source file not found: {SOURCE_JSON}")
+        sys.exit(1)
+    build_catalog(rebuild=args.rebuild, only_in_stock=args.only_in_stock)
 
 
 if __name__ == "__main__":

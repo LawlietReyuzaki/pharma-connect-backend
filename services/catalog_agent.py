@@ -15,6 +15,7 @@ import os
 import json
 import logging
 import time
+import threading
 from typing import Dict, List, Optional
 
 CHROMA_DIR = os.path.join(
@@ -48,6 +49,8 @@ class CatalogAgent:
         self._client = None
         self._ready = False
         self._init_error: Optional[str] = None
+        self._build_started = False
+        self._build_lock = threading.Lock()
         self._initialize()
 
     def _initialize(self):
@@ -58,19 +61,71 @@ class CatalogAgent:
             if not api_key:
                 raise RuntimeError("GEMINI_API_KEY not set")
             if not os.path.isdir(self.chroma_dir):
-                raise RuntimeError(f"Chroma dir not found: {self.chroma_dir}")
+                os.makedirs(self.chroma_dir, exist_ok=True)
 
             chroma_client = chromadb.PersistentClient(path=self.chroma_dir)
-            self._col = chroma_client.get_collection(COLLECTION_NAME)
-            if self._col.count() == 0:
-                raise RuntimeError("Chroma collection is empty — run build_catalog_embeddings.py")
+            try:
+                self._col = chroma_client.get_collection(COLLECTION_NAME)
+            except Exception:
+                self._col = chroma_client.get_or_create_collection(
+                    name=COLLECTION_NAME, metadata={"hnsw:space": "cosine"},
+                )
+
+            count = 0
+            try:
+                count = self._col.count()
+            except Exception:
+                pass
 
             self._client = genai.Client(api_key=api_key)
+
+            if count == 0:
+                # Self-heal: launch a one-shot background build using the
+                # runtime GEMINI_API_KEY. Until the build finishes, the agent
+                # stays not-ready and chatbot.py falls back to the legacy
+                # keyword path.
+                logging.warning(
+                    "CatalogAgent: Chroma collection empty — starting background "
+                    "embedding build (this takes ~3-5 min on first start)."
+                )
+                self._start_background_build()
+                raise RuntimeError("Chroma collection is empty — background build started")
+
             self._ready = True
-            logging.info(f"CatalogAgent ready — {self._col.count()} medicines indexed")
+            logging.info(f"CatalogAgent ready — {count} medicines indexed")
         except Exception as e:
             self._init_error = str(e)
-            logging.warning(f"CatalogAgent unavailable: {e}")
+            logging.warning(f"CatalogAgent not ready yet: {e}")
+
+    def _start_background_build(self):
+        with self._build_lock:
+            if self._build_started:
+                return
+            self._build_started = True
+        t = threading.Thread(target=self._do_build, name="catalog-embed-build", daemon=True)
+        t.start()
+
+    def _do_build(self):
+        try:
+            from scripts.build_catalog_embeddings import build_catalog
+            count = build_catalog(rebuild=False, only_in_stock=True)
+            logging.info(f"CatalogAgent: background build complete, {count} medicines indexed")
+            try:
+                # Reopen the collection now that it's populated.
+                import chromadb
+                client = chromadb.PersistentClient(path=self.chroma_dir)
+                self._col = client.get_collection(COLLECTION_NAME)
+                self._ready = True
+                self._init_error = None
+                logging.info("CatalogAgent: now ready (post-build)")
+            except Exception as e:
+                logging.error(f"CatalogAgent: post-build collection open failed: {e}")
+        except Exception as e:
+            logging.exception(f"CatalogAgent: background build failed: {e}")
+            self._init_error = f"background build failed: {e}"
+            # Allow a future retry on the next process restart.
+            with self._build_lock:
+                self._build_started = False
 
     @property
     def is_ready(self) -> bool:
