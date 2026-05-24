@@ -210,23 +210,19 @@ Respond ONLY with JSON:
         from services.catalog_agent import get_agent
         agent = get_agent()
         if not agent.is_ready:
-            # Catalog Chroma index still warming up (or unavailable). Fall
-            # through to the legacy Gemini path so we still respond — never
-            # show a "service unavailable" message for normal chat turns.
-            try:
-                from services.chatbot import generate_response
-                legacy = generate_response(
-                    text=msg, lang=lang, session_id=request_id, mode=mode,
-                )
-                return {
-                    "intent": intent,
-                    "message": legacy.get("message", self._fallback_text(lang)),
-                    "medicines": legacy.get("medicines", []),
-                    "needs_doctor": legacy.get("needs_doctor", False),
-                }
-            except Exception as e:
-                logging.exception(f"[req={request_id}] legacy fallback also failed: {e}")
-                return {"intent": intent, "message": self._fallback_text(lang), "medicines": []}
+            # Catalog Chroma index still warming up (or unavailable).
+            # IMPORTANT: do NOT route through services.chatbot.generate_response
+            # — that path uses the legacy keyword-LIKE grep which produces
+            # garbage cards (e.g. Britanyl for "depression"). During the warm-up
+            # window we answer with a clean Gemini chat call and return ZERO
+            # medicine cards. Once the Chroma background build completes,
+            # agent.is_ready flips True and real recommendations resume.
+            text = self._direct_gemini_chat(msg, lang, mode, pharmacy_name, request_id)
+            return {
+                "intent": intent,
+                "message": text,
+                "medicines": [],   # never legacy cards
+            }
         result = agent.recommend(
             user_message=msg, lang=lang, mode=mode,
             pharmacy_name=pharmacy_name, request_id=request_id,
@@ -236,6 +232,63 @@ Respond ONLY with JSON:
             "message": result["message"],
             "medicines": result["medicines"],
         }
+
+    def _direct_gemini_chat(self, msg: str, lang: str, mode: str, pharmacy_name: str, request_id: str) -> str:
+        """
+        Clean Gemini chat call with the medical-consultant prompt — NO
+        catalog grep, NO medicines array. Used while CatalogAgent is
+        warming up or unavailable.
+        """
+        try:
+            from services.chatbot import (
+                MEDICAL_CONSULTANT_PROMPT_EN, MEDICAL_CONSULTANT_PROMPT_UR,
+            )
+            try:
+                from services.pharmacist_knowledge import (
+                    PHARMACIST_SYSTEM_PROMPT_EN, PHARMACIST_SYSTEM_PROMPT_UR,
+                )
+            except Exception:
+                PHARMACIST_SYSTEM_PROMPT_EN = MEDICAL_CONSULTANT_PROMPT_EN
+                PHARMACIST_SYSTEM_PROMPT_UR = MEDICAL_CONSULTANT_PROMPT_UR
+
+            if mode == "pharmacist":
+                system_prompt = PHARMACIST_SYSTEM_PROMPT_UR if lang == "ur" else PHARMACIST_SYSTEM_PROMPT_EN
+            else:
+                system_prompt = MEDICAL_CONSULTANT_PROMPT_UR if lang == "ur" else MEDICAL_CONSULTANT_PROMPT_EN
+
+            if pharmacy_name and pharmacy_name != "Red Dot Pharmacy":
+                system_prompt = system_prompt.replace("Red Dot Pharmacy", pharmacy_name)
+
+            # Add a brief note that the medicine catalogue search is still warming up
+            # so the model knows not to fabricate medicine names with prices.
+            warmup_note = (
+                "Note: the pharmacy catalogue index is still warming up, so do "
+                "NOT list specific medicines or prices from any database. "
+                "Answer conversationally; mention that the user can ask again "
+                "in a moment for product details, or visit the pharmacy in "
+                "person."
+                if lang == "en" else
+                "نوٹ: فارمیسی کیٹلاگ ابھی تیار ہو رہا ہے۔ کسی مخصوص دوائی کا نام "
+                "یا قیمت نہ بتائیں۔ صرف عمومی جواب دیں اور صارف کو کہیں کہ تھوڑی "
+                "دیر بعد دوبارہ پوچھیں یا فارمیسی تشریف لائیں۔"
+            )
+            system_prompt = f"{system_prompt}\n\n{warmup_note}"
+
+            from google.genai import types as genai_types
+            response = self._client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=f"{system_prompt}\n\nUser: {msg}\n\nAssistant:",
+                config=genai_types.GenerateContentConfig(
+                    max_output_tokens=600,
+                    temperature=0.5,
+                ),
+            )
+            text = (response.text or "").strip()
+            if text:
+                return text
+        except Exception as e:
+            logging.exception(f"[req={request_id}] direct Gemini chat failed: {e}")
+        return self._fallback_text(lang)
 
     def _call_clinical(self, msg, lang, user_role, request_id):
         from services.clinical_agent import get_agent
