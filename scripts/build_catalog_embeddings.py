@@ -1,27 +1,35 @@
 """
-Build / refresh the catalog Chroma collection from medicines_export.json.
+Build / refresh the catalog Chroma collection.
+
+Reads from the SQLite/Postgres DB (medicines table) and embeds each medicine's
+`clinical_use` paragraph + name + chemical. The vector store is then queried
+by the RAG pipeline (services/catalog_agent.py) to fetch correct medicines for
+a user query.
 
 Usage:
   python scripts/build_catalog_embeddings.py            # incremental (skip existing)
   python scripts/build_catalog_embeddings.py --rebuild  # wipe and rebuild
 
-Reads:  medicines_export.json (committed to repo)
-Writes: data/catalog_chroma/  (gitignored — baked into Docker image)
+Reads:  medicines table (clinical_use column)
+Writes: data/catalog_chroma/  (gitignored)
 """
 import os
 import sys
-import json
 import time
 import argparse
 import logging
+import sqlite3
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
+from dotenv import load_dotenv
+load_dotenv(os.path.join(ROOT, ".env"))
+
 from services.embeddings import embed_batch, EMBED_DIM  # noqa: E402
 
 CHROMA_DIR = os.path.join(ROOT, "data", "catalog_chroma")
-SOURCE_JSON = os.path.join(ROOT, "medicines_export.json")
+DB_PATH = os.path.join(ROOT, "instance", "red_dot_pharmacy.db")
 COLLECTION_NAME = "medicines"
 BATCH = 50
 
@@ -29,35 +37,99 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger("build_catalog_embeddings")
 
 
-def medicine_to_text(m: dict) -> str:
-    parts = [
-        m.get("name", ""),
-        m.get("chemical") or "",
-        m.get("category") or "",
-        (m.get("description") or "")[:500],
-    ]
+JUNK_CU_MARKERS = (
+    "insufficient information",
+    "consult a pharmacist for specific use",
+    "consult a pharmacist.",
+)
+
+
+def _is_junk_cu(text: str) -> bool:
+    if not text:
+        return True
+    t = text.lower().strip()
+    return any(t.startswith(m) for m in JUNK_CU_MARKERS) or len(t) < 30
+
+
+def _fetch_medicines(only_in_stock: bool = True) -> list:
+    """Fetch all medicines from the local SQLite DB with clinical_use."""
+    if not os.path.exists(DB_PATH):
+        log.error(f"DB not found: {DB_PATH}")
+        return []
+    con = sqlite3.connect(DB_PATH)
+    cur = con.cursor()
+    q = "SELECT id, name, chemical, category, price, status, clinical_use FROM medicines"
+    if only_in_stock:
+        q += " WHERE status = 'in_stock' OR status IS NULL"
+    cur.execute(q)
+    rows = cur.fetchall()
+    con.close()
+    medicines = []
+    skipped_junk = 0
+    for r in rows:
+        cu = r[6] or ""
+        if _is_junk_cu(cu):
+            skipped_junk += 1
+            continue
+        medicines.append({
+            "id": r[0],
+            "name": r[1] or "",
+            "chemical": r[2] or "",
+            "category": r[3] or "",
+            "price": r[4] or 0,
+            "status": r[5] or "in_stock",
+            "clinical_use": cu,
+        })
+    log.info(f"Skipped {skipped_junk} rows with junk/empty clinical_use")
+    return medicines
+
+
+import re as _re
+
+_NEG_RE = _re.compile(
+    r"(?:^|\.\s+)\s*NOT\s+(?:used|recommended|indicated|for|prescribed)[^.]*\.",
+    flags=_re.IGNORECASE,
+)
+
+
+def _strip_negations(text: str) -> str:
+    """
+    Strip 'NOT used for ...' sentences from clinical_use so embeddings don't
+    contain anti-uses that would falsely match queries via the negated terms.
+    The full text stays in the DB for the LLM ranker which understands negation.
+    """
+    if not text:
+        return text
+    cleaned = _NEG_RE.sub(". ", text)
+    cleaned = _re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
+
+
+def medicine_to_embedding_text(m: dict) -> str:
+    """
+    Text that gets embedded for this medicine.
+    Includes brand name + chemical (so brand-name queries still match).
+    Then the POSITIVE part of clinical_use (NOT-FOR sentence stripped).
+    """
+    parts = [m.get("name", ""), m.get("chemical") or ""]
+    cu = m.get("clinical_use") or ""
+    if cu:
+        parts.append(_strip_negations(cu))
+    else:
+        parts.append(m.get("category") or "")
     return " | ".join(p for p in parts if p)
 
 
 def build_catalog(rebuild: bool = False, only_in_stock: bool = True) -> int:
     """
-    Build / refresh the Chroma medicines collection. Importable so the
-    CatalogAgent can call it as a background warmup at runtime when
-    the collection is missing.
-
+    Build / refresh the Chroma medicines collection from the DB.
     Returns: final medicine count in the collection.
     """
-    if not os.path.exists(SOURCE_JSON):
-        log.error(f"Source file not found: {SOURCE_JSON}")
-        return 0
-
-    with open(SOURCE_JSON, "r", encoding="utf-8") as f:
-        medicines = json.load(f)
-    log.info(f"Loaded {len(medicines)} medicines from {SOURCE_JSON}")
-
-    if only_in_stock:
-        medicines = [m for m in medicines if (m.get("status") or "in_stock") == "in_stock"]
-        log.info(f"Filtered to in-stock: {len(medicines)} remain")
+    medicines = _fetch_medicines(only_in_stock=only_in_stock)
+    log.info(f"Loaded {len(medicines)} medicines from DB ({DB_PATH})")
+    with_cu = sum(1 for m in medicines if m["clinical_use"])
+    log.info(f"  with clinical_use:    {with_cu}")
+    log.info(f"  without clinical_use: {len(medicines) - with_cu}")
 
     os.makedirs(CHROMA_DIR, exist_ok=True)
 
@@ -89,7 +161,7 @@ def build_catalog(rebuild: bool = False, only_in_stock: bool = True) -> int:
     start = time.time()
     for i in range(0, len(todo), BATCH):
         batch = todo[i:i + BATCH]
-        texts = [medicine_to_text(m) for m in batch]
+        texts = [medicine_to_embedding_text(m) for m in batch]
         try:
             vectors = embed_batch(texts)
         except Exception as e:
@@ -120,12 +192,9 @@ def build_catalog(rebuild: bool = False, only_in_stock: bool = True) -> int:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--rebuild", action="store_true", help="Wipe existing collection")
-    parser.add_argument("--only-in-stock", action="store_true", default=True)
+    parser.add_argument("--all", action="store_true", help="Include out-of-stock items too")
     args = parser.parse_args()
-    if not os.path.exists(SOURCE_JSON):
-        log.error(f"Source file not found: {SOURCE_JSON}")
-        sys.exit(1)
-    build_catalog(rebuild=args.rebuild, only_in_stock=args.only_in_stock)
+    build_catalog(rebuild=args.rebuild, only_in_stock=not args.all)
 
 
 if __name__ == "__main__":

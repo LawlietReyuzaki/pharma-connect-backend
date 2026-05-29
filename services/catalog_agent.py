@@ -1,28 +1,22 @@
 """
 Catalog Sub-Agent — Phase 1 of the multi-agent rewrite.
 
-Flow:
-  1. Embed the user's message
-  2. Vector-search the Chroma `medicines` collection for top-K candidates
-  3. Inject candidates into a single Gemini call with structured-JSON output
-  4. Validate returned ids against the candidate set
-  5. Return { message, medicines, audit }
-
-If Chroma or Gemini fails, raises CatalogAgentUnavailable so the caller can
-fall back to the legacy keyword path.
+Flow (RAG, no SQL keyword grep):
+  1. Enhance the user's message via Gemini Flash (synonyms, drug class, generics)
+  2. Embed the enhanced query (Gemini gemini-embedding-001, RETRIEVAL_QUERY)
+  3. Vector-search Pinecone index `reddot-medicines` for top-K candidates
+  4. Pull full medicine rows from the DB for the candidate IDs
+  5. Send candidates to a Gemini LLM ranker with structured-JSON output
+  6. Validate returned ids against the candidate set
+  7. Return { message, medicines, audit }
 """
 import os
 import json
 import logging
 import time
-import threading
 from typing import Dict, List, Optional
 
-CHROMA_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "data", "catalog_chroma",
-)
-COLLECTION_NAME = "medicines"
+PINECONE_INDEX = os.getenv("PINECONE_INDEX", "reddot-medicines")
 TOP_K = 50
 MAX_RECOMMENDED = 4
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
@@ -43,89 +37,51 @@ def get_agent() -> "CatalogAgent":
 
 
 class CatalogAgent:
-    def __init__(self, chroma_dir: str = CHROMA_DIR):
-        self.chroma_dir = chroma_dir
-        self._col = None
+    def __init__(self, index_name: str = PINECONE_INDEX):
+        self.index_name = index_name
+        self._index = None
         self._client = None
         self._ready = False
         self._init_error: Optional[str] = None
-        self._build_started = False
-        self._build_lock = threading.Lock()
         self._initialize()
 
     def _initialize(self):
         try:
-            import chromadb
             from google import genai
-            api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-            if not api_key:
+            from pinecone import Pinecone
+
+            gemini_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+            if not gemini_key:
                 raise RuntimeError("GEMINI_API_KEY not set")
-            if not os.path.isdir(self.chroma_dir):
-                os.makedirs(self.chroma_dir, exist_ok=True)
+            pine_key = os.environ.get("PINECONE_API_KEY")
+            if not pine_key:
+                raise RuntimeError("PINECONE_API_KEY not set")
 
-            chroma_client = chromadb.PersistentClient(path=self.chroma_dir)
-            try:
-                self._col = chroma_client.get_collection(COLLECTION_NAME)
-            except Exception:
-                self._col = chroma_client.get_or_create_collection(
-                    name=COLLECTION_NAME, metadata={"hnsw:space": "cosine"},
+            self._client = genai.Client(api_key=gemini_key)
+
+            pc = Pinecone(api_key=pine_key)
+            names = [i.name for i in pc.list_indexes()]
+            if self.index_name not in names:
+                raise RuntimeError(
+                    f"Pinecone index '{self.index_name}' missing. "
+                    f"Available: {names}"
                 )
+            self._index = pc.Index(self.index_name)
 
-            count = 0
-            try:
-                count = self._col.count()
-            except Exception:
-                pass
-
-            self._client = genai.Client(api_key=api_key)
-
+            stats = self._index.describe_index_stats()
+            count = stats.get("total_vector_count", 0)
+            dim = stats.get("dimension", 0)
             if count == 0:
-                # Self-heal: launch a one-shot background build using the
-                # runtime GEMINI_API_KEY. Until the build finishes, the agent
-                # stays not-ready and chatbot.py falls back to the legacy
-                # keyword path.
-                logging.warning(
-                    "CatalogAgent: Chroma collection empty — starting background "
-                    "embedding build (this takes ~3-5 min on first start)."
+                raise RuntimeError(
+                    f"Pinecone index '{self.index_name}' is empty. "
+                    "Run scripts/migrate_chroma_to_pinecone.py first."
                 )
-                self._start_background_build()
-                raise RuntimeError("Chroma collection is empty — background build started")
 
             self._ready = True
-            logging.info(f"CatalogAgent ready — {count} medicines indexed")
+            logging.info(f"CatalogAgent ready — Pinecone '{self.index_name}' has {count} vectors (dim={dim})")
         except Exception as e:
             self._init_error = str(e)
             logging.warning(f"CatalogAgent not ready yet: {e}")
-
-    def _start_background_build(self):
-        with self._build_lock:
-            if self._build_started:
-                return
-            self._build_started = True
-        t = threading.Thread(target=self._do_build, name="catalog-embed-build", daemon=True)
-        t.start()
-
-    def _do_build(self):
-        try:
-            from scripts.build_catalog_embeddings import build_catalog
-            count = build_catalog(rebuild=False, only_in_stock=True)
-            logging.info(f"CatalogAgent: background build complete, {count} medicines indexed")
-            try:
-                # Reopen the collection now that it's populated.
-                import chromadb
-                client = chromadb.PersistentClient(path=self.chroma_dir)
-                self._col = client.get_collection(COLLECTION_NAME)
-                self._ready = True
-                self._init_error = None
-                logging.info("CatalogAgent: now ready (post-build)")
-            except Exception as e:
-                logging.error(f"CatalogAgent: post-build collection open failed: {e}")
-        except Exception as e:
-            logging.exception(f"CatalogAgent: background build failed: {e}")
-            self._init_error = f"background build failed: {e}"
-            # Allow a future retry on the next process restart.
-            with self._build_lock:
-                self._build_started = False
 
     @property
     def is_ready(self) -> bool:
@@ -144,32 +100,40 @@ class CatalogAgent:
 
         from services.embeddings import embed_one
         from services.medicine_rag import format_medicine_response
+        from services.query_rewriter import enhance_query
 
+        # 1. Enhance the user query (expand with synonyms / drug classes / generics)
         t0 = time.time()
-        # 1. Embed query
-        q_vec = embed_one(user_message)
+        enhanced = enhance_query(user_message)
+        t_enhance = time.time() - t0
+
+        # 2. Embed the ENHANCED query
+        t0 = time.time()
+        q_vec = embed_one(enhanced)
         t_embed = time.time() - t0
 
-        # 2. Vector search top-K
+        # 3. Vector search top-K in Pinecone
         t0 = time.time()
-        hits = self._col.query(
-            query_embeddings=[q_vec],
-            n_results=TOP_K,
-            include=["metadatas", "distances"],
+        result = self._index.query(
+            vector=q_vec,
+            top_k=TOP_K,
+            include_metadata=True,
         )
         t_search = time.time() - t0
-        ids = hits["ids"][0] if hits.get("ids") else []
-        metadatas = hits["metadatas"][0] if hits.get("metadatas") else []
+
+        matches = result.get("matches", []) or []
         candidates = []
-        for cid, md in zip(ids, metadatas):
+        for m in matches:
             try:
+                md = m.get("metadata") or {}
                 candidates.append({
-                    "id": int(cid),
+                    "id": int(m["id"]),
                     "name": md.get("name", ""),
                     "chemical": md.get("chemical", ""),
                     "category": md.get("category", ""),
                     "price": int(md.get("price") or 0),
                     "status": md.get("status", "in_stock"),
+                    "score": float(m.get("score") or 0.0),
                 })
             except Exception:
                 continue
@@ -182,6 +146,7 @@ class CatalogAgent:
                     "request_id": request_id,
                     "candidate_ids": [],
                     "recommended_ids": [],
+                    "enhance_ms": int(t_enhance * 1000),
                     "embed_ms": int(t_embed * 1000),
                     "search_ms": int(t_search * 1000),
                     "llm_ms": 0,
@@ -218,8 +183,10 @@ class CatalogAgent:
 
         audit = {
             "request_id": request_id,
+            "enhanced_query": enhanced if enhanced != user_message else None,
             "candidate_ids": [c["id"] for c in candidates],
             "recommended_ids": valid_ids,
+            "enhance_ms": int(t_enhance * 1000),
             "embed_ms": int(t_embed * 1000),
             "search_ms": int(t_search * 1000),
             "llm_ms": int(t_llm * 1000),
@@ -228,7 +195,8 @@ class CatalogAgent:
         logging.info(
             f"[req={request_id}] CatalogAgent mode={mode} "
             f"cands={len(candidates)} rec={valid_ids} "
-            f"embed_ms={audit['embed_ms']} search_ms={audit['search_ms']} llm_ms={audit['llm_ms']}"
+            f"enhance_ms={audit['enhance_ms']} embed_ms={audit['embed_ms']} "
+            f"search_ms={audit['search_ms']} llm_ms={audit['llm_ms']}"
         )
 
         return {

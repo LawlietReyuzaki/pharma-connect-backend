@@ -7,8 +7,8 @@ import time
 import logging
 from typing import List
 
-EMBED_MODEL = os.getenv("EMBED_MODEL", "text-embedding-004")
-EMBED_DIM = 768
+EMBED_MODEL = os.getenv("EMBED_MODEL", "gemini-embedding-001")
+EMBED_DIM = 768  # gemini-embedding-001 default is 3072; we force 768 for storage compactness
 
 _client = None
 
@@ -25,24 +25,48 @@ def _get_client():
     return _client
 
 
-def embed_one(text: str) -> List[float]:
-    """Embed a single string. Returns a 768-dim vector."""
+def _embed_config(task_type: str = "RETRIEVAL_DOCUMENT"):
+    from google.genai import types as genai_types
+    return genai_types.EmbedContentConfig(
+        output_dimensionality=EMBED_DIM,
+        task_type=task_type,
+    )
+
+
+def embed_one(text: str, task_type: str = "RETRIEVAL_QUERY") -> List[float]:
+    """
+    Embed a single string. Default task_type is RETRIEVAL_QUERY because
+    embed_one is mainly used at search time for user queries.
+    Returns a 768-dim vector.
+    """
     client = _get_client()
     text = (text or "").strip()
     if not text:
         return [0.0] * EMBED_DIM
-    result = client.models.embed_content(model=EMBED_MODEL, contents=text)
+    result = client.models.embed_content(
+        model=EMBED_MODEL,
+        contents=text,
+        config=_embed_config(task_type),
+    )
     return list(result.embeddings[0].values)
 
 
-def embed_batch(texts: List[str], retries: int = 3, sleep: float = 1.5) -> List[List[float]]:
-    """Embed a list of strings in one call. Retries on transient failures."""
+def embed_batch(texts: List[str], task_type: str = "RETRIEVAL_DOCUMENT",
+                retries: int = 3, sleep: float = 1.5) -> List[List[float]]:
+    """
+    Embed a list of strings in one call. Default task_type is RETRIEVAL_DOCUMENT
+    because embed_batch is mainly used at index-build time for medicine docs.
+    """
     client = _get_client()
     cleaned = [(t or "").strip() or " " for t in texts]
     last_err = None
     for attempt in range(retries):
         try:
-            result = client.models.embed_content(model=EMBED_MODEL, contents=cleaned)
+            result = client.models.embed_content(
+                model=EMBED_MODEL,
+                contents=cleaned,
+                config=_embed_config(task_type),
+            )
             return [list(e.values) for e in result.embeddings]
         except Exception as e:
             last_err = e
